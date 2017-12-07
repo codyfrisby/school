@@ -1,0 +1,78 @@
+---
+title: "Predicting Survival"
+author: "Cody Frisby"
+date: "10/21/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 'center',
+                      warning = F, message = F)
+library(xlsx)
+library(ggplot2)
+```
+
+## 1)  
+
+The table below includes a summary of the linear model.  The rightmost column includes the *pvalue* of the statistical test of each term in our model.  Those with a small *pvalue* are deemed "significant".  
+
+```{r}
+df <- read.xlsx("~/Documents/school/info3130/data/Transplant Data.xlsx", sheetIndex = 1)
+names(df) <- c("ID", "Year", "Age", "Survival", "Surgery", 
+               "Transplant", "SurvivalTime")
+
+m <- lm(SurvivalTime ~ ., data = df[-1])
+sm <- summary(m)
+temp <- sm$coefficients
+knitr::kable(temp, row.names = TRUE)
+```
+
+
+```{r}
+test <- data.frame(Year = 69, Age = 54, Survival = 0, Surgery = 1, Transplant = 0)
+p <- round(predict(m, test, interval = "prediction"), 2)
+```
+
+
+As can bee seen, **Survival** (1 means they passed away and 0 means they survived) is a significant predictor of **SurvivalTime** (this is kind of obvious), as well as **Year** of acceptance, **Surgery** (1 if they had prior surgery, 0 if not), and **Transplant** (1 if they had transplant, 0 if not).  **Intercept** test at 6766.548205 vs. 0 is also significant, but the test is whether or not the intercept is 0 so this isn't suprising.  Age of patient is not a strong indicator of **SurvivalTime**.  
+
+## 2)  
+
+Where $Age = 54$, $Year = 69$, $Survival = 0$, $Surgery = 1$, and $Transplant = 0$ the model predicts a **SurvivalTime** of `r p[1]`.  
+
+## 3)  
+
+Below is a plot of observed survival time vs. predicted.  The gray shaded area on the plot is the confidence interval.  As can be seen, the gray bar gets sider the further to the right it goes.  This means that our confidence interval is getting wider.  For the individual above, the prediction interval for their survival is $[`r p[2]`, `r p[3]`]$.  This is quite a wide interval.  Basically we are saying we are 95% confident that this individual will survive between 273 and 1636 days.  
+
+```{r}
+temp <- data.frame(observed = df$SurvivalTime, predicted = predict(m))
+## model goodness:
+meval <- lm(predicted ~ observed, data = temp)
+smeval <- summary(meval)
+# plot observed vs. predicted
+gg <- ggplot(data = temp, aes(x = observed, y = predicted)) 
+gg + geom_point() + stat_smooth(method = "lm") + xlab("Observed Survival Time") + ylab("Predicted Survial Time") + ggtitle("Observed vs. Predicted Survival Time") + theme_bw()
+```
+
+The $R^2$ value for $observed~vs.~predicted$ is $`r smeval$r.squared`$. 
+
+Furthermore, the plot of the model's residuals vs. the predicted values is concerning.  The assumption of equality of variance is supect here.  And as the plot below shows, the model is predicting quite a few negative values for **SurvivalTime**.  If we are in need of a model that has a much smaller window of prediction confidence, this model is not it.  
+
+```{r}
+temp <- data.frame(res = m$residuals, fit = m$fitted.values)
+gg <- ggplot(data = temp, aes(x = fit, y = res))
+gg + geom_point() + xlab("Fitted Values") + ylab("Residuals") +
+  theme_bw()
+```
+
+
+## 4)  
+
+A plot of **SurvivalTime** vs. **Age** is shown below.  It appears to me to be mostly noise.  It is interesting that the largest survival times appear to be those who are middle aged.  This could be simply due to the fact that most of our observations include ages between 41 and 52.  
+
+```{r}
+gg <- ggplot(data = df, aes(x = Age, y = SurvivalTime))
+gg + geom_point() + theme_bw()
+```
+
+ 

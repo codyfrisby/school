@@ -1,0 +1,10 @@
+.Platform$GUI
+version
+sum(1:6)
+getwd()
+setwd("Documents/math4610/R")
+list.files()
+source("qsolve.R")
+ls()
+fixed.cos(10)
+fixed.cos(10)

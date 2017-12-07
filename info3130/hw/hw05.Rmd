@@ -1,0 +1,56 @@
+---
+title: "Hospitalization Data"
+author: "Cody Frisby"
+date: "9/19/2017"
+output: "pdf_document"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi = 200, message = F, warning = F)
+library(ggplot2)
+library(GGally)
+```
+
+
+
+```{r}
+library(xlsx)
+df <- read.xlsx("~/Documents/school/info3130/data/Hospitalization.xlsx", sheetIndex = 1)
+# that works :)  Finally got xlsx library to behave :) 
+#ggpairs(df)
+```
+
+
+In the dataset analyzed we have the variable **age**, **BMI**, and **previous ventilator incidents** plus the following indicator variables (1, 0): **sex**, **smoker**, **substance abuse**, **previous lung transplant**, **kidney or liver failure**, **heart disease**, and **HIV positive**.  
+
+Of the 132 individuals the mean of each variable is listed in the below table.  Surprisingly, 50% of the observations are smokers.  The subjects in this dataset appear to have a higher rate of smoking than the general public.  There are slightly more "0" than "1" for sex variable (more women than men?..info was NOT provided with the dataset).  The average age is nearly 59.  And, the mean BMI is pushing just over 29.  There are just over 1 ventilator incidents on average as well.  
+
+```{r}
+temp <- apply(df, 2, mean)
+knitr::kable(round(temp, 4))
+```
+
+Are there any significant correlations between **sex**, **age**, **BMI**, **smoker**, and **substance abuse** and the rest of the variables?  Looking at the correlation (using Spearman's method rather than Pearson's since we have indicator variables in the data for some of our variables).
+
+```{r}
+temp <- cor(df, method = "spearman")
+knitr::kable(temp[-(1:5), -(6:10)])
+```
+
+The most alarming correlations are those of **substance abuse** with **kidney or liver failure** (0.7172) and those of **smoker** with **lung transplant** (0.5917) and **heart disease** (0.6).  Surprisingly, **BMI** doesn't appear to have any significant correlation with any of the health issues in our dataset.  **BMI** does appear to have a small, positive correlation with **age** (0.1381).  
+
+
+I would definitely recommend that the doctors communicate the negative impacts that smoking and substance abuse have on health, specifically the impacts that they can have on lung disease, heart disease, and kidney/liver failure.  
+
+```{r, eval = FALSE}
+# Random Forest prediction of Kyphosis data
+df[, c(1, 4, 5, 7:10)] <- as.factor(df[, c(1, 4, 5, 7:10)])
+library(randomForest)
+fit <- randomForest(as.factor(Heart.Disease) ~ ., data = df, importance = TRUE,
+                    proximity=TRUE)
+print(fit) # view results 
+importance(fit) # importance of each predictor
+fit <- glm(Heart.Disease ~ Smoker, data = df, family = "binomial")
+plot(fit)
+```
+

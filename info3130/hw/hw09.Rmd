@@ -1,0 +1,65 @@
+---
+title: "Logistic Regression"
+author: "Cody Frisby"
+date: "10/28/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 
+                        'center', warning = F, message = F)
+library(xlsx)
+```
+
+
+```{r data prep}
+df <- read.xlsx("~/Documents/school/info3130/data/CollegeGrads.xlsx", sheetIndex = 1)
+n <- dim(df)[1]
+s <- sample(seq(1, n), 0.75 * n)
+train <- df[s, ] 
+test <- df[!(seq(1, n) %in% s), ]
+```
+
+Training the logistic model in R with a 75% random sample of the original data frame, we get the model represented in the table below.  
+
+```{r fit model}
+fit <- glm(Graduated ~ ., data = train, 
+           family = binomial(link = "logit"))
+pred <- predict(fit, test, type = "response")
+temp <- data.frame(observed = test$Graduated,
+                   predicted = ifelse(pred >= 0.5, 1, 0))
+temp$err <- ifelse(temp$observed + temp$predicted == 1, 
+                   FALSE, TRUE)
+error <- sum(temp$err == FALSE) / dim(temp)[1]
+tmp <- summary(fit)$coef
+knitr::kable(tmp)
+```
+
+
+Whether or not one or both parents graduated from college or not appears to be the strongest predictor of graduation (**Parent_Grad**).  **Gender** and **Num_Siblings** do not appear to have much influence on graduation.  **Income_Level** appears to have some influence on graduation with a *p-value* of $`r tmp[4, 4]`$.  
+
+
+The table below is what's often called a *confusion matrix*.  Essentially, it's a comparison between the observed response variable and the model's prediction of that variable.  Here I compare a simple random sample of 25% of the original data with the models predictions.  The diagonal of the matrix shows strong agreement between observed **0** and predicted **0** as well as for **1**.  It would appear that we have a miss-classification error of $`r error`$.  
+
+```{r confusion matrix}
+knitr::kable(table(temp[-3]))
+```
+
+
+When we have few enough variables in our model, I think it's interesting to visualize it.  
+
+```{r plot model}
+df <- data.frame(income = train$Income_Level, 
+                 parents = factor(train$Parent_Grad), 
+                 pred = fit$fitted.values)
+library(ggplot2)
+gg <- ggplot(data = df, aes(x = income, y = pred, 
+                            color = parents))
+gg <- gg + geom_point() + xlab("Income") +
+  ylab("Predicted") + theme_bw()
+gg + geom_smooth(method = "glm", 
+                 method.args = list(family = "binomial"), 
+                 se = F) + geom_jitter()
+```
+
+As we can see (and this would be much better if income was continuous) as income increases the prediction of graduation also increases.  We also have three different distinct lines where neither parent graduated (0), one graduated (1), or both graduated (2).  Interestingly, where both parents graduated (the blue line) it appears that the probabilities do not stray far from 1.  

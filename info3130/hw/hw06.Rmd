@@ -1,0 +1,96 @@
+---
+title: "Chapter 6"
+author: "Cody Frisby"
+date: "10/1/2017"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, warning = F, message = F, fig.align = 'center')
+```
+
+My dataset is one that includes crime data for each state, including the District of Columbia.  The crime variables include **murder**, **rape**, **robbery**, **assault**, **burglary**, **theft**, and **vehicle**.  
+
+```{r}
+df <- read.csv("~/Documents/school/info3130/data/crime.csv")
+row.names(df) <- df$X
+df$X <- NULL
+df <- df[row.names(df) != "DC", ]
+# standardize all variables:
+df_sd <- apply(df, 2, function(x) x / sd(x))
+v <- apply(df, 2, sd) # vector of scalars
+```
+
+
+```{r}
+km <- kmeans(df_sd, centers = 2)
+means <- km$centers * v
+```
+
+How do we decide the number of clusters to use when we can't visualize the data?  Sometimes the "elbow" method can work, except when there isn't a distinct "elbow" in the data.  The data here is the within groups sum of squares and we plot that against the number for k.  If there is an "elbow" in the plot, we choose that number for k.  Here it appears a "good" number for k is 2.    
+
+## R  
+
+```{r}
+wss <- rep(0, 6)
+for (i in 1:6){
+  wss[i] <- sum(kmeans(df, centers = i)$withinss)
+}
+plot(wss, type = "b", xlab = "k", ylab = "Within groups SS", 
+     xlim = c(0.9, 6.5))
+text(1:6, wss, pos = 4, round(wss), cex = 0.65)
+```
+
+If we fit the model with $k = 2$ we get the following centroids.  
+
+```{r}
+knitr::kable(round(km$centers, 2), row.names = T)
+```
+
+There are 7 variables, so we can't visualize them all together, but we can use the first two principal components to reduce our dimensions and visualize them by coloring the points by cluster to see how we did and if the result makes sense with our intuition.   
+
+**Note**: I first performed this analysis without excluding DC and without standardizing the variance of each variable.  In failing to do both these things, UT was grouped in the cluster with the highest murder rate when it actually is 11th lowest in the dataset.  
+
+```{r}
+# create the two-dimensional space with prcomp to visualze clusters
+pc <- prcomp(df_sd)
+# let's try a different plot than what's in the book
+dt <- data.frame(pc$x[,1], pc$x[,2], rownames(df_sd))
+dt$Group <- as.factor(km$cluster)
+names(dt) <- c("x", "y", "z", "Group")
+library(ggplot2); library(ggrepel)
+gg <- ggplot(data = dt, aes(x = x, y = y)) + theme_bw()
+gg <- gg + geom_text_repel(aes(label = z), size = 1.5,
+                             segment.alpha = 0.5,
+                             segment.size = 0.25)
+gg <- gg + geom_point(aes(shape = Group, colour = Group), size = 3)
+gg <- gg + xlab("PC1") + ylab("PC2") + theme(legend.title = element_blank())
+gg
+```
+
+
+```{r, eval=FALSE}
+km <- kmeans(df, centers = 2)
+temp <- km$centers
+```
+
+```{r, eval=FALSE}
+# create the two-dimensional space with prcomp to visualze clusters
+pc <- prcomp(df)
+# let's try a different plot than what's in the book
+dt <- data.frame(pc$x[,1], pc$x[,2], rownames(df))
+dt$Group <- as.factor(km$cluster)
+names(dt) <- c("x", "y", "z", "Group")
+library(ggplot2); library(ggrepel)
+gg <- ggplot(data = dt, aes(x = x, y = y)) + theme_bw()
+gg <- gg + geom_text_repel(aes(label = z), size = 1.5,
+                             segment.alpha = 0.5,
+                             segment.size = 0.25)
+gg <- gg + geom_point(aes(shape = Group, colour = Group), size = 3)
+gg <- gg + xlab("PC1") + ylab("PC2") + theme(legend.title = element_blank())
+gg
+```
+
+
+## Rapid Miner  
+

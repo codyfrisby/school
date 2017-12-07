@@ -1,0 +1,502 @@
+## Chapter 9 code
+
+### Diffusion from a sharp concentration spike ### 
+## Parameters ##
+dt=3 #Timestep,s
+dx = .1 # Distance step, cm
+D = 1e-4 # Diffusion coeff, cm^2/s
+(A = D*dt/dx^2) # Coefficient should be < 0.5 for stability 
+L=1 #Lengthfrom-L/2toL/2
+(n = L/dx + 1) # Number of grid points
+(x = seq(-L/2,L/2,dx)) # Location of grid points
+steps = 30 # Number of iterations
+(time = 0:steps)
+
+## Initialize concentrations and grid ##
+C = matrix(rep(0, (steps+1)*n), nrow = steps+1, ncol = n)
+C[1, round(n/2)] = 1/dx # Initial spike at central point
+
+## Loop and plot variables ##
+# Loop over desired number of steps #
+for(i in 1:(steps-1)) {
+# Compute new concentration profile at each time #
+  for(j in 2:(n-1)) {
+  C[i+1,j] = C[i,j] + A*(C[i,j+1] + C[i,j-1] - 2*C[i,j])
+  }
+}
+## Plot perspective view of concentration evolution
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+persp(time, x, C, theta = 45, phi = 30)
+
+###########################
+
+### Advection Equation with FTCS ###
+## Parameters ##
+dt=.002 #Timestep,s
+n = 50 # number of grid points
+L=1 #Lengthfrom-L/2toL/2,cm
+(dx = L/n) # Distance step, cm
+v=1 #Wavespeed,cm/s
+(A = v*dt/(2*dx)) # Coefficient
+(steps = L/(v*dt)) # Number of iterations
+(tw = dx/v) # Characteristic time to move one step
+time = 0:steps
+
+## Initialize concentrations and grid ##
+sig = 0.1 # Standard deviation of initial Gaussian wave 
+x = (1:n - 0.5)*dx - L/2 # Location of grid points
+amp0 = exp(-x^2/(2*sig^2)) # Initial Gaussian amplitude
+C = matrix(rep(0, (steps+1)*n), nrow = steps+1, ncol = n)
+C[1,] = amp0 # Initial concentration distribution
+
+# Periodic boundary conditions
+jplus1 = c(2:n,1)
+jminus1 = c(n,1:(n-1))
+
+## Loop and plot variables ##
+# Loop over desired number of steps #
+for(i in 1:steps) {
+  # Compute new concentration profile at each time #
+  for(j in 1:n) {
+    C[i+1,j] = C[i,j] + A*( C[i,jplus1[j]] - C[i,jminus1[j]] )
+    }
+   }
+
+## Plot initial and final concentration profiles
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x, C[1,], type = "l", ylab = "C", ylim = c(min(C), max(C)))
+lines(x, C[steps, ], lty = 3)
+
+###########################
+
+### Advection equation with Lax method ###
+## Parameters ##
+v=1 #Wavespeed,cm/s
+L=1 #Lengthfrom-L/2toL/2,cm
+n = 50 # number of grid points
+(dx = L/n) # Distance step, cm
+(dt = dx/v) # tmax = time step, s
+(A = v*dt/(2*dx)) # Coefficient
+(steps = L/(v*dt)) # Number of iterations
+(tw = dx/v) # Characteristic time to move one step
+time = 0:steps
+## Initialize concentrations and grid ##
+sig = 0.1 # Standard deviation of initial Gaussian wave 
+x = (1:n - 0.5)*dx - L/2 # Location of grid points
+amp0 = exp(-x^2/(2*sig^2)) # Initial Gaussian amplitude
+C = matrix(rep(0, (steps+1)*n), nrow = steps+1, ncol = n)
+C[1,] = amp0 # Initial concentration distribution
+# Periodic boundary conditions
+jplus1 = c(2:n,1)
+jminus1 = c(n,1:(n-1))
+## Loop and plot variables ##
+# Loop over desired number of steps #
+for(i in 1:steps) {
+  # Compute new concentration profile at each time #
+  for(j in 1:n) {
+    C[i+1,j] = 0.5*(C[i,jplus1[j]] + C[i, jminus1[j]]) + 
+    A*(C[i,jplus1[j]] - C[i,jminus1[j]])
+    }
+  }
+## Plot initial and final concentration profiles
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x, C[1,], type = "l", ylab = "C", ylim = c(min(C), max(C)))
+points(x, C[steps+1, ], pch=16, cex=0.75)
+
+###########################
+
+### Laplace equation on square lattice with Jacobi method ### 
+
+## Set parameters
+n = 30 # Number of grid points per side
+L=1  # Length of a side
+dx = L/(n-1) # Grid spacing
+x = y = 0:(n-1)*dx # x and y coordinates
+
+## Initial guess
+V0 = 1
+V = matrix(V0/2*sin(2*pi*x/L)*sin(2*pi*y/L), 
+  nrow = n, ncol = n, byrow = TRUE)
+
+## Boundary conditions
+V[1,] = 0
+V[n,] = 0
+V[,1] = 0
+V[,n] = V0*rep(1,n)
+
+## Plot initial guess, and wait for converged solution
+par(mfrow = c(1,2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+persp(x,y,V, theta = -45, phi = 15)
+
+## Loop until desired tolerance is obtained
+newV = V
+itmax = n^2 # Hope that solution converges within n^2 iterations 
+tol = 1e-4
+for (it in 1:itmax) {
+  dVsum = 0
+  for (i in 2:(n-1)) {
+    for (j in 2:(n-1)) {
+      newV[i,j] = 0.25*(V[i-1,j] + V[i+1,j] + V[i,j-1] + V[i,j+1])
+      dVsum = dVsum + abs(1-V[i,j]/newV[i,j])
+      }
+    }
+  V=newV
+  dV = dVsum/(n-2)^2 # Average deviation from previous value
+  if (dV < tol) break # Desired tolerance achieved
+  }
+
+it # Iterations to achieve convergence to tol
+dV
+
+## Plot result
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+persp(x,y,V, theta = -45, phi = 15)
+par(mfrow = c(1,1))
+
+###########################
+
+# 1-D diffusion-advection calculation
+
+install.packages("ReacTran")
+require(ReacTran)
+N = 100 # Number of grid cells
+xgrid = setup.grid.1D(x.up = 0, x.down = 1, N = N) # Between 0 and 1 
+x = xgrid$x.mid # Midpoints of grid cells
+D = 1e-4 # Diffusion coefficient
+v = 0.1 # Advection velocity
+
+# Define diffusion-advection equation
+Diffusion = function(t, Y, parms) {
+  tran=tran.1D(C=Y,C.up=0,C.down=0,D=D,v=v,dx= xgrid)  
+  list(dY = tran$dC, flux.up = tran$flux.up, 
+  flux.down = tran $flux.down)  
+  }
+
+Yini = rep(0,N) # Initial concentration = 0
+Yini[2] = 100 # Except in the second cell
+
+# Calculate for 5 time units
+times = seq(from = 0, to = 5, by = 0.01)
+out = ode.1D(y = Yini, times = times, func = Diffusion, 
+parms = NULL,dimens = N)
+
+par(mfrow = c(1,1))
+# Plot initial concentration distribution
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x,out[1,2:(N+1)], type = "l", lwd = 1,  xlab = "x", ylab = "Y")
+# Plot subsequent conc distributions, every 50 time intervals
+for(i in seq(2, length(times), by = 50))  lines(x, out[i, 2:(N+1)])
+
+###########################
+
+# Behavior of a plucked string
+
+require(ReacTran)
+dx = 0.2  # Spacing of grid cells
+# String extends from -100 to +100
+xgrid = setup.grid.1D(x.up = -100, x.down = 100, dx.1 = dx)
+x = xgrid$x.mid  # midpoints of grid cells
+N = xgrid$N  # number of grid cells
+
+uini = rep(0,N)  # String height vector before stretching
+vini = rep(0,N)  # Initial string velocity vector
+displ = 10  # Initial displacement at center of string
+# Impose initial triangular height profile on string between +/- 25
+for(i in 1:N) {
+    if (x[i] > -25 & x[i] <= 0) uini[i] = displ/25*(25 + x[i]) else
+    if (x[i] > 0 & x[i] < 25) uini[i] = displ/25*(25 - x[i])
+  }
+# Initial conditions combining displacement and velocity 
+yini = c(uini, vini)
+
+# Time over which to compute solution
+times = seq(from = 0, to = 50, by = 1)
+
+wave = function(t,y,parms) {
+    u = y[1:N] # Separate displacement and velocity vectors
+    v = y[(N+1):(2*N)]
+  du=v
+  dv=tran.1D(C=u,C.up=0,C.down=0,D=1,dx=xgrid)$dC
+  return(list(c(du, dv)))
+}
+
+# Calculate using ode.1D with “adams” method
+out = ode.1D(func = wave, y = yini, times = times,
+    parms = NULL, method = "adams",
+    dimens = N, names = c("u", "v"))
+u = subset(out, which = "u") # Extract displacement vector
+
+# Plot displacement every 10th time interval
+outtime = seq(from = 0, to = 50, by = 10)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+matplot.1D(out, which = "u", subset = time %in% outtime,
+  grid=x,xlab="x",ylab="u",type="l",
+  lwd = 2, xlim = c(-100,100), col = c("black", rep("darkgrey",5)))
+
+###########################
+
+# Laplace equation with ReacTran
+
+require(ReacTran)
+Nx = 100
+Ny = 100
+xgrid = setup.grid.1D(x.up = 0, x.down = 1, N = Nx)
+ygrid = setup.grid.1D(x.up = 0, x.down = 1, N = Ny)
+x = xgrid$x.mid
+y = ygrid$x.mid
+
+laplace = function(t, U, parms) {
+  w = matrix(nrow = Nx, ncol = Ny, data = U)
+  dw = tran.2D(C = w, C.x.up = 0, C.y.down = 0,
+    flux.y.up = 0,
+    flux.y.down = -1,
+    D.x = 1, D.y = 1,
+    dx = xgrid, dy = ygrid)$dC
+   list(dw)
+  }
+
+out = steady.2D(y = runif(Nx*Ny), func = laplace, parms = NULL,
+  nspec = 1, dimens = c(Nx, Ny), lrw = 1e7)
+
+z <- matrix(nr = Nx, nc = Ny, data = out$y)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+contour(z)
+
+###########################
+
+# Poisson equation with ReacTran
+
+require(ReacTran)
+Nx = 100
+Ny = 100
+xgrid = setup.grid.1D(x.up = 0, x.down = 1, N = Nx)
+ygrid = setup.grid.1D(x.up = 0, x.down = 1, N = Ny)
+x = xgrid$x.mid
+y = ygrid$x.mid
+
+# x and y coordinates of positive and negative charges
+ipos = which.min(abs(x - 0.4))
+jpos = which.min(abs(y - 0.50))
+
+ineg = which.min(abs(x - 0.6))
+jneg = which.min(abs(y - 0.50))
+
+poisson = function(t, U, parms) {
+  w = matrix(nrow = Nx, ncol = Ny, data = U)
+  dw = tran.2D(C = w, C.x.up = 0, C.y.down = 0,
+  flux.y.up = 0,
+  flux.y.down = 0,
+  D.x = 1, D.y = 1,
+  dx = xgrid, dy = ygrid)$dC
+  dw[ipos,jpos] = dw[ipos,jpos] + 1
+  dw[ineg,jneg] = dw[ineg,jneg] - 1
+  list(dw)
+  }
+
+out = steady.2D(y = runif(Nx*Ny), func = poisson, parms = NULL,
+     nspec = 1, dimens = c(Nx, Ny), lrw = 1e7)
+
+z <- matrix(nr = Nx, nc = Ny, data = out$y)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+contour(z, nlevels = 30)
+
+############################
+
+## Diffusion in a viscosity gradient
+
+require(ReacTran)
+N=100
+xgrid = setup.grid.1D(x.up=0,x.down=1,N=N)
+x = xgrid$x.mid
+xint = xgrid$x.int
+Davg = 1
+D.coeff = Davg*(0.25 +3.75*xint)
+
+Yini = rep(0,N); Yini[45:55] = 0.1
+tmin = 0; tmax = 1/(8*Davg)
+times = seq(tmin, tmax,len=100)
+
+Diffusion = function(t,Y,parms){
+	tran = tran.1D(C=Y,D=D.coeff, dx=xgrid)
+	list(dY = tran$dC, flux.up = tran$flux.up, flux.down=tran$flux.down)
+}
+out <- ode.1D(y=Yini, times=times, func=Diffusion, parms=NULL, dimens=N)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x, out[1,2:(N+1)],type="l",xlab="x",ylab="C", ylim=c(0,0.1))
+for (i in c(2,4,8,16,32)) lines(x,out[i,2:(N+1)])
+
+############################
+
+## Evolution of a Gaussian wave packet
+
+N = 100 # Number of grid points
+L = 100 # Length of system
+h = L/(N-1) # Grid spacing
+x = h*(0:(N-1))-L/2 # Grid coordinates
+hbar = 1; m = 1  # Atomic units
+tau = 1  # Time step
+
+ham = matrix(rep(0,N*N), N,N) # Initialize Hamiltonian
+C = -hbar^2/(2*m*h^2)
+for (i in 2:(N-1)) {
+	ham[i,i-1] = C
+	ham[i,i] = -2*C
+	ham[i,i+1] = C
+}
+# Periodic boundary conditions:
+ham[1,N] = C
+ham[1,1] = -2*C
+ham[1,2] = C
+ham[N,N-1] = C
+ham[N,N] = -2*C
+ham[N,1] = C
+
+# Compute Crank-Nicholson matrix
+dCN = solve((diag(1,N)+0.5*1i*tau/hbar*ham))%*%
+   (diag(1,N) - 0.5*1i*tau/hbar*ham)
+
+# Initialize wave function
+x0 = 0  # Center of wave packet
+vel = 0.5  # Mean velocity
+k0 = m*vel/hbar  # Mean wave number
+sig0 = L/10  # Std of wave function
+A = 1/sqrt(sig0*sqrt(pi)) # Normalization coeff
+psi = A*exp(1i*k0*x)*exp(-(x-x0)^2/(2*sig0^2))
+
+# Plot initial wavefunction
+Re_psi = Re(psi); Im_psi = Im(psi)
+par(mar=c(4,4,2,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x,Re_psi,type="l", lty=1,ylab=expression(psi(x)),main = "Initial Wavefunction")
+lines(x,Im_psi,lty=2)
+legend("bottomright", bty="n", legend=c("Re","Im"), lty=1:2)
+
+## Now calculate time-dependent probability density
+## Initialize loop and plot variables
+max_iter = L/(vel*tau)  # Circle once
+pdens=matrix(rep(0,max_iter*N), nrow = max_iter, ncol=N)
+pdens[1,] = psi*Conj(psi)
+for (i in 2:max_iter) {
+	psi = dCN%*%psi
+	pdens[i,] = psi*Conj(psi)
+}
+
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x, pdens[1,], type = "l", xlim=c(-50,50), 
+ylim = c(0, 1.05*max(Re(pdens[1,]))),
+  ylab = "P(x,t)", main = "Evolution of Gaussian wave packet",
+  xaxs="i", yaxs="i")
+for (i in seq(20,max_iter,20)) {
+	lines(x, pdens[i,])
+}
+
+###########################
+
+## Evolution of a Gaussian wave packet in ReacTran
+
+require(ReacTran)
+
+hbar = 1; m = 1
+D = 1i*hbar/(2*m)
+
+Schrodinger = function(t,u,parms) {
+  du = tran.1D(C = u, D = D, dx = xgrid)$dC 
+  list(du)
+}
+
+N = 131
+L = N-1
+xgrid = setup.grid.1D(-30,100,N=N)
+x = xgrid$x.mid
+
+# Initialize wave function
+x0 = 0  # Center of wave packet
+vel = 0.5  # Mean velocity
+k0 = m*vel/hbar  # Mean wave number
+sig0 = L/10  # Std of wave function
+A = 1/sqrt(sig0*sqrt(pi)) # Normalization coeff
+psi = A*exp(1i*k0*x)*exp(-(x-x0)^2/(2*sig0^2))
+
+# Plot initial wavefunction #Fig9_InitWaveFn_ReacTran
+Re_psi = Re(psi); Im_psi = Im(psi)
+par(mar=c(4,4,2,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x,Re_psi,type="l", lty=1,ylab=expression(psi(x)),main = "Initial Wavefunction")
+lines(x,Im_psi,lty=2)
+legend("bottomright", bty="n", legend=c("Re","Im"), lty=1:2)
+
+times = 0:120
+print(system.time(
+  out <- ode.1D(y=psi0, parms=NULL, func=Schrodinger, times=times,dimens=130,
+  method = "adams")
+))
+
+pdens0 = Re(out[1,2:(N+1)]*Conj(out[1,2:(N+1)]))
+
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x, pdens0, type = "l", 
+ylim = c(0, 1.05*max(pdens0)), xlab="x",
+ylab = "P(x,t)", xaxs="i", yaxs="i")
+
+for (j in seq(20,120,20)) {
+  pdens = Re(out[j,2:(N+1)]*Conj(out[j,2:(N+1)]))
+  lines(x, pdens)
+}
+
+# Fig9_pdens_ReacTran
+
+############################
+
+## Burgers equation with ReacTran
+
+require(ReacTran)
+
+D = 1; v = 1
+N = 100
+xgrid = setup.grid.1D(x.up = -5, x.down = 5, N = N)
+x = xgrid$x.mid
+uini = c(rep(1,N/2), rep(-1,N/2))
+times = seq(0,1,by = .01)
+
+Burgers = function(t,u,parms) {
+  tran = tran.1D(C = u, C.up = 1, C.down = -1, D = D, dx = xgrid)
+  advec =  advection.1D(C = u, C.up = 1, C.down = -1, v = v, dx = xgrid)
+  list(du = tran$dC + u*advec$dC)
+  }
+
+print(system.time(
+out <- ode.1D(y = uini, parms = NULL, func = Burgers, times = times, dimens = N)
+))
+
+par(mfrow=c(1,2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x, out[1,2:(N+1)], type="l",
+   xlab = "x", ylab = "u", main = "ReacTran)
+for (i in c(10,20,50,80))
+   lines(x, out[i,2:(N+1)])
+
+###############################
+
+## Burgers equation (analytical as L -> infinity)
+
+require(pracma)
+Fn = function(t,x) 1/2*exp(t-x)*(1-erf((x-2*t)/(2*sqrt(t))))
+a = function(t,x) (Fn(t,x)-Fn(t,-x))/(Fn(t,x)+Fn(t,-x))
+
+t = seq(0,1,.01)
+L = 10
+x = seq(-L/2,L/2,len=100)
+
+M = matrix(rep(0,length(t)*length(x)),nrow=length(t))
+
+for (i in 1:length(t)) {
+	for (j in (1:length(x))) {
+		M[i,j] = a(t[i],x[j])
+	}
+}
+
+plot(x, M[1,], type = "l", ylab="u", main="Exact")
+for (i in c(10,20,50,80)) lines(x, M[i,])
+
+############################
+
+

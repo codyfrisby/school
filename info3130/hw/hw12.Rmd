@@ -1,0 +1,117 @@
+---
+title: "Text Mining"
+author: "Cody Frisby"
+date: "12/3/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = F, message = F, dpi=200,
+                      fig.align = 'center')
+library(readtext)
+library(quanteda)
+library(wordcloud)
+```
+
+
+```{r eval = FALSE}
+## testing the quanteda package
+c1 <- corpus(data_corpus_inaugural[1:5])
+c2 <- corpus(data_corpus_inaugural[54:58])
+c3 <- c1 + c2
+# create data frame and then word cloud
+df1 <- dfm(c1, remove = stopwords("english"), remove_punct = TRUE,
+           stem = TRUE)
+df2 <- dfm(c2, remove = stopwords("english"), remove_punct = TRUE,
+           stem = TRUE)
+topfeatures(df1, 20) # first 5
+topfeatures(df2, 20) # last 5
+set.seed(100)
+textplot_wordcloud(df1, random.order = FALSE,
+                   rot.per = 0.25,
+                   colors = RColorBrewer::brewer.pal(8, "Dark2"))
+textplot_wordcloud(df2, random.order = FALSE,
+                   rot.per = 0.25,
+                   colors = RColorBrewer::brewer.pal(8, "Dark2"))
+```
+
+
+I found customer complaints for Home Depot at 
+`https://www.consumeraffairs.com/homeowners/home_depot.htm`.  
+
+I copied and pasted around 16 of them.  
+
+Below is a word cloud of all the combined complaints.  The frequency the word appears is represented by the size.  
+
+```{r}
+#df <- readtext("~/Documents/school/info3130/data/complaints.txt")
+df2 <- readLines("~/Google Drive/MBP/school/info3130/data/complaints.txt")
+#df$doc_id <- "HomeDepot"
+c1 <- corpus(df2)
+df <- dfm(c1, remove = stopwords("english"), remove_punct = TRUE,
+          stem = TRUE)
+#topfeatures(df)
+textplot_wordcloud(df, random.order = FALSE,
+                   rot.per = 0.25,
+                   colors = RColorBrewer::brewer.pal(8, "Dark2"))
+```
+
+
+It appears that the most common words are *home* and *depot* which makes sense :).  If we remove those two words, the top ten words are in the below table.  Most of the people appear to have complaints regarding the service at the store or online.  They are also frequently upset about the quality of the products they buy.  
+
+```{r}
+# top 10 after removing home and deopt
+x <- as.data.frame(topfeatures(df, n = 12))
+names(x) <- "freq"
+x$words <- row.names(x)
+x <- x[3:12, c("words", "freq")]
+knitr::kable(x, row.names = FALSE)
+```
+
+
+
+```{r, eval=FALSE}
+corpus_subset(data_corpus_inaugural, 
+              President %in% c("Washington", "Jefferson", "Madison")) %>%
+    dfm(groups = "President", remove = stopwords("english"), 
+        remove_punct = TRUE) %>%
+    dfm_trim(min_count = 5, verbose = FALSE) %>%
+    textplot_wordcloud(comparison = TRUE)
+```
+
+
+----------------
+
+## Thoughts on `quanteda`.  
+
+### A (new-ish?) R package for text analysis.  
+
+I think it might be crashing my RStudio.  Either that or my recent install of `Octave` (I spent all day Saturday studying the Fourier Transform and there was some `matlab` code I wanted to run) and all the packages I updated when downloading it.  I'll have to go back and take a look at which binarys might be affected. 
+
+Overall, I like the package.  It's easy to use, the documentation is well written and the companion website has many in-depth examples.  A much more pleasant experience than the last time I attempted text analysis using the `tm` package.  There does seem to be one thing that I haven't yet hacked out the details, that is it seems chop letters off some of the words.  I'll have to figure out what's going on here.  
+
+-------------------
+
+## R Code:
+
+```{r, eval = FALSE, echo = TRUE}
+library(readtext)
+library(quanteda)
+library(wordcloud)
+#df <- readtext("~/Documents/school/info3130/data/complaints.txt")
+df2 <- readLines("~/Documents/school/info3130/data/complaints.txt")
+c1 <- corpus(df2)
+df <- dfm(c1, remove = stopwords("english"), remove_punct = TRUE,
+          stem = TRUE)
+#topfeatures(df)
+textplot_wordcloud(df, random.order = FALSE,
+                   rot.per = 0.25,
+                   colors = RColorBrewer::brewer.pal(8, "Dark2"))
+# top 10 after removing home and deopt
+x <- as.data.frame(topfeatures(df, n = 12))
+names(x) <- "freq"
+x$words <- row.names(x)
+x <- x[3:12, c("words", "freq")]
+knitr::kable(x, row.names = FALSE)
+```
+

@@ -1,0 +1,89 @@
+---
+title: "Chapter 7 Homework"
+author: "Cody Frisby"
+date: "10/14/2017"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 'center', message = FALSE, warning = FALSE)
+library(xlsx)
+library(MASS)
+library(class)
+library(e1071)
+library(ggplot2)
+```
+
+
+```{r}
+train <- read.xlsx("~/Documents/school/info3130/data/CarsData.xlsx",
+                   sheetIndex = 1)
+score  <- read.xlsx("~/Documents/school/info3130/data/CarsData.xlsx",
+                    sheetIndex = 2)
+```
+
+
+The predicted classes and the actual classes are shown in the below table using the proportion of each class label for comparison.  If the **score** data were a simple random sample from the same populaiton as our **train** data then it would seem reasonable to expect similar proportions for the 4 classes.  This appears to not be thes case.  Our LDA model is predicting a lot more cars than what we observed.   
+
+```{r lda knn naiveBayes}
+m1 <- lda(VehicleType ~ ., data = train)
+m1pred <- predict(m1, score)
+t1 <- prop.table(table(train$VehicleType))
+t2 <- prop.table(summary(m1pred$class))
+temp <- data.frame(rbind(t1, t2))
+row.names(temp) <- c("Observed", "Predicted")
+knitr::kable(round(temp, 3), row.names = TRUE)
+```
+
+Visualizing the predicted classes for the *Score* data set in the first two LDA dimensions yields the following plot.    
+
+
+```{r plot}
+df <- as.data.frame(m1pred$x[, 1:2])
+df$Class <- m1pred$class
+gg <- ggplot(data = df, aes(x = LD1, y = LD2, color = Class)) + 
+  geom_point()
+gg
+```
+
+It appears that the predicted classes aren't so great for the **Score** dataset, but alas, it is what it is.  I do not have the actual class variables so I cannot test how well the model predicts.  
+
+Fitting all three models and then using the models to predict the classes for the **scoring** data we get comparision results that are shown in the table below.  It can been seen that all the models are not predicting the same.     
+
+```{r}
+cl <- train$VehicleType
+m2 <- class::knn(train[-1], score, cl = cl)
+m3 <- naiveBayes(VehicleType ~ ., data = train)
+m3pred <- predict(m3, score)
+df <- data.frame(t(summary(m1pred$class)))
+df <- rbind(df, summary(m2))
+df <- rbind(df, summary(m3pred))
+row.names(df) <- c("LDA", "KNN", "NaiveBayes")
+knitr::kable(df, row.names = TRUE)
+```
+
+
+ Since I don't know the classes of the **Scoring** data there is no way to know how well my models are working and which is best.  It would be better to have a test set in addition to the training set so that we can evaluate each model with data that was NOT used to train it.  Anyways, as can be seen from the above table, *LDA* and *KNN* predict the same number for $class = Car$.  They are almost identical except for a few differences between the classes of SUV and Van.  The *NaiveBayes* model is the most different, where it is predicting a lot fewer of $class = Car$ than the above two.  It also is predicting a lot more of $class = Van$ than the other two models.  The linear discriminant model and the K nearest neighbor model almost agree perfectly where $k = 1$ and $l = 0$ as parameters to the KNN model.  
+ 
+Since the **score** data is small enough, we could examine the observations while included the predicted class for each element from each model.  Where the last three columns agree, we have agreement between all three models for that observation.  But what proportion of our **score** data has agreement between all three models. It appears that the only time that all models aggree is when they all predict $class = car$.  This kind of makes sense, since if someone doesn't yet have a vehicle then their first vehicle is most likely to be a car rather than a more expensive SUV, truck, or van.  The proporiton of **score** predictions that agree between all three models is $0.48889$.  
+
+
+**Score data with added model predictions for reference**
+
+```{r}
+score$ldaClass <- m1pred$class
+score$knnClass <- m2
+score$nbClass <- m3pred
+temp <- score[, c("ldaClass", "knnClass", "nbClass")]
+A <- temp[, 1:2]
+B <- temp[, 3]
+a <- apply(A, 2, `==`, B) # compares column 3 to 1 and 2 :)
+check <- apply(a, 1, sum)
+temp$check2 <- ifelse(check == 2, TRUE, FALSE)
+score$Agree <- temp$check2
+knitr::kable(score)
+```
+

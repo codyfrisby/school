@@ -1,0 +1,43 @@
+## Chapter 11
+
+# Reversible kinetics example with modCost and modFit
+
+require(deSolve)
+require(FME)
+
+rxn = function(pars) {
+derivs = function(times, init, pars) {
+with(as.list(c(pars, init)), {
+dx = kf*(A0-x)*(B0-x) - kr*(C0+x)
+list(dx)
+})
+}
+
+init = c(x = 0)
+times = seq(0, 10, .1)
+out = ode(y = init, parms = pars, times = times, func = derivs)
+as.data.frame(out)
+}
+
+pars = c(kf = 0.2, kr = 0.3)
+A0 = 2; B0 = 3; C0 = 0.5
+out = rxn(pars = pars)
+time = out$time
+x = out$x
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(time, x+C0, xlab = "time", ylab = "C", type = "l",
+ylim = c(0,1.5))
+
+dataC = cbind(time, x = x + 0.1*C0*rnorm(length(C)))
+points(time, dataC[,2] + C0)
+
+Cost = rxnCost = function(pars) {
+  out = rxn(pars)
+  cost = modCost(model = out, obs = dataC)
+}
+
+Fit = modFit(p = c(kf=.5, kr=.5), f = Cost)
+summary(Fit)
+
+=======================
+

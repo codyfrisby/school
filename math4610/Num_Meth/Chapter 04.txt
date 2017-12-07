@@ -1,0 +1,343 @@
+## Chapter 4
+
+## Example 4.1
+  
+  if(condition 1) {
+    result 1
+  } else if (condition 2) {
+    result 2
+  } else {
+    result 3
+}
+
+if(x < -1) {
+  y = -1
+  } else if (x < 0) {
+    y = 0
+  } else {
+    y = 1
+}
+
+###############
+
+## Example 4.2 
+
+set.seed(345)
+x = round(rnorm(10),2)
+y = ifelse(x>0, 1, -1)
+x
+y
+
+###############
+
+## Example 4.3 (switch)
+
+set.seed(123)
+x = rnorm(10, 2, 0.5)
+y = 3
+switch(y, mean(x), median(x), sd(x))
+
+###############
+
+## Example 4.4 (Speed comparison of a for loop with a vectorized version)
+
+n = 1000000
+x=0
+system.time(for (i in 1:n) x = sin(i/n))
+
+i = 1:n # vectorized
+system.time(sin(i/n))
+
+###############
+
+## Fig 4.1 Simulation of radioactive decay
+
+# Set up initial conditions and define variables
+tmin = 0; tmax = 100; dt = 1
+n = (tmax - tmin)/dt + 1 # 101 time values from 0 to 100
+time = seq(tmin, tmax, by = dt)
+k = .03 # Decay rate constant
+N0 = 100 # Initial number of atoms
+N = N0 # Intialize N
+# Run for loop
+for (i in 2:n) {
+  dN = -k*N[i-1]*dt
+  N[i] = N[i-1] + dN}
+# Plot results
+plot(time, N, type = "l")
+
+###############
+
+## Example 4.6 Random walk with while
+
+x=0
+n=0
+set.seed(333)
+while (x <= 10) {
+  n=n+1
+  x=x+rnorm(1,mean=.5,sd=1)
+  }
+
+print(paste ("n = ", n, ", x = ",round(x,2) )) 
+
+###############
+
+## Example 4.7 Random walk with repeat
+
+x=0
+n=0
+set.seed(333)
+repeat {
+  n=n+1
+  dx=rnorm(1,mean=0.5,sd=1)
+  if (dx < -1) next # Reject large negative steps 
+  x=x+dx
+  if (x > 10) break
+  }
+print(paste ("n = ", n, ", x = ",round(x,2) ))
+
+###############
+
+## Fig. 4.2 Gauss and Lorentz function
+
+gauss = function(x,x0,sig) {1/sqrt(2*pi)*sig*exp(-(x-x0)^2/(2*sig^2))}
+lorentz = function(x,x0,w) {w/pi/((x-x0)^2 + w^2)}
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(gauss(x,0,1), -5,5, ylab = "f(x)", main = "Distributions")
+curve(dnorm,-5,5,type="p", add=T)
+curve(lorentz(x,0,1), xlim = c(-5,5), lt = 2, add=T)
+
+###############
+
+## Fig. 4.3 1-dim random walk with constant step length
+
+# Version 1
+randwalk = function(N) {
+	walk = rep(0,N+1)
+	for (i in 2:(N+1)) {
+		x = runif(1)
+		if (x <= 0.5) walk[i] = walk[i-1]-1 else walk[i] = walk[i-1]+1
+	}
+	return(walk[N])
+}
+
+multiwalks = c()
+for (k in 1:100) {
+	multiwalks[k] = randwalk(100)
+}
+mean(multiwalks)
+sd(multiwalks)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+hist(multiwalks)
+
+# Version 2 -  shorter and faster, uses sample()
+randwalk2 = function(N) {
+sum(sample(c(1,-1),size = N, replace=TRUE, prob = c(0.5,0.5)))
+}
+
+multiwalks2 = c()
+for (k in 1:100) {
+	multiwalks2[k] = randwalk2(100)
+}
+mean(multiwalks2)
+sd(multiwalks2)
+hist(multiwalks2)
+
+mean(multiwalks2)
+sd(multiwalks2)
+hist(multiwalks2)
+
+###############
+
+## Debugging
+
+### Using a print statement in function ###
+f1 = function(x) {
+xsq = x^2
+xsqminus4 = xsq - 4; print(xsqminus4)
+log(xsqminus4-4)
+}
+f1(6:1)
+
+### Print in debug, rather than in function ###
+
+f1 = function(x) {
+xsq = x^2
+xsqminus4 = xsq - 4
+log(xsqminus4-4)
+}
+debug(f1)
+f1(1:6)
+
+##############
+
+## Fig 4.4 Bessel functions
+
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+curve(besselJ(x,0),0,10, ylab = "J(x,0), J(x,1)",
+  main = "Bessel Functions")
+curve(besselJ(x,1),lty=2,add=T)
+abline(0,0)
+legend("topright", legend = c("J(x,0)", "J(x,1)"), lty = 1:2,
+  bty="n")
+  
+##############
+
+## Fig. 4.5 Fresnel sine and cosine integrals
+require(pracma)
+fS = function(x) fresnelS(x)
+fC = function(x) fresnelC(x)
+curve(fS,0,5,ylim=c(0,0.8),ylab="Fresnel integrals")
+curve(fC,0,5,add=T,lty=3)
+legend("bottomright",legend=c("fS","fC"),lty=c(1,3), bty="n")
+
+###############
+
+## Fig 4.6 Laguerre polynomials
+
+install.packages("gsl")
+require(gsl)
+x = seq(from=0,to=6,len=100)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x,laguerre_n(2,0,x),xlim=c(0,6),ylim=c(-2,3),
+  type="l",bty="L",xlab="x",ylab="Laguerre(n,x)")
+lines(x,laguerre_n(3,0,x), lty=2)
+lines(x,laguerre_n(4,0,x), lty=3)
+lines(x,laguerre_n(5,0,x), lty=4)
+legend("topleft", legend=c(2:5), lty=c(1:4), bty="n")
+
+##############
+
+## Fig 4.7 Polynomial and first derivative
+require(PolynomF)
+x = polynom()
+p = x^3 - 3*x^2 - 2*x + 7
+dpdx = deriv(p,"x") # Differentiate p with respect to x
+dpdx
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(p,-2,3, ylab = "p(x), dp/dx")
+curve(dpdx, lty=2, add=T)
+abline(0,0, col = gray(.7))
+dpdx_zeros = solve(dpdx)
+dpdx_zeros
+abline(v=dpdx_zeros[1], col=gray(.7))
+abline(v=dpdx_zeros[2], col=gray(.7))
+
+##############
+
+## Fig 4.8 Fitting polynomial to data
+
+require(PolynomF)
+x = -3:3
+y = sin(x)
+polyfit = poly.calc(x,y) # Fit the sine function to a polynomial in x
+polyfit
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x,y)
+curve(polyfit,add=T)
+
+##############
+
+## Fig 4.9 Hermite polynomials
+
+x <- polynom()
+He <- polylist(1, x)
+for(j in 2:10) He[[j+1]] = x*He[[j]] - (j-1)*He[[j-1]]
+He
+He5 = He[[5]]
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(He5,-2,2)
+
+##############
+
+## Fig 4.10 Laguerre polynomials
+
+require(orthopolynom)
+p.list = glaguerre.polynomials(3,1, normalized=FALSE)
+p.list
+# Pick the third item in the list
+L31 = polynomial.functions(p.list)[[3]]
+L31(1.5)
+orb2s = polynomial.functions(glaguerre.polynomials(2,1))[[2]]
+orb2p = polynomial.functions(glaguerre.polynomials(3,2))[[3]]
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(orb2p(x)^2*x^2*exp(-x),0,25,lty=2, xlab="r (reduced)",
+ylab ="Electron Density", main = "2s and 2p Orbitals of H Atom")
+curve(orb2s(x)^2*x^2*exp(-x),0,25,add=T)
+legend("topright",legend=c("2s","2p"),lty=1:2,bty="n")
+
+##############
+
+## Polynomial derivatives and integrals
+
+polynomial.derivatives(p.list)
+polynomial.integrals(p.list)
+polynomial.derivatives(p.list)[[4]]
+
+##############
+
+## Fig 4.11 2-d random walk within circular wall
+
+Rmax = 10
+N = 200
+coords = matrix(nrow=N+1,ncol=2)
+coords[1,1] = coords[1,2] = 0
+twopi = 2*pi
+for (i in 2:(N+1)) {
+	Rtest = 1.1*Rmax
+	while (Rtest > Rmax) {
+		xold = coords[i-1,1]
+		yold = coords[i-1,2]
+		theta = runif(1,-twopi,twopi)
+		xstep = cos(theta)
+		ystep = sin(theta)
+		xnew = xold + xstep
+		ynew = yold + ystep
+		R = sqrt(xnew^2 + ynew^2) 
+		if (R < Rmax) Rtest = R
+	}
+coords[i,1] = coords[i-1,1] + xstep
+coords[i,2] = coords[i-1,2] + ystep
+}
+
+plot.new()
+par(mar=c(0,0,0,0)) 
+plot.window(c(-Rmax,Rmax), c(-Rmax,Rmax), asp=1,bty="n")
+polygon(Rmax*cos(2*pi*(0:50/50)), Rmax*sin(2*pi*(0:50/50)))
+lines(coords[,1],coords[,2])
+
+###############
+
+## Polymer dynamics eigenvalues
+
+require(pracma)
+S2 = function(x) fresnelS(sqrt(2*x/pi))
+C2 = function(x) fresnelC(sqrt(2*x/pi))
+curve(S2,0,5)
+curve(fresnelS,0,5,lty=2,add=T)
+
+G = matrix(nrow=8,ncol=8)
+for (m in 1:8) {
+	m1 = m-1
+	v = Re(round((-1+0i)^((m1/2)+1), 0))
+	G[1,m] = 2*pi*m1^(1/2)*v*S2(pi*m1)
+}
+
+for (m in 1:8) {
+	m1 = m-1
+	for (l in 1:8) {
+		l1 = l-1
+		if (l1 == m1) next
+	    v = Re(round((-1+0i)^((m1-l1+2)/2), 0))
+	    vw = 2*pi*v*m1^2/(l1^2-m1^2)
+	    G[l,m] = vw*(sqrt(l1)*S2(pi*l1)-sqrt(m1)*S2(pi*m1))
+	}
+}
+
+for (k in 1:8) {
+	k1 = k-1
+	G[k,k] = pi*sqrt(k1)/2*(2*pi*k1*C2(pi*k1)-S2(pi*k1))
+}
+
+round(G,3)
+sort(round(eigen(G)$values,3))

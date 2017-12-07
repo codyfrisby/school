@@ -1,0 +1,470 @@
+---
+title: "INFO 3130 Notes"
+author: "Cody Frisby"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = F, warning = F)
+```
+
+## 8-21-17
+
+We are going to talk about this data set.
+
+```{r}
+df <- read.csv("~/Documents/school/info3130/data/fraudclaims.csv")
+```
+
+
+Practice using excel.....
+
+Answer these questions:
+  - What was the average claim amount paid in each country? (use subtools in excel)
+  - What percent of claims were denied in each country?
+  - On a percentage basis, how much more (or less) money in claims was paid in May than in June?
+  - Which countries pay the most claims
+  
+```{r}
+# I'll answer them in R...
+# What was the average claim amount paid in each country?
+df_sub <- df[df$Claim_Paid == 1, ]
+aggregate(as.numeric(Amt_Paid) ~ Country, df_sub, mean)
+```
+
+
+```{r}
+# What percent of claims were denied in each country?
+prop.table(table(df$Country[df$Claim_Paid == 0]))
+```
+
+
+```{r}
+# On a percentage basis, how much more (or less) money in claims was paid in May than in June?
+
+```
+
+
+```{r}
+# Which country pays the most claims?
+# Need to be more specific....
+
+
+```
+
+
+### Homework Assignment
+
+Outline CRISP DM
+  - What are the processes for analyzing data?
+    You can do a picture or ....whatever
+  
+  - Internet usage data.  Survey about how people use the internet... Questions are on one of the sheets in the excel doc.  
+  
+
+## 8-28-17  
+
+(class discussion about data understanding and asking questions about our data.)
+
+When I don't have a million variables, I like to look at the data first.  
+
+```{r}
+df <- read.csv("./data/HeatingOil.csv")
+library(GGally)
+ggpairs(df)
+```
+
+
+```{r}
+# using excel, first install the data pack -> Descriptive Stats
+# or, using R, we can just run this:
+summary(df)
+```
+
+
+Homework assignment.  You can pose questions in your paper that you want to ask if you were asked to analyse the data. 
+
+## 9-11-17  
+
+Talking about correlation today.  Data set will be the Heating Oil example.  
+
+```{r}
+oil <- read.csv("~/Documents/school/info3130/data/HeatingOil.csv")
+cor(oil)
+```
+
+Let's see if I can remember the expected value of covariance... Here's one way I remember it:
+
+$$Cov(x, y) = E(xy) - E(x)E(y) = E[X - \mu_x]E[Y - \mu_y]$$  
+
+$$Cov(x, y) = E[XY - X\mu_y - Y\mu_x + \mu_x \mu_y] = E(XY) -\mu_y E(X) - \mu_x E(Y) + E(\mu_x \mu_y)$$  
+
+Now we should be able to see some of these terms dissapear remembering that $E(X) = \mu_x$.    
+
+$$E(XY) - \mu_y \mu_x - \mu_x \mu_y + \mu_x \mu_y = E(XY) - \mu_x \mu_y$$  
+
+This is the covariance.  To get the correlation we divid the covaviance by $\sigma_x \sigma_y$ I believe.  
+
+Back to the example.  Just some visualizations.  
+
+```{r}
+library(ggplot2)
+library(plotly)
+gg <- ggplot(data = oil, aes(x = Avg_Age, y = Heating_Oil, color = Insulation))
+
+gg <- gg + geom_point()# + geom_jitter()
+
+# get an interactive plot:
+ggplotly(gg)
+```
+
+Now to calculate the correlations.  
+
+```{r}
+cor(oil)
+```
+
+
+
+## 9-19-17  Chapter 5  
+
+```{r}
+# following along in chapter 5 
+df <- read.csv("~/Documents/school/info3130/data/Chapter05DataSet.csv"
+               , colClasses = "factor")
+df <- df[6:12]
+df[df == 0] <- NA
+library(arules)
+rules <- apriori(df, parameter = list(minlen=2, supp=0.2,
+                                          conf=0.5))
+inspect(rules)
+```
+
+
+## 9-25-17 Chapter 6  
+
+```{r}
+df <- read.csv("~/Documents/school/info3130/data/Chapter06DataSet.csv")
+km <- kmeans(df[-3], 3) # look at k plot
+data.frame(clust_size = km$size, km$centers)
+car::spm(df, diagonal = "histogram", 
+         reg.line = NULL, smoother = NULL)
+```
+
+
+Visualize a different way (not using principal components):
+First plot all variables
+
+```{r}
+km <- kmeans(df[,c("Weight", "Cholesterol", "Gender")], centers = 4)
+# first plot the data with color overlay:
+df$Gender <- ifelse(df$Gender == 0, "female", "male")
+gg <- ggplot(data = df, aes(x = Weight, y = Cholesterol, color = Gender))
+gg + geom_point()
+```
+
+
+```{r}
+# like in the book:
+df$Kgroup <- as.factor(km$cluster)
+gg <- ggplot(data = df, aes(x = Weight, y = Cholesterol, color = Kgroup))
+gg + geom_point()
+```
+
+OK fine, looks like it is grouping OK.  
+
+
+
+## Where k-means goes wrong  
+
+Here's some data. 
+
+```{r}
+library(ggplot2)
+df <- data.frame(x = rnorm(361), y = rnorm(361))
+theta <- seq(0, 360, 1) * (pi / 180)
+x <- 6 * cos(theta) + rnorm(361, sd = 0.25)
+y <- 6 * sin(theta) + rnorm(361, sd = 0.25)
+df <- rbind(df, data.frame(x, y))
+ggplot(data = df, aes(x = x, y = y)) + geom_point()
+```
+
+There's two distinct clusters.  
+
+K-means gets it wrong.  
+
+```{r}
+km <- kmeans(df, centers = 2)
+df$cluster <- as.factor(km$cluster)
+ggplot(data = df, aes(x = x, y = y, color = cluster)) + geom_point() + 
+  ggtitle("K-means Clustering") + theme(legend.title = element_blank())
+```
+
+
+Hierarchal clustering gets it right.  
+
+```{r}
+d <- dist(df[-3])
+hc <- hclust(d = d, method = "single")
+memb <- cutree(hc, k = 2)
+df$hclust <- as.factor(memb)
+ggplot(data = df, aes(x = x, y = y, color = hclust)) + geom_point() + 
+  ggtitle("Hierarchal Clustering") + theme(legend.title = element_blank())
+```
+
+
+## 9-25-17  
+
+```{r}
+df <- read.csv("~/Documents/school/info3130/data/uncatStudents.csv")
+df_ab <- as.data.frame(df[, "Absences"])
+names(df_ab) <- "Absences"
+mean(df$Absences)
+# we HAVE to consider outliers when using K-means
+hist(df$Absences, col = "green", xlab = "Absences", main = "")
+km2 <- kmeans(df_ab, centers = 2)
+km2$centers
+# what about 4 clusters?
+km4 <- kmeans(df_ab, centers = 4)
+km4$centers
+```
+
+
+How many clusters should there be?  
+
+
+```{r}
+n <- 8
+wss <- rep(0, n)
+for (i in 1:n){
+  wss[i] <- sum(kmeans(df[-(1:3)], centers = i)$withinss)
+}
+plot(wss, type = "b", xlab = "k", ylab = "Within groups SS", 
+     xlim = c(1, n + 0.5))
+text(1:n, wss, pos = 4, round(wss,3), cex = 0.65)
+```
+
+
+K should probably be 2.  This is nice since we can visualize this using principal components...
+
+```{r}
+k <- 4
+pc <- prcomp(df[-(1:3)])
+km <- kmeans(df[, -(1:3)], centers = k)
+temp <- data.frame(x = pc$x[, 1], y = pc$x[, 2], z = factor(km$cluster))
+ggplot(data = temp, aes(x = x, y = y, color = z)) + geom_point() + 
+  theme(legend.title = element_blank()) + ggtitle(paste("K =", k))
+```
+
+Test coming next week.  
+
+He does not do T/F or MC
+
+5 or 6 questions for this one.
+
+4 will be hands on the keyboard, applied knowledge questions. 
+Descriptive stats:  Central tendency, dispersion, $2 \sigma$ (outliers).
+
+Correlation: pearson, spearman, kendall
+Association rules.  You need to have binomial variables.
+K-means (today).  Centroids by hand
+Crisp-DM.  What are the 6 parts and what order?
+
+For the test we will download a word doc.  
+
+
+## Chapter 7  
+
+Linear Discriminant Analysis
+
+```{r}
+test <- read.csv("~/Documents/school/info3130/data/Chapter07DataSet_Scoring.csv")
+train <- read.csv("~/Documents/school/info3130/data/Chapter07DataSet_Training.csv")
+# remove obs that are outside 3-100 for decision making
+train <- train[train$Decision_Making > 2 & train$Decision_Making <= 100, ]
+library(MASS)
+m1 <- lda(Prime_Sport ~ ., data = train)
+m1
+# now to test on an unseen dataset
+# but first remove some obs. 
+test <- test[test$Decision_Making > 2 & test$Decision_Making <= 100, ]
+p <- predict(m1, test)
+test$class <- p$class # grab the predicted class
+```
+
+
+K Nearest Neighbor.  `library(class)`
+
+```{r}
+dfknn <- train
+```
+
+
+## 10-23-17  Logistic Regression  
+
+```{r}
+library(xlsx)
+df <- read.xlsx("~/Documents/school/info3130/data/Credit Risk Data.xlsx", sheetIndex = 1)
+## take a gander at the response:
+table(df$Good.Risk)
+# create a test and train set by hand:
+n <- dim(df)[1]
+s <- sample(1:n, round(n * 0.75))
+train <- df[s, -1]
+test <- df[!(1:n %in% s), -1]
+## fit a logit model:
+fit <- glm(Good.Risk ~ ., data = train, 
+           family = binomial(link = "logit"))
+(sfit <- summary(fit))
+```
+
+
+```{r}
+# ROC curve
+library(pROC)
+roc(fit$y, fit$fitted.values)
+plot(roc(fit$y, fit$fitted.values))
+```
+
+
+```{r}
+# R package for diagnostics:
+library(InformationValue)
+misClassError(fit$y, fit$fitted.values)
+# doing this by hand:
+temp <- data.frame(observed = train$Good.Risk, 
+          predicted = ifelse(fit$fitted.values >=0.5, 1, 0))
+table(temp) # training data
+# missclassification error:
+(6 + 3) / dim(temp)[1]
+p <- predict(fit, test, type = "response")
+
+temp <- data.frame(observed = test$Good.Risk, 
+          predicted = ifelse(p >= 0.5, 1, 0))
+table(temp) # training data
+# miss class error:
+(2 / dim(train)[1])
+```
+
+
+## 11-6-17  
+
+```{r}
+# chapter 11, neural nets
+train <- read.csv("~/Documents/school/info3130/data/Chapter11DataSet_Training.csv")
+row.names(train) <- train$Player_Name
+train$Player_Name <- NULL
+test <- read.csv("~/Documents/school/info3130/data/Chapter11DataSet_Scoring.csv")
+```
+
+
+```{r}
+library(nnet)
+set.seed(1000)
+fit <- nnet(Team_Value ~ ., data = train, size = 10, 
+            maxit = 1e5)
+```
+
+
+```{r}
+# plot function on github
+library(devtools)
+source_url('https://gist.githubusercontent.com/fawda123/7471137/raw/466c1474d0a505ff044412703516c34f1a4684a5/nnet_plot_update.r')
+plot.nnet(fit)
+## this guy built a package :)
+library(NeuralNetTools)
+#plot the sensitivity :)
+#lekprofile(fit) # doesn't work right.
+```
+
+
+```{r}
+p <- predict(fit, test)
+row.names(p) <- test$Player_Name
+
+```
+
+
+### In class  
+
+```{r}
+library(xlsx)
+train <- read.xlsx("~/Documents/school/info3130/data/Politics Categorized.xlsx", sheetIndex = 1)
+row.names(train) <- train$Name
+train$Name <- NULL
+table(train$Focus.Group)
+```
+
+
+```{r}
+# Note: all predictor variables need to be numberic.  
+# we will prdict a catagorical variable though.
+library(nnet)
+fit <- nnet(Focus.Group ~ ., data = train, size = 10, 
+            maxin = 1e5)
+# variable importance:
+olden(fit)
+library(NeuralNetTools)
+plotnet(fit)
+```
+
+
+```{r}
+test <- read.xlsx("~/Documents/school/info3130/data/Politics Uncategorized.xlsx", sheetIndex = 1)
+p <- predict(fit, test)
+
+```
+
+
+### Exam Review  
+
+- 5 questions, 1 per chapter
+- Chapter 7: KNN, Discriminant Analysis (LDA), Naive Bayes
+  Numeric, independent variables.  Catagorical dependent variable.  LDA does not give the post probability percent (just a class prediction).  If you're interested in strength of correlation between indy and dep. variables, use KNN.  If you're looking at pure frequencys, use Naive Bayes.
+- Chapter 8: Linear regression.  Predicts a continuous response.
+- Chapter 9: Logistic regression.  Binary response.  Predictors need to be numeric.  
+-Chapter 10: Decision Trees.  Independent variables can be mixed.  Which predictive models are you allowed to have missing values in your model?  Build a tree and follow a branch of the tree to predict class.  
+-Chapter 11: Neural Networks.  Numeric indy vars.  Catagorical dep. var.  Strength of association between the predictor and response variables.  
+
+**The dataset may show up earlier than class on monday**.  
+
+library(e1071)
+model <- svm(Species ~ ., data=x, kernel="linear")
+decisionplot(model, x, class = "Species", main = "SVD (linear)")
+
+library(MASS)
+model <- lda(Species ~ ., data=x)
+decisionplot(model, x, class = "Species", main = "LDA")
+
+## 12-4-17  
+
+```{r}
+## in class today
+df <- readxl::read_excel("~/Google Drive/MBP/school/info3130/data/Credit Risk Data.xlsx")
+id <- df$`Applicant ID`
+df$`Applicant ID` <- NULL
+```
+
+
+```{r}
+fit <- lm(`Credit Score` ~ ., data = df)
+summary(fit)$r.square
+# examples of cross validation in data miner.  
+# now he's going to excel to compute the difference between the observed and predicted variables.
+```
+
+
+## Final Exam Review  
+
+- Final dataset is posted.  
+CRISP-DM
+- business understanding, data understanding, data prep, build model, evaluate, deployment.  
+
+Examples:
+-Product Data Tab, retail store that sales outdoor goods, first aid and saftey?
+- Store Data Tab, locations, size, retention.  How many people am I going to lose each month?  
+- Is the number of employees related to monthly revenue?
+- Binary column.  Predict if you are going to retain?
+- How many of your stores are in your highest performing group?  If k=3......?
+- Numeric inputs, with catagorical result... which model?  DA, KNN, NB, ANN, or DT.  
+

@@ -1,0 +1,68 @@
+---
+title: "Sin(x) = x Fixed Point Iteration"
+author: "Cody Frisby"
+date: "9/11/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = "")
+```
+
+First I define a function called `fixed_plot` where I combine fixed point iteration and plotting (I'm a visual guy).  
+
+```{r define function, echo=FALSE}
+fixed_plot <- function(x, FUN = cos, n = 10) {
+  xmin <- -abs(x)
+  xmax <- abs(x)
+  plot(1:abs(x), xlim = c(xmin - 1, xmax + 1), 
+       ylim = c(-2, 2), type = "n", xlab = "", ylab = "")
+  grid()
+  abline(h = 0, lty = 3) # x axis
+  abline(v = 0, lty = 3)# y axis
+  abline(coef = c(0, 1), col = "dodgerblue", lty = 3)
+  curve(FUN(x), from = xmin - 2, xmax + 2, lwd = 2, add = TRUE)
+  x0 <- x
+  i <- 1
+  m <- matrix(ncol = 2)
+  for(i in 1:n) {
+    x0 <- FUN(x) # calculate f(x)
+    r <- x0/x
+    #a <- 1 - (x^2/6)
+    points(x, x0, col = i)
+    x <- x0
+    #print(x); print(r); print(a)
+    #Sys.sleep(0.1)
+    m <- rbind(m, c(x0, r))
+  }
+  points(x0, FUN(x0), pch = "X", cex = 2)
+  m <- m[-1, ] # remove the stupid NA row
+  colnames(m) <- c("x0", "ratio errors")
+  return(m)
+}
+```
+
+
+Notice that I have multiplied $sin(x)$ by $\frac{x^3}{6}$
+which makes $$f(x) = sin(x) \frac{x^3}{6}$$ 
+
+which you can easily identify as the second term in the taylor series expansion of $sin(x)$.  
+
+So, this little "fudge function" makes my function converge super fast now, but ONLY if my starting point is less than $|3.6|$.  If I choose any number greater than that my iteration diverges, and rapidly.  Here's some examples with only 5 iterations.  
+
+```{r}
+fixed_plot(3.6178, FUN = sin, n = 10)
+```
+
+  I'm at **zero** super fast as you can see.  Now try a starting guess greater than that.  
+
+
+```{r}
+fixed_plot(3.61781, FUN = sin, n = 10)
+```
+
+
+**And we diverge super fast**.  
+
+
+What's going on here?  

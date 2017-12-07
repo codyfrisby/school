@@ -1,0 +1,479 @@
+### Chapter 7 code
+
+## optimize() examples
+
+f = function(x) x*sin(4*x)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(f,0,3)
+optimize(f,c(0,3))
+optimize(f,c(1.5,3))
+optimize(f,c(1,3),maximum=TRUE)
+optimize(function(x) -f(x),c(1,3))
+
+################
+
+## pracma finmins()
+
+require(pracma)
+f.mins = findmins(f,0,3)
+f.mins  # x values at the minima
+f(f.mins[1:2]) # function evaluated at the minima
+
+################
+
+## function |x^2-8| with optimize() and findmins()
+f = function(x) abs(x^2-8)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(f,-4,4)
+
+optimize(f,c(-4,4),maximum=T)
+optimize(f,c(-4,-2),maximum=T)
+optimize(f,c(2,4),maximum=T)
+
+findmins(function(x) -f(x),-4,4)
+findmins(function(x) -f(x),-4,-3)
+
+################
+
+## Chemical engineering function
+
+x1 = x2 = seq(.1,.9,.02)
+z = outer(x1,x2,FUN=function(x1,x2) 1/x1 + 1/x2 +
+  (1-x2)/(x2*(1-x1)) + 1/((1-x1)*(1-x2)))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+persp(x1,x2,z,theta=45,phi=0)
+
+f = function(x) {
+  x1 = x[1]
+  x2 = x[2]
+  return(1/x1 + 1/x2 + (1-x2)/(x2*(1-x1)) + 
+  1/((1-x1)*(1-x2)))
+}
+optim(c(.5,.5),f)
+
+################
+
+## Rosenbrock banana function with Nelder-Mead
+
+x1 = x2 = seq(-1.2,1,.1)
+z = outer(x1,x2,FUN=function(x1,x2) {100 *
+   (x2 - x1 * x1)^2 + (1 -x1)^2})
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+persp(x1,x2,z,theta=150)
+
+fr = function(x) {  # Rosenbrock Banana function
+  x1 = x[1]
+  x2 = x[2]
+  return(100 * (x2 - x1 * x1)^2 + (1 - x1)^2)
+}
+optim(c(-1.2,1), fr)
+
+################
+
+## Rosenbrock banana function with BFGS method
+
+fr = function(x) {  # Rosenbrock Banana function
+  x1 = x[1]
+  x2 = x[2]
+  return(100 * (x2 - x1 * x1)^2 + (1 - x1)^2)
+}
+grr  = function(x) { ## Gradient of fr
+  x1 = x[1]
+  x2 = x[2]
+  return(c(-400*x1*(x2-x1*x1)-2*(1-x1),
+    200 * (x2 - x1 * x1)))
+}
+optim(c(-1.2,1), fr, grr, method = "BFGS")
+optim(c(-1.2,1), fr, NULL, method = "BFGS", hessian = TRUE)
+
+################
+
+## Rosenbrock banana function with conjugate gradient method
+
+fr = function(x) {  # Rosenbrock Banana function
+  x1 = x[1]
+  x2 = x[2]
+  return(100 * (x2 - x1 * x1)^2 + (1 - x1)^2)
+}
+grr  = function(x) { ## Gradient of fr
+  x1 = x[1]
+  x2 = x[2]
+  return(c(-400*x1*(x2-x1*x1)-2*(1-x1),
+    200 * (x2 - x1 * x1)))
+}
+optim(c(2, .5), fn = fr, gr = grr, method="CG", 
+   control=list(type=1))
+optim(c(2, .5), fn = fr, gr = grr, method="CG", 
+   control=list(type=2))
+
+################
+
+## Spline-function fit to sine + random noise
+
+set.seed(237)
+x = seq(0, pi, length.out = 50)
+y = sin(x) + 0.1*rnorm(50)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x, y)
+xp = seq(0, pi, length.out = 12)
+F = function(p) {
+     fsp = splinefun(xp, c(0, p, 0))
+     sum((y - fsp(x))^2)
+}
+opt = optim(rep(0.5, 10), F, method="L-BFGS-B",
+      lower = rep(0, 10), upper = rep(1, 10))
+      fsp = splinefun(xp, c(0, opt$par, 0))
+yy = fsp(x)
+lines(x, yy)
+
+################
+
+## Function minimization with alabama
+
+library(alabama)
+f = function(x) sin(x[1]*x[2]+x[3])
+heq = function(x) -x[1]*x[2]^3 + x[1]^2*x[3]^2 -5
+hin = function(x) {
+  h = rep(NA,2)
+  h[1] = x[1]-x[2]
+  h[2] = x[2] -x[3]
+  h
+}
+p0 = c(3,2,1)
+ans = constrOptim.nl(par=p0, fn = f, heq=heq, hin = hin)
+
+################
+
+## Function minimization with Rsolnp
+
+f = function(x) -sin(x[1]*x[2]+x[3])
+heq = function(x) -x[1]*x[2]^3 + x[1]^2*x[3]^2 -5
+hin = function(x) {
+  h = rep(NA,2)
+  h[1] = x[1]-x[2]
+  h[2] = x[2] -x[3]
+  h
+}
+upper = rep(5,3)
+lower = rep(0,3)
+p0 = c(3,2,1)
+ans = solnp(pars=p0, fun = f, eqfun=heq, ineqfun = hin, LB=lower, UB=upper,
+  ineqLB = c(0,0), ineqUB = c(5,5))
+ans
+
+################
+
+## Sinc function
+
+sinc = function(x) sin(pi*x)/(pi*x)
+x1 = x2 = seq(.1, 10, length=50)
+z = outer(x1,x2, FUN = function(x1,x2) sinc(x1)+sinc(x2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+persp(x1,x2,z)
+
+f = function(x) sinc(x[1]) + sinc(x[2])
+optim(c(3,3),f)
+
+optim(fn = f, par=c(4,5), method="L-BFGS-B",
+  lower= c(3.5,3.5),upper=c(5,5))
+
+################
+
+## Objective function for simulated annealing
+ fsa = function(x) {
+  x1 = x[1]
+  x2 = x[2]
+  return(0.2 + x1^2 + x2^2 - 0.1*cos(6*pi*x1) - 0.1*cos(6*pi*x2))
+  }
+fsa = function(x1,x2) 0.2 + x1^2 + x2^2 - 0.1*cos(6*pi*x1) - 0.1*cos(6*pi*x2)
+x1 = x2 = seq(-1, 1, length=50)
+z = outer(x1,x2, FUN = function(x1,x2) 0.2 + x1^2 + x2^2 - 0.1*cos(6*pi*x1) - 0.1*cos(6*pi*x2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+persp(x1,x2,z)
+
+fsa = function(x1,x2) 0.2 + x1^2 + x2^2 - 0.1*cos(6*pi*x1) - 0.1*cos(6*pi*x2)
+x1 = x2 = seq(-1, 1, length=50)
+z = outer(x1,x2, fsa)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+persp(x1,x2,z)
+
+##############
+
+## Simulated annealing of sinc2D with GenSA
+
+sinc = function(x) sin(pi*x)/(pi*x)
+sinc2D = function(x) sinc(x[1]) + sinc(x[2])
+library(GenSA)
+out = GenSA(c(1,1), sinc2D, lower = c(0,0), upper = c(10,10),
+  control = list(max.time=1))
+out[c("value", "par", "counts")]
+
+##############
+
+## Differential evolution of rastrigin function
+
+fras = function(x) 10*length(x)+sum(x^2-10*cos(2*pi*x))
+require(DEoptim)
+optras = DEoptim(fras,lower=c(-5,-5),upper=c(5,5),
+  control=list(storepopfrom=1, trace=FALSE))
+optras$optim
+
+##############
+
+## lpSolve - engineering process maximization
+
+obj = c(500, 400)            # objective function 500*m1+400m2
+mat = matrix(c(20, 20,       # constraint matrix
+                5, 30,
+               15, 7), nrow=3, ncol=2, byrow=TRUE)
+dir = rep("<=", 3)           # direction of inequalities
+rhs = c(100, 50, 60)         # right hand side of inequalities
+require(lpSolve)
+soln = lp("max", obj, mat, dir, rhs)
+soln
+soln$solution
+mat %*% soln$solution
+
+##############
+
+## linprog version of above, with duals
+
+require(linprog)
+solveLP(obj, rhs, mat, maximum = TRUE)
+rhs = c(100, 50, 61)
+lp("max", obj, mat, dir, rhs)
+
+##############
+
+## quadprog
+install.packages("quadprog")
+require(quadprog)
+Dmat = matrix(c(1,-1,-1,2),2,2)
+dvec = c(2,6)
+Amat = matrix(c(-1,-1,1,-2,-2,-1),2,3)
+bvec = c(-2,-2,-3)
+
+solve.QP(Dmat, dvec, Amat, bvec)
+
+##############
+
+## Smallest enclosing circle
+
+C = matrix(
+   c(0.30, 0.08, 0.30, 0.99, 0.31, 0.77, 0.23, 0.29, 0.92, 0.14,
+    0.21, 0.93, 0.48, 0.83, 0.69, 0.91, 0.35, 0.05, 0.03, 0.19),
+    nrow = 2, ncol = 10, byrow = TRUE)
+D = 2 * t(C) %*% C                  # D = 1/2 C' C
+d = apply(C^2, 2, sum)              # d = (p1' p1, ‚Ä¶)
+A = matrix(rep(1, 10), 1, 10)       # sum xi = 1
+b = 1; r = 0                        # b <= A x <= b + r
+l = rep(0, 10); u = rep(1, 10)      # l <= x <= u
+require(kernlab)
+sol = ipop(-d, D, A, b, l, u, r)
+x = sol@primal
+sum(x)
+p0 = C %*% x; p0
+# Euclidean distance between p0 and all pi
+e = sqrt(colSums((C - c(p0))^2)); e
+r0 = max(e); r0
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(C[1, ], C[2, ], xlim = c(-0.2, 1.2), ylim = c(-0.2, 1.2), 
+   xlab = "x", ylab = "", asp = 1)
+# Draw the center of the circle
+points(p0[1], p0[2], pch = "+", cex = 2)
+# Draw a circle with radius r0
+th = seq(0, 2*pi, length.out = 100)
+xc = p0[1] + r0 * cos(th)
+yc = p0[2] + r0 * sin(th)
+lines(xc, yc)
+
+#################
+
+## lpSolve (integer)
+
+obj = c(500, 450)
+A = matrix(c(  6,  5,
+              10, 20,
+               1,  0), ncol = 2, byrow = TRUE)
+b = c(60, 150, 8)
+
+# Declare which variables have to be integer (here all of them)
+int.vec = c(1, 2)
+
+soln = lp("max", obj, A, rep("<=", 3), b, int.vec = int.vec)
+soln; soln$solution
+
+#############
+
+## lpSolve(semi-continuous)
+obj = c(500, 400, 0)
+A = matrix(c(  6,  5,   0, 
+              10, 20,   0, 
+               1,  0,   0,
+               0, -1,   3,
+               0,  1, -20), ncol = 3, byrow = TRUE)
+b = c(60, 150, 8, 0, 0)
+int.vec = c(3)
+soln = lp("max", obj, A, rep("<=", 5), b, int.vec = int.vec)
+soln; soln$solution
+
+#############
+
+## Knapsack problem
+
+require(lpSolve)
+v = c(15, 100, 90, 60, 40, 15, 10,  1)    # value of items
+w = c( 2,  20, 20, 30, 40, 30, 60, 10)    # weight of items
+C = 105                                   # maximum capacity
+
+M = matrix(w, nrow=1)
+L = lp("max", v, M, "<=", 105, binary.vec = 1:8)
+L
+
+(inds = which(L$solution == 1))    # solution indices
+sum(v[inds])                       # total value
+sum(w[inds])                       # used capacity
+
+#############
+
+## Transportation problem
+
+C = matrix(c(10, 70, 40,
+             20, 30, 50), nrow = 2, byrow=TRUE)
+row.dir = rep("<=", 2)
+row.rhs = c(300, 200)
+col.dir = rep(">=", 3)
+col.rhs = c(150, 250, 100)
+require(lpSolve)
+T = lp.transport(C, "min", row.dir, row.rhs, col.dir, col.rhs)
+T
+T$solution
+sum(C * T$solution)
+
+#############
+
+## Assignment problem
+
+M = matrix(c(NA,  8,  6, 12,  1,
+              15, 12,  7, NA, 10,
+              10, NA,  5, 14, NA,
+              12, NA, 12, 16, 15,
+              18, 17, 14, NA, 13), 5, 5, byrow = TRUE)
+M[is.na(M)] = 100
+A = lp.assign(M)
+A
+A$solution
+
+#############
+
+## Subsetsum problem
+
+p = c(99.28,  5.79, 63.31, 89.36,  7.63, 30.77, 23.54, 84.24, 93.29, 53.47, 88.19, 91.49, 34.46, 52.13, 43.09, 76.40, 21.42, 63.64, 28.79, 73.03, 8.29, 92.06, 26.69, 89.07, 10.03, 10.24, 40.29, 81.76, 49.01,  3.85)
+P = as.integer(100*p)
+obj = P
+M = rbind(rep(1, 30), P)
+dir = c("==", "<=")
+rhs = c(4, 20010)
+binary.vec = 1:40
+
+require(lpSolve)
+(L = lp("max", obj, M, dir, rhs, binary.vec = binary.vec))
+inds = which(L$solution == 1)
+inds; P[inds]/100; sum(P[inds])/100
+i = 26
+Q = P
+Q[i] = 21000
+N = rbind(rep(1, 30), Q)
+LL = lp("max", obj, N, dir, rhs, binary.vec = binary.vec)
+inds = which(LL$solution == 1)
+inds; Q[inds]/100; sum(Q[inds])/100
+
+#############
+
+## 2D Ising model
+
+nr = 12; nc = 12 # Number of rows and columns
+npass = 2e5 # Number of passes for each temperature
+nequil = 1e5 # Number of equilibration steps for each temperature
+T_hi = 3 # Temperature to start scan at
+T_lo = 1.5 # Temperature to finish scan at
+dT = 0.1 # Temperature scanning interval
+ConfigType = 1 # 1 checkerboard, 2 interface, 3 unequal interface
+
+A = matrix(nrow = nr, ncol = nc)
+nscans = as.integer((T_hi - T_lo)/dT) + 1
+
+# Initialize results table
+M = matrix(nrow = nscans, ncol = 5, byrow=TRUE,
+  dimnames=list(rep("",nscans),c("T","E_av","Cv","Mag_av",
+  "Mag_sus")))
+
+Ann = function(A, m, n) {
+      if (m == nr) Ann1 = A[1,n] else Ann1 = A[m+1,n] # bottom
+      if (n == 1) Ann2 = A[m,nc] else Ann2 = A[m,n-1] # left
+      if (m == 1) Ann3 = A[nr,n] else Ann3 = A[m-1,n] # top
+      if (n == nc) Ann4 = A[m,1] else Ann4 = A[m,n+1] # right
+	  return(Ann1 + Ann2 + Ann3 + Ann4)
+	  }
+
+for (isc in 1:nscans) {  # T scan loop
+   temp = T_hi - dT*(isc - 1)
+   # Initialize variables
+   beta = 1/temp
+   oc = 0 # output count
+   E_av = 0
+   E2_av = 0
+   mag_av = 0
+   mag2_av = 0
+   
+   # Set up initial checkerboard spin configuration
+   A[1,1] = 1
+   for (i in 1:(nr - 1)) A[i+1,1] = -A[i,1]
+   for (j in 1:(nc - 1)) A[,j+1] = -A[,j]
+   
+   for (ipass in 0:npass) { # Monte Carlo passes at T
+      if (ipass > nequil) {
+         oc = oc + 1
+         mag = sum(A)/(nr*nc)
+         mag_av = mag_av + mag
+         mag2_av = mag2_av + mag^2
+         E = 0
+         for (m in 1:nr) {
+            for (n in 1:nc) {
+               E = E - A[m,n]*Ann(A,m,n)
+            }
+         }
+         E = E/(2*nr*nc)
+         E_av = E_av + E
+         E2_av = E2_av + E^2
+      }
+      
+    # Choose a random spin to change
+    m = sample(nr,1,replace=TRUE)
+    n = sample(nc,1,replace=TRUE)
+    ts = -A[m,n] # Flip sign of spin
+    
+    dU = -2*ts*Ann(A,m,n)
+    
+    log_eta = log(runif(1))
+    if(-beta*dU > log_eta) A[m,n] = ts
+   } # end MC passes at T
+   
+   M[isc,1] = temp
+   M[isc,2] = E_av/oc
+   M[isc,3] = beta^2*(E2_av/oc - (E_av/oc)^2)
+   M[isc,4] = abs(mag_av/oc)
+   M[isc,5] = beta*(mag2_av/oc - (mag_av/oc)^2)
+   cat(c(temp, mag_av,mag2_av,E_av,E2_av),"\n")
+} # end T scans
+
+M # print result
+# plot results
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+par(mfrow=c(2,2))
+plot(M[,1], M[,2], xlab="T", ylab="<E>")
+plot(M[,1], M[,3], xlab="T", ylab="<Cv>")
+plot(M[,1], M[,4], xlab="T", ylab="<M>")
+plot(M[,1], M[,5], xlab="T", ylab="<chi>")
+
+#############

@@ -1,0 +1,86 @@
+---
+title: "Linear Regression"
+author: "Cody Frisby"
+date: "10/21/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 'center',
+                      message = F, warning = F)
+library(ggplot2)
+```
+
+
+### Data Summary  
+
+My data comes from the 1974 *Motor Trend* magazine that is included as one of the datasets in R (`mtcars`).
+There are 32 total observations with 11 total variables.  Here I attempt to answer the question of whether manual or automatic is better, and what the difference is if any, for miles per gallon and what variables are significant in predicting **mpg**.  I will also attempt to predict **mpg** on the test set and compare it with actual **mpg**.    
+
+
+```{r}
+# first let's get the data into R
+df <- mtcars
+n <- dim(df)[1]
+rs <- sample(1:n, round(32 * (2/3)))
+train <- df[rs, ]
+test <- df[!(1:n %in% rs), ]
+# training set is 21
+fit.all <- lm(mpg ~ ., train)
+# here we look at the variance inflation factors of all the
+# variables in the model. 
+# here we take a look at all subsets using the leaps package
+mods <- leaps::regsubsets(x = train[,2:11], y = train[,1], nbest=30)
+mods.s <- cbind(summary(mods)$bic, summary(mods)$cp,
+                      summary(mods)$adjr2)
+colnames(mods.s) <- c("BIC", "Cp", "Adj r2")
+mods.v <- summary(mods)$outmat
+best.bic <- order(mods.s[,1])
+# I will go will the model lm(mpg ~ wt+qsec+am)
+fit <- lm(mpg ~ wt+qsec+am, train)
+betas <- summary(fit)$coef[,1]
+```
+
+I fit a linear regression model using all the variables (no interactions) and take a look at the variance inflation factors (this technique can help us determine if any of our explanatory variables are highly correlated).  `r knitr::kable(car::vif(fit.all))`  We can see that a few of the variables are going to need to be removed from the final model.  Using the leaps package and `regsubsets` function from that package I narrowed down the best models based on the BICs (Bayesian information criterion).  My final model is $$mpg_i = \beta_0 + \beta_1wt_i + \beta_2qsec_i + \beta_3am_i + \varepsilon_i$$ and when fit to the data our prediction function is $$mpg = `r betas[1]`  `r betas[2]`wt + `r betas[3]`qsec + `r betas[4]`am$$
+
+### 1) Is an automatic or manual transmission better for MPGs?  
+
+The answer to this question is **manual** transmission.  A **manual** transmission will get `r betas[4]` more **mpg**, on average, than an **automatic** transmission, all other variables held constant.    
+
+### 2) Difference between auto and manual?  
+
+I display the coefficients of the model I chose. `r knitr::kable(summary(fit)$coef)` Here we can see that our model includes **wt** (the car's mass in 1000 lbs), **qsec** (the cars 1/4 mile time), and **am** (auto or manual transmission).  There is a negative effect from **wt** meaning that as the cars' mass increases its expected **mpg**s decrease by `r betas[2]`.  Similarly, as a cars quarter mile time increases its expected **mpg**s increase by `r betas[3]`.  And lastly, when the car has a manual transmission, its **mpg**s are expected to be `r betas[4]` higher than when it has an automatic transmission, holding the other variables constant.  A 95% confidence interval is [`r confint(fit)[4,]`], showing that at worst **manual** will beat **auto** by only `r confint(fit)[4,1]`.  
+
+## How well does the model predict on our test set?  
+
+```{r}
+pred <- predict(fit, train[-1])
+temp <- data.frame(predicted = pred, observed = train$mpg)
+predFit <- lm(predicted ~ observed, data = temp)
+rsq <- round(summary(predFit)$r.squared, 4)
+gg <- ggplot(data = temp, aes(x = observed, y = predicted)) 
+gg + geom_point() + stat_smooth(method = "lm") + xlab("Observed MPG") + 
+  ylab("Predicted MPG")
+```
+
+
+Looking at the **observed** vs. **predicted**, our model appears to predict fairly well.  The $R^2$ value is $`r rsq`$.  
+
+### Model Adequacy  
+  
+Here, I take a look at the model residuals checking the assumptions of linear models.  
+ 
+```{r}
+par(mfrow=c(1,2))
+plot(fit, which = c(1,2))
+```
+
+Our residual plots look OK. The assumptions of equal variance, linearity, and normality are OK.  
+
+### Conclusion  
+
+Although all the terms in our model are statistically significant, at the $\alpha = 0.05$ level, the confidence interval for **am** is quite wide, `r confint(fit)[4,]`.  I chose this model over the other possibilities because it was the most parsimonious model in the top 10 (based on BIC) that contained **am** with the lowest BIC, Cp, and close to the highest adjusted $R^2$ value. 
+
+
+  
+

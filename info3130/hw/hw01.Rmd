@@ -1,0 +1,143 @@
+---
+title: "Homework 01"
+author: "Cody Frisby"
+date: "8/21/2017"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 'center', warning = F, message = F)
+library(ggplot2)
+```
+
+
+```{r data}
+df <- read.csv("~/Documents/info3130/data/InternetUsageData.csv")
+## exclude ages below 13
+df <- df[df$Age > 12, ]
+```
+
+**NOTE**: I have excluded all rows where age is less than 13.  The range for age on this subset is 13 to 80.  
+
+
+##1: How many statistical outliers are there in the Age Attribute?  
+
+
+```{r}
+s <- sd(df$Age); qu <- mean(df$Age) + (c(-s, s) * 2)
+ol <- sum(df$Age <= qu[1] | df$Age >= qu[2])
+```
+  
+
+The outliers, defined by $\hat \mu \pm 2 \hat \sigma$,  are any observations that are beyond $`r qu`$.  As can be seen from the plot, it appears we are right skewed and there are no "outliers" to the left.  This shouldn't be too surprising since we are left censored at $age = 13$, meaning and age below this value is not possible.  Here, I've added a vertical line at $Age = `r qu[2]`.  All observations beyond this line are counted as outliers.    
+
+
+```{r, fig.height=4.5, fig.width=7}
+df$gen <- ifelse(df$Gender == 1, "Male", "Female")
+ggplot(df, aes(Age)) + geom_histogram(binwidth=2, alpha=0.35, fill = "#0099FF") + theme_bw() + xlab("Age") + ylab ("count") + theme(legend.title = element_blank()) + geom_vline(xintercept = qu[2], linetype = 3, col = "red")
+```
+
+  
+The total number of observations that are outliers by the above definition is `r ol`.  
+
+##2: What is the most common type of Community Membership?  
+
+```{r}
+cm <- apply(df[, 4:11], 2, sum)
+#max(cm)
+```
+
+The most common type of community membership by the respondents appears to be **Hobbies** with `r max(cm)`.  
+
+##3: How many men and how many women responded to the survey?  
+
+```{r}
+# women = 0, men = 1
+mw <- table(df$gen)
+```
+
+The number of respondents who identified as women and men was **1236** and **2119** respectively.  *(Recall that I've excluded all ages < 13).*  
+
+##4: What is the primary reason people don't purchase on the internet?  
+
+**Security** appears to be the primary reason that people do not make internet purchases with **1391** people out of those surveyed.  
+
+```{r}
+not_p <- apply(df[, 40:58], 2, sum)
+x <- names(not_p)
+h <- substr(x, 16, 100)
+names(not_p) <- h
+knitr::kable(not_p)
+```
+
+
+
+##5: Which country accounted for the fewest number of survey responses?  
+
+It appears from the data that more than one country had only one respondent.  The country codes that had one respondent include **46, 60, 73, 78, 79, 84, 88, 90, 96, 97, 104, 107, 109, 118, 119**.  Without more information regarding the coding of this variable no more reliable information can be given.  
+
+```{r, eval=FALSE}
+countries <- table(df$Country)
+names(countries)[countries==1]
+```
+
+
+##6: What is the median household income category for survey respondents?  
+
+Income catagories ranged from 0 to 8.  Below is a table with the income catagories and the number of survey respondents for each.  
+
+```{r}
+medi <- median(df$Household_Income)
+knitr::kable(t(as.matrix(table(df$Household_Income))))
+```  
+
+The median catagory is **4**.  
+
+##7: What was the most effective form of survey promotion?  
+
+The variables that appear to answer this question begin with "How_You_Heard_About_Survey_".  The most frequent response was "**WWW_Page**" with **1737** total respondents.  The table below contains the number of respondents for each catagory.  
+
+```{r}
+heard <- apply(df[,23:31], 2, sum)
+x <- names(heard)
+h <- substr(x, 28, 100)
+names(heard) <- h
+knitr::kable(heard)
+```
+
+
+##8: Excluding outliers, what is the most common marital status?  
+
+Excluding all observations = 99, the most common marital status is **3**.  
+
+```{r}
+x <- df$Marital_Status
+x <- x[x<10]
+temp <- t(as.matrix(table(x)))
+knitr::kable(temp)
+```
+
+
+##9: Assuming any rating above 4 indicates "a lot", how many survey respondents claimed they falsified information "a lot"?  
+
+This question corresponds to the variable "**Falsification_of_Information**".  This is just $145 + 262 = `r 145+262`$.  
+
+```{r}
+temp <- t(as.matrix(table(df$Falsification_of_Information)))
+knitr::kable(temp)
+```
+
+
+##10: What percent of survey respondents have their internet access paid for by their employer?  
+
+The percentages are displayed on the table below.  Approximately **23.4**% of respondents have their internet paid for by their employer.  
+
+```{r}
+paid <- apply(df[, 63:68], 2, sum)
+names(paid) <- substr(names(paid), 21, 100)
+temp <- t(as.matrix(round(prop.table(paid), 3) * 100))
+knitr::kable(temp)
+```
+
+

@@ -1,0 +1,592 @@
+## Chapter 6
+
+## Fundamental definition using forward and central differences
+f = function(x) x^3 * sin(x/3) * log(sqrt(x))
+x0 = 1; h = 1e-5
+(f(x0+h) - f(x0))/h
+(f(x0+h) - f(x0-h))/(2*h)
+
+###############
+
+## Error as function of difference h
+f = function(x) x^3 * sin(x/3) * log(sqrt(x))
+x0 = 1
+err = numeric(16)
+for (i in 1:16) {
+  h = 10^-i
+  err[i] = abs( (f(x0+h)-f(x0-h))/(2*h) - 0.5*sin(1/3) ) 
+}
+plot(log10(err), type="b", xlab="-log10(h)")
+
+###############
+
+## Using diff with lag = 2
+xfun = function(x0,h) seq(x0-h,x0+h,h)
+diff(f(xfun(x0,h)), lag = 2)/(2*h)
+## grad in numDeriv
+
+###############
+
+## grad in numDeriv
+f = function(x) x^3 * sin(x/3) * log(sqrt(x))
+require(numDeriv)
+options(digits=16)
+grad(f, 1, method = ’simple’)
+
+###############
+
+## grad for multivariate functions
+
+require(numDeriv)
+f = function(u){
+  x = u[1]; y = u[2]; z = u[3]
+  return(2*x + 3*y^2 - sin(z)
+}
+grad(f,c(1,1,0))
+
+###############
+
+## jacobian in numDeriv
+
+require(numDeriv)
+F = function(x) c(x[1]^2 + 2*x[2]^2 - 3, cos(pi*x[1]/2) -5*x[2]^3)
+jacobian(F, c(2,1))
+
+###############
+
+## hessian in numDeriv
+
+require(numDeriv)
+f = function(u){
+  x = u[1]; y = u[2]; z = u[3]
+  return(2*x + 3*y^2 - sin(z))
+}
+hessian(f,c(1,1,0))
+
+###############
+
+## fderiv in pracma
+
+require(pracma)
+f = function(x) x^3 * sin(x/3) * log(sqrt(x))
+x = 1:4
+fderiv(f,x)  # 1st derivative at 4 points
+fderiv(f,x,n=2,h=1e-5)  # 2nd derivative at 4 points
+
+###############
+
+## numderiv and numdiff in pracma
+
+options(digits = 12)
+numderiv(f,x0=2)
+numdiff(f,x=2:4)
+[1]  4.53478137145 18.93782173965 43.59140287422
+
+##############
+
+## Electric field using grad in pracma
+options(digits = 3)
+f = function(x) 1/sqrt(x[1]^2 + x[2]^2 + x[3]^2)
+x0 = c(1,1,1)
+-grad(f,x0)
+
+###############
+
+## Gradient and quiver plot in pracma package
+
+require(pracma)
+# Define the grid
+v = seq(-2, 2, by=0.2)
+X = meshgrid(v, v)$X
+Y = meshgrid(v, v)$Y
+# Define the potential Z
+Z = -(1/sqrt((X+1)^2 + Y^2) - 1/sqrt((X-1)^2 + Y^2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+contour(v, v, t(Z), col="black",xlab="x",ylab="y")
+grid(col="white")
+# Calculate the gradient on the grid points
+grX = gradient(Z, v, v)$X
+grY = gradient(Z, v, v)$Y
+# Draw arrows representing the field strength at the grid points
+quiver(X, Y, grX, grY, scale = 0.2, col="black")
+
+##############
+
+## Jacobian of transformation from spherical polar to Cartesian coordinates
+
+f = function(x) {
+  r = x[1]; theta = x[2]; phi = x[3];
+  return(c(r*sin(theta)*sin(phi), r*sin(theta)*cos(phi), 
+  r*cos (theta)))
+  }
+x = c(2, 90*pi/180, 45*pi/180)
+options(digits=4)
+jacobian(f,x)
+
+##############
+
+## hessian in pracma
+
+f = function(u) {
+  x = u[1]; y <- u[2]; z <- u[3]
+  return(x^3 + y^2 + z^2 +12*x*y + 2*z)
+}
+x0 = c(1,1,1) # Point at which the hessian is calculated 
+hessian(f, x0)
+
+##############
+
+## Function with ill-behaved derivatives at origin
+
+f = function(x) x^(1/3)/(1+x)
+curve(f,0,1)
+integrate(f,0,1)
+fu = function(u) 3*u^3/(1+u^3)
+integrate(fu,0,1)
+
+##############
+
+## Mean-square radius of sphere
+
+f1 = function(r) r^2
+f2 = function(r) r^4
+f = function(R) integrate(f2,0,R)$value/
+  integrate(f1,0,R)$value/R^2
+f(1); f(10); f(100)
+
+##############
+
+## Rotate sine curve about x-axis
+
+library(numDeriv)
+fn = sin
+gr = function(x) grad(fn, x)
+F = function(x) fn(x) * sqrt(1 + gr(x)^2)
+
+( I = integrate(F, 0, pi) )
+2.295587 with absolute error < 2.1e-05
+S = 2*pi * I$value
+S
+
+#############
+
+## Trapezoidal integration of discrete function
+
+require(pracma)
+f = function(x) exp(-x) * cos(x)
+xs = seq(0, pi, length.out = 101)
+ys = f(xs)
+trapz(xs, ys)
+
+h = pi/100
+ya = (ys[2] - ys[1])
+ye = (ys[101] - ys[100])
+trapz(xs, ys) - h/12 * (ye - ya)
+
+#############
+
+## Simpson's rule
+
+simpson = function(y, h) {
+  n = length(y)
+  if (n%%2 != 1) stop("Simpson's rule needs an uneven number of points.")
+  i1 = seq(2, n-1, by=2)
+  i2 = seq(3, n-2, by=2)
+  h/3 * (y[1] + y[n] + 4*sum(y[i1]) + 2*sum(y[i2]))
+  }
+simpson(ys, h)
+
+#############
+
+## Integration of spline and polynomial approximations
+
+fsp = splinefun(xs, ys)
+integrate(fsp, 0, pi)
+
+require(pracma)
+p = polyfit(xs, ys, 6)           # fitting polynomial
+q = polyint(p)                   # anti-derivative
+polyval(q, pi) - polyval(q, 0)    # evaluate at endpoints
+
+#############
+
+## Gauss-Legendre quadrature in gaussquad package
+
+f = function(x) x^6
+Lq = legendre.quadrature.rules(4)[[4]]   # Legendre of order 4
+xi = Lq$x; wi = Lq$w                    # nodes and weights
+sum(wi * f(xi))                           # quadrature
+
+legendre.quadrature(f, Lq, lower = -1, upper = 1)
+
+#############
+
+## Gauss-Legendre integration in pracma
+
+f = function(x) sin(x+cos(10*exp(x))/3)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(f,-1,1)
+
+nnodes = c(17,29,51,65)
+# Set up initial matrix of zeros for nodes and weights
+gLresult = matrix(rep(0, 2*length(nnodes)),ncol=2)
+for (i in 1:length(nnodes)) {
+  cc = gaussLegendre(nnodes[i],-1,1)
+  gLresult[i,1] = nnodes[i]
+  gLresult[i,2] = sum(cc$w * f(cc$x))
+}
+gLresult
+
+# Compare with integrate()
+integrate(f,-1,1)
+
+#############
+
+## Gaussian integration functions in pracma package
+
+require(pracma)
+f = function(x) sin(1/x)
+integrate(fun, 0, 1)
+integrate(fun, 0, 1, subdivisions=500)
+quadgk(fun, 0, 1)
+
+#############
+
+## More integration routines in pracma
+
+require(pracma)
+options(digits = 10)
+f = function(x) x * cos(0.1*exp(x)) * sin(0.1*pi*exp(x))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(f, 0, 4); grid()
+quad(f, 0, 4)
+quadl(f,0,1)
+cotes(f, 0, 4, 500, 7)
+romberg(f, 0, 4, tol=1e-10)
+quadcc(f, 0, 4)
+
+#############
+
+## integral() wrapper in pracma
+
+flog = function(t) log(1-t)/t
+val = pi^2/6
+for (m in c("Kron", "Rich", "Clen", "Simp", "Romb")) {
+  Q = integral(flog, 0, 1, reltol = 1e-12, method = m)
+  cat(m, Q, abs(Q-val), "\n")
+  }
+
+integrate(flog, 0, 1, rel.tol=1e-12)$value - val
+
+#############
+
+## Integration of Gauss error integral
+
+fgauss = function(t) exp(-t^2/2)
+( q = integrate(fgauss, -Inf, Inf) )
+q$value / sqrt(2*pi)
+
+mu = 1000
+fgauss = function(t) exp(-(t-mu)^2/2)
+integrate(fgauss, -Inf, Inf)
+integrate(fgauss, 0, 2000)
+
+#############
+
+## gaussLaguerre() and gaussHermite() integration
+
+require(pracma)
+cc = gaussLaguerre(4, 0.5)       # nodes and weights, a = 1/2
+sum(cc$w)                         # function f = 1
+
+cc = gaussHermite(8)             # nodes and weights
+sum(cc$w * cc$x^2)                # function f(x) = x^2
+
+############
+
+## Integrate sin(u)/u from 1 to infinity
+
+f = function(u) sin(u)/u
+integrate(f, 1, Inf)
+N = 10^6
+quadgk(f, 1, N*pi); quadgk(f, 1, (N+1)*pi)	# takes some time
+
+############
+
+## Integration over rectangular domain with integrate()
+
+fx = function(y) integrate(function(x) 1/(1+x^2+y^2), 0, 1)$value
+Fx = Vectorize(fx)
+( q1 = integrate(Fx, 0, 1) )
+
+#############
+
+## Integration over rectangular domain with cubature()
+
+install.packages("cubature")
+require(cubature)
+f = function(x) 1 / (1 + x[1]^2 + x[2]^2)
+( q2 = adaptIntegrate(f, c(0, 0), c(1, 1)) )
+
+#############
+
+## Integration over rectangular domain with integral2()
+
+require(pracma)
+f = function(x) 1 / (1 + x[1]^2 + x[2]^2)
+( q3 = adaptIntegrate(f, c(0, 0), c(1, 1)) )
+
+#############
+
+## Comparison of these three methods to 16 digits
+
+print(q1$value, digits=16)    # 0.6395103518703110, abs error < 1e-14
+print(q2$integral,digits=16)  # 0.6395103518438505, abs error < 1e-10
+print(q3$Q, digits = 16)      # 0.6395103518702119, abs error < 1e-13
+
+#############
+
+## Integration of a tricky 2D integral with integral2()
+
+require(pracma)
+f = function(x, y) 1/(2*pi) * exp(-y/2) * sqrt(x/(y-x))
+q = integral2(f, 0, 5, function(x) x, 5, singular = TRUE)
+q$Q
+
+#############
+
+## Integration of ln(x^2 + y^2) between two circles
+
+require(pracma)
+f = function(x, y) log(x^2 + y^2)
+q = integral2(f, 0, 2*pi, 3, 5, sector = TRUE)
+q
+
+#############
+
+## Monte Carlo integration of volume of unit sphere
+
+set.seed(4321)
+N = 10^6
+x = runif(N); y = runif(N); z = runif(N)
+V = 8 * sum(x^2 + y^2 + z^2 <= 1) / N
+V
+
+#############
+
+## Multi-dimensional integration of the unit sphere 
+## using R2Cuba functions
+
+install.packages("R2Cuba")
+require(R2Cuba)
+f = function(u, w) {
+    x = u[1]; y = u[2]; z = u[3]
+    if (x^2 + y^2 + z^2 <= 1) 1 else 0
+}
+ndim = 3; ncomp = 1
+q = vegas(ndim, ncomp, f, lower = c(0,0,0), upper = c(1,1,1))
+( V = 8 * q$value )
+
+#############
+
+## Product of 10 1D Gaussian error function integrals
+
+f = function(x) prod(1/sqrt(2*pi)*exp(-x^2))
+require(pracma)
+I1 = quad(f, 0, 1)
+I10 = I1^10
+I1; I10
+
+#############
+
+## Integration of above function with cuhre() and vegas() from R2Cuba
+
+f = function(x) prod(1/sqrt(2*pi)*exp(-x^2))
+require(R2Cuba)
+ndim = 10; ncomp = 1
+cuhre(ndim, ncomp, f, lower=rep(0, 10), upper=rep(1, 10))
+vegas(ndim, ncomp, f, lower=rep(0, 10), upper=rep(1, 10))
+
+#############
+
+## Integration of above function with SparseGrid()
+
+f = function(x) prod(1/sqrt(2*pi)*exp(-x^2))
+install.packages("SparseGrid")
+library(SparseGrid)
+ndim = 10
+k = 4
+spgrid = createSparseGrid(type = "KPU", dimension = ndim, k = k)
+n = length(spgrid$weights)
+I = 0
+for (i in 1:n)  I = I + f(spgrid$nodes[i, ])*spgrid$weights[i]
+I
+
+#############
+
+## Integration of 1/z on unit circle with trapz()
+
+require(pracma)
+N = 100
+s = seq(0, 1, length.out = N)
+z = exp(2*pi*1i * s)
+trapz(z, 1/z)
+
+#############
+
+## Integration of 1/z on unit circle with cintegral()
+
+require(pracma)
+N = 100
+s = seq(0, 1, length.out = N)
+z = cos(2*pi*s) + 1i * sin(2*pi*s)
+f = function(z) 1/z
+cintegral(f, waypoints = z)
+
+#############
+
+## Integration of 1/z on rectangle with cintegral()
+
+require(pracma)
+points = c(-1-1i, -1+1i, 1+1i, 1-1i, -1-1i)
+cintegral(function(z) 1/z, waypoints = points)
+
+#############
+
+## Complex line integration with elliptic()
+
+install.packages("elliptic") 
+require(elliptic)
+u = function(x) exp(2i*pi*x)
+uprime = function(x) 2i*pi*exp(2i*pi*x)
+integral.contour(f, u, uprime)
+
+#############
+
+## Derivative with D()
+
+# Define the expression and its function counterpart
+f = expression(sin(x)*exp(-a*x))
+ffun = function(x,a) sin(x)*exp(-a*x)
+# Take the first derivative
+(g = D(f,"x"))
+# Turn the result into a function
+gfun = function(x,a) eval(g)
+# Take the second derivative
+(g2 = D(g,"x"))
+# Turn the result into a function
+g2fun = function(x,a) eval(g2)
+# Plot the function and its derivatives, with a = 1
+curve(ffun(x,1),0,4, ylim = c(-1,1), ylab=c("f(x,1) and
+  derivatives"))
+curve(gfun(x,1), add=T, lty=2)
+curve(g2fun(x,1), add=T, lty=3)
+legend("topright", legend = c("f(x,1)", "df/dx", "d2f/dx2"),
+  lty=1:3, bty="n")
+
+###############
+
+## Derivatives with deriv()
+
+(D1 = deriv(f,"x"))
+x = 0:3
+a = 1
+options(digits=3)
+eval(D1)
+
+(D1fun = deriv(f,"x", hessian = T, func=T))
+D1grad = function(x) attr(D1fun(x),"gradient")
+D1hess = function(x) attr(D1fun(x),"hessian")
+a = 1
+curve(ffun(x,1), 0, 4, ylim = c(-1,1))
+curve(D1grad(x),  lty=2, add=T)
+curve(D1hess(x),  lty=3, add=T)
+
+#############
+
+## Differentiation and integration with PolynomF
+
+require(PolynomF)
+Loading required package: PolynomF
+(p <- poly.from.zeros(-2:5))
+deriv(p)
+
+x = polynom() # polynomial 'x' 
+p = (x-1)^2 + 10*x^3 + 5*x^4 
+p
+integral(p)
+integral(p, limits = c(0,2))
+
+#############
+
+## Differentiation of polynomials with polyder() in pracma
+
+require(pracma)
+p = c(3,2,1,1); q = c(4,5,6,0) # coefficients from high to low
+polyder(p)
+polyder(p,q)
+
+#############
+
+## Circumference of an ellipse
+
+require(pracma)
+a=1; b=1/2
+options(digits = 10)
+e = sqrt(1-b^2/a^2)
+E = ellipke(e^2)$e
+(C = 4*a*E)
+
+f = function(t) c(a*cos(t), b*sin(t))
+C = (arclength(f, 0, 2*pi, tol = 1e-10))
+
+#############
+
+## Integration of Lorentzian derivative
+
+par(mfrow=c(1,2))
+Lor = function(x,x0=3300,w=20) 1/pi*w/((x-x0)^2 + w^2)
+Gau = function(x,x0=3300,w=20) 1/sqrt(2*pi*w^2)*exp(-(x-x0)^2/(2*w^2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+curve(Lor,2500,4000,ylim = c(0,0.02), n=1000, lty=1,ylab="f(x)")
+curve(Gau,2500,4000,add=T, lty=2)
+legend("topright",legend=c("Lorentzian","Gaussian"),lty=1:2,bty="n")
+
+integrate(Lor,-Inf,Inf)
+integrate(Lor,2500,4000)
+
+require(pracma)
+dLor = function(x) numdiff(Lor,x)
+curve(dLor(x), 2500,4000, n=1000)
+abline(0,0,lty=2)
+
+xs = seq(2500,4000,len=1000)
+ys = Lor(xs)
+dys = dLor(xs)
+trapz(xs,ys)
+
+intdys = cumtrapz(xs,dys)
+trapz(xs,intdys)
+
+#############
+
+## Volume of an ellipsoid
+
+A = 1; B = 2/3; C = 1/2
+(V = 4/3*pi*a*b*c)
+
+require(R2Cuba)
+f = function(u) {
+   x = u[1]; y=u[2]; z = u[3]
+   if (x^2/A^2 + y^2/B^2 +z^2/C^2 <=1) 1 else 0
+}
+ndim=3; ncomp=1
+q = vegas(ndim,ncomp,f,lower=c(-A,-B,-C), upper=c(A,B,C))
+(V = q$value)
+
+#############
+
+
+
+
+

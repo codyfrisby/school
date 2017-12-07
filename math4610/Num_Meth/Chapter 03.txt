@@ -1,0 +1,516 @@
+Code for Chapter 3: Graphing
+
+## Figure 3.1
+set.seed(123)  # Enables reproducible random number generation
+x = 0:10
+y = x^2*exp(-x/2)*(1+rnorm(n=length(x), mean=0, sd=0.05))
+par(mfrow=c(1,2))  # Plots in 1 row, 2 columns
+plot(x,y)
+plot(x,y, pch=19, cex=0.7, xlab="Time, sec",
+  ylab = "Signal Intensity", main = "Detector Output")
+par(mfrow=c(1,1))  # Plots in 1 row, 1 column
+
+#################
+
+## Figure 3.2
+set.seed(123)  # Enables reproducible random number generation
+x = seq(from=0, to=10, by=0.1) # More closely spaced points
+y = x^2*exp(-x/2)*(1+rnorm(n=length(x), mean=0, sd=0.05))
+par(mfrow=c(1,2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+plot(x,y, type = "l")
+plot(x,y, type = "o")
+par(mfrow=c(1,1))
+
+#################
+
+## Figure 3.3
+par(mfrow=c(1,2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+curve(x^2*exp(-x/2),0,10)
+plot(x,y, pch=19, cex=0.7, xlab="Time, sec",
+  ylab = "Signal Intensity", main = "Detector Output") 
+curve(x^2*exp(-x/2),0,10, add=T)
+par(mfrow=c(1,1))
+
+#################
+
+## Figure 3.4
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+curve(sin,-4*pi,4*pi)
+
+#################
+
+## Figure 3.5
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+curve(1-x+x^2/2-x^3/3,0,2)
+x = seq(0,2,.4)
+y = 1-x+x^2/2-x^3/3
+points(x,y)
+
+#################
+
+## Figure 3.6
+A = c(3,4,4)
+B = c(6,8,10)
+feed = matrix(c(A,B), nrow=2, byrow=TRUE,
+  dimnames= list(c("A","B"), c("1","2","3")))
+feed  # Check that we've set up the matrix correctly
+
+par(mfrow=c(1,2))
+par(mar=c(4,4,3,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3,
+cex = 0.8, cex.main = 1.1) 
+
+barplot(feed,xlab="Week",ylab="grams gained",
+main = "Weight Gain by Week", legend.text=c("A","B"), 
+args.legend=list(title="Feed",x="topleft",bty="n"))
+
+barplot(t(feed),xlab="Feed",ylab="grams gained",
+main = "Weight Gain by Feed",legend.text=c("1","2","3"),
+args.legend=list(title="Week",x="topleft",bty="n"))
+
+par(mfrow=c(1,1))
+
+#################
+
+## Figure 3.7
+par(mfrow=c(1,2))
+par(mar=c(4,4,3,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3,
+cex = 0.8, cex.main = 1.1) 
+
+barplot(feed, beside=T,xlab="Week",ylab="grams gained",
+main = "Weight Gain by Week\n", legend.text=c("A","B"), 
+args.legend=list(title="Feed",x="topleft",bty="n"))
+
+barplot(t(feed), beside=T,xlab="Feed",ylab="grams gained",
+main = "Weight Gain by Feed\n",
+legend.text=c("1","2","3"),
+args.legend=list(title="Week",x="topleft",bty="n"))
+
+par(mfrow=c(1,1))
+
+#################
+
+## Figure 3.8
+
+set.seed(333)
+x = rnorm(1000,10,2)
+
+par(mfrow=c(1,2))
+par(mar=c(4,4,3,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3,
+cex = 0.8, cex.main = 1.1) 
+
+hist(x)
+plot(density(x))
+
+par(mfrow=c(1,1))
+
+density(x) # Get information about distribution
+
+#################
+
+## Figure 3.9
+
+par(mar=c(4,4,3,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3,
+  cex = 0.8, cex.main = 1.1) 
+boxplot(x, main = "Box Plot")
+
+#################
+
+## Figure 3.10
+
+par(mar=c(1,4,1,1),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+plot.new() # Empty plot
+plot.window(xlim=c(-.5, 26.5), ylim=c(0,1), asp=1)
+k = 0:25
+zero = 0*k  # Vector of 26 zeros
+text(k, 1 + zero, labels = k)
+points(k, zero, pch=k, cex=2)
+axis(2, at = 0:1,tick=FALSE, labels = c("pch","k"), las = 2)
+
+#################
+
+## Figure 3.11
+
+par(mar=c(1,2,1,1),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+plot.new() # Empty plot
+plot.window(xlim=c(-.1,1), ylim=c(1,6), asp=1)
+k = 6:1
+abline(h=7-k, lty=k)
+axis(2, at = 1:6,tick=FALSE, labels = k, las = 2, cex.axis=0.7)
+
+#################
+
+## Figure 3.12
+
+time = seq(1,8.5,.5)
+signal = 0.8*exp(-(time-1)/4) + 0.05 
+par(mar=c(5,4,4,2)+0.1,mex=1,mgp=c(3,1,0),tcl=-0.5)
+par(mfrow=c(1,2))
+plot(time, signal, type="l")
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+plot(time, signal, type="l",xlim = c(0,10), ylim = c(0,1))
+abline(h = 0.05, lty=3) # Horizontal line at y = 0.05
+abline(v=1,lty=3) # Vertical line at x = 1
+par(mfrow=c(1,1))
+
+#################
+
+## Figure 3.13
+
+x = 0:20
+y = sin(x)^2 + cos(x/2)
+err.y = 0.1
+err.x = 1
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+par(mfrow=c(1,2))
+# Plot just y error bars
+plot(x,y,type="o", pch=19)
+arrows(x,y,x,y+err.y,0.05,90); arrows(x,y,x,y-err.y,0.05,90)
+# Plot both x and y error bars
+plot(x,y,type="o", pch=19)
+arrows(x,y,x,y+err.y,0.05,90); arrows(x,y,x,y-err.y,0.05,90)
+arrows(x,y,x+err.x,y,0.05,90); arrows(x,y,x-err.x,y,0.05,90)
+par(mfrow=c(1,1))
+
+#################
+
+## Figure 3.14
+
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+par(mfrow=c(1,2))
+SL.s = iris$Sepal.Length[iris$Species == "setosa"]
+PL.s = iris$Petal.Length[iris$Species == "setosa"]
+SW.s = iris$Sepal.Width[iris$Species == "setosa"]
+PW.s = iris$Petal.Width[iris$Species == "setosa"]
+setosamat = cbind(SW.s,PL.s,PW.s)
+matplot(SL.s,setosamat)
+matplot(SL.s,setosamat, col=c(1,1,1), pch = 15:17,
+  xlab="Sepal Length", ylab = "Iris Measures")
+legend("topleft", legend=c("PL.s","SW.s","PW.s"),pch=15:17, bty="n")
+par(mfrow=c(1,1))
+
+#################
+
+## Figure 3.15
+
+par(mar=c(4,4,3,1.5),mex=1,mgp=c(2,.5,0),tcl=0.3)
+x=seq(-4*pi,4*pi,pi/6)
+y1=sin(x)
+y2=sin(x+pi/6)+0.1
+y3=sin(x+pi/3)+0.2
+m = cbind(y1,y2,y3)
+matplot(x,m,type="l",ylab="y1,y2,y3",lty=1:3,col="black",
+  main = "Displaced sin functions",
+  sub = "y1 = sin(x), y2 = sin(x+pi/6)+0.1, y3 = sin(x+pi/3)+0.2")
+legend("bottomleft",legend=c("y1","y2","y3"),col=1,lty=1:3,bty="n")
+
+#################
+
+## Figure 3.16
+
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+x = seq(.2,10,by=.2)
+y = 1 + x^2.3
+plot(x,y,log="xy", type="l")
+
+#################
+
+## Fig 3.17
+
+tC = seq(0,100,10)
+dH = 2000 + 10*(tC - 25)
+par(tcl=0.3, mar=c(3,3,4,4)+0.1, mgp = c(2,0.4,0))
+plot(tC, dH, xlim = c(0,100), ylim = c(1600,2800),
+  xlab="T, deg C",ylab="dH/kJ", tcl=0.3)
+axis(3, at = tC, labels = tC*9/5+32, tcl=0.3)
+mtext(side=3,"T, deg F", line = 2)
+axis(3, at = tC, labels = tC*9/5+32, tcl=0.3)
+axis(4, at = dH, labels = round(dH/4.18,0), tcl=0.3)
+mtext(side=4,"dH/kCal", line = 2)
+
+#################
+
+## Fig 3.18
+
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(log10(x), 0.5,5, bty = "L")
+
+#################
+
+## Fig 3.19
+
+xstep = 0.1
+x1 = seq(0.1,0.5,xstep)
+x2 = seq(5.0,5.3,xstep)
+x2red = x2-min(x2)+max(x1)+2*xstep
+x = c(x1,x2red)
+ystep = 1
+y1 = 1:5
+y2 = c(51,53,52,54)
+y2red = y2-min(y2)+max(y1)+2*ystep
+y = c(y1,y2red)
+
+library(plotrix)
+
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x,y,axes=F,xlab="x", ylab="y")
+box() # Draw axes without labels
+axis.break(1,max(x1)+xstep, style="zigzag", brw=0.04)
+axis.break(2,max(y1)+ystep, style="slash", brw=0.04)
+lx1 = length(x1); lx2 = length(x2)
+lx = lx1 + lx2
+ly1 = length(y1); ly2 = length(y2)
+ly = ly1 + ly2
+
+axis(1,at=(1:lx1)*xstep,labels=c(as.character(x1)))
+axis(1,at=((lx1+2):(lx+1))*xstep,labels=c(as.character(seq(min(x2),max(x2),by=xstep))))
+
+axis(2,at=(1:ly1)*ystep,labels=c(as.character(y1)))
+axis(2,at=((ly1+2):(ly+1))*ystep,labels=c(as.character(seq(min(y2),max(y2),by=ystep))))
+
+#################
+
+## Fig 3.20
+
+x = -10:10
+y = sin(x)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x,y, type="o")
+text(3,1, "Local Max")
+text(-2.5,-1,"Local Min")
+arrows(1,-.1,.1,0,length=0.1,angle=15)
+text(1,-.15,"0,0")
+
+#################
+
+## Fig 3.21
+
+n = 20
+v = 1:n
+v2 = v^(-2)
+s2 = cumsum(v2)
+v4 = v^(-4)
+s4 = cumsum(v4)
+s = cbind(s2,s4)
+# par(mar=c(5,5,4,4)+0.1)
+par(mar=c(4,5,4,5)+0.1,mex=.8,mgp=c(2,.5,0),tcl=0.3)
+matplot(v,s, type="p", pch=c(16,17), col=1,ylim=c(1,1.7), bty="L",
+  xlab="v", ylab = expression(sum(1/v^k,v=1,n)),
+  main = expression(paste("Convergence to Riemann ",zeta)))
+abline(h=pi^2/6,lty=2)
+abline(h=pi^4/90,lty=2)
+mtext(side=4,at=pi^2/6,text=expression(zeta[2] ==
+  frac(pi^2,2)),line=1,las=2)
+mtext(side=4,at=pi^4/90,text=expression(zeta[4]==frac(pi^4,90)),
+  line=1,las=2)
+text(5,1.52,"k = 2")
+text(5,1.12,"k = 4")
+
+#################
+
+## Fig 3.22
+
+n = 1000
+x = 1:n
+set.seed(333)
+y1 = rnorm(n,0,1)
+y2 = rnorm(n,0,2)
+par(mfrow = c(2,2))
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+plot(y1)
+boxplot(y1,y2)
+hist(y1)
+plot(density(y2))
+par(mfrow = c(1,1))
+
+#################
+
+## Fig 3.23
+
+# Divide the device into two rows and two columns
+# Allocate figure 1 all of row 1
+m = matrix(c(1,1,2,3),ncol=2,byrow=TRUE)
+layout(m)
+x = rnorm(100,10,2)
+y = rnorm(100,5,2)
+par(mar=c(2,3,3,2))
+plot(x,y,main="y vs x")
+boxplot(x,main="x distribution")
+boxplot(y,main="y distribution")
+
+#################
+
+## Fig 3.24
+
+n = 1:20 
+x = sin(n)
+y = cos(n)*exp(-n/3)
+z = outer(x,y)
+par(mar=c(3,3,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+par(mfrow=c(1,2)) # Two plots side-by-side
+image(z,col=gray(1:10/10)) # First plot
+contour(z) # Second plot
+par(mfrow=c(1,1)) # Reset to default single plot
+
+#################
+
+##Fig 3.24a
+
+n = 1:20 
+x = sin(n)
+y = cos(n)*exp(-n/3)
+z = outer(x,y) + 1
+
+filled.contour(n,n,z, col=gray(0:10/10))
+
+##Fig 3.24a
+
+n = 1:20 
+x = sin(n)
+y = cos(n)*exp(-n/3)
+z = outer(x,y) + 1
+
+filled.contour(n,n,z, col=gray(0:10/10))
+
+#################
+
+## Fig 3.26
+
+install.packages("scatterplot3d")
+library(scatterplot3d) # Or require(scatterplot3d)
+
+x=1:20
+y=1:20
+set.seed(17)
+z = runif(20)
+par(mfrow=c(1,2))
+par(mar=c(1,1,1,1))
+scatterplot3d(x,y,z)
+scatterplot3d(x,y,z, type="h")
+
+#################
+
+## Fig 3.27
+
+require(plotrix)
+par(mfrow=c(1,3))
+par(mar=c(1,2,1,2))
+par(cex.lab=0.7)
+
+angle = seq(0, 2*pi, len = 50)
+radius = 10*cos(angle)^2 + cos(angle + pi/6)
+radial.plot(lengths = radius, radial.pos = angle, 
+  start=pi/2, rp.type = "p",
+  main = "radial.plot, type = p")
+
+angle = c(0,5,32,111,273,314)
+distance = c(0,7,12,10, 5, 8.3)
+polar.plot(lengths = distance, polar.pos = angle, 
+  start=90, rp.type = "s", point.symbols=16, 
+  show.grid.labels=1,
+  main = "polar.plot, type = s")
+
+angle = c(0,5,32,111,273,314)
+distance = c(0,7,12,10, 5, 8.3)
+polar.plot(lengths = distance, polar.pos = angle, 
+  start=90, rp.type = "r", lwd=2, 
+  show.grid.labels=1,
+  main = "polar.plot, type = r")
+
+par(mfrow=c(1,1))
+
+#################
+
+## Fig 3.28
+
+require(plotrix)
+
+alloy1 = c(20, 75, 5)
+alloy2 = c(25, 65, 10)
+alloy3 = c(32,50, 18)
+alloy4 = c(12,70, 18)
+alloys = rbind(alloy1, alloy2, alloy3, alloy4)
+
+triax.return = triax.plot(alloys, main = "Alloy Composition", 
+  show.grid = TRUE, show.legend = TRUE, 
+  col.symbols = gray(2:5/10), pch = 16:19)
+
+par(triax.return$old.par) # Change parameters back
+
+#################
+
+## Fig 3.29
+x10 = uniroot(function(x) besselJ(x,1),c(9,11))$root
+x4 = uniroot(function(x) besselJ(x,1),c(3,5))$root
+x7 = uniroot(function(x) besselJ(x,1),c(6,8))$root
+x = seq(0,x10,len=100)
+y = besselJ(x,1)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+plot(c(0,x10),c(-0.5,0.8), type="n", xlab="x", ylab="J(x,1)")
+polygon(x,y,col="gray", border=NA)
+rect(0,-1,x10,0, col="white", border=NA)
+abline(h=0, col = "gray")
+xminus = seq(x4,x7,len=50)
+yminus = besselJ(xminus,1)
+polygon(xminus,yminus, col=gray(.2), border=NA)
+axis(1, tick=TRUE)
+
+#################
+
+# Fig 3.30 segments, rect, polygon, plotrix similars
+
+par(mar=c(1.5,1.5,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3)
+par(mfrow=c(1,2))
+plot.new(); plot.window(c(0,100), c(0,100), asp=1); box()
+x0=c(5,10,15); y0=x0; x1 = x0 + 5; y1 = y0 + 60
+segments(x0=x0,x1=x1,y0=y0,y1=y1, lty=1:3)
+rect(80,25,95,80,border="black",lwd=3)
+polygon(50+25*cos(2*pi*0:8/8), 50+25*sin(2*pi*0:8/8), col=gray(0.8), border=NA)
+
+require(plotrix)
+
+plot.new(); plot.window(c(0,100), c(0,100), asp=1); box()
+draw.arc(20, 20, (1:4)*5, deg2 = 1:20*15)
+draw.circle(20, 80, (1:4)*5)
+draw.ellipse(80, 20, a = 20, b = 10, angle = 30, col=gray(.5))
+draw.radial.line(start=2, end = 15, center = c(80,80), angle=0) 
+draw.radial.line(start=2, end = 15, center = c(80,80), angle=pi/2) 
+draw.radial.line(start=2, end = 15, center = c(80,80), angle=pi) 
+draw.radial.line(start=2, end = 15, center = c(80,80), angle=3*pi/2) 
+
+par(mfrow=c(1,1))
+
+###############
+
+## Fig. 3_animation
+
+install.packages("animation")
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+require(animation)
+brownian.motion = function(n = 10, xlim = c(-20, 20), 
+  ylim = c(-20, 20), ...) {
+  x = rnorm(n)
+  y = rnorm(n)
+  interval = ani.options("interval")
+  for (i in seq_len(ani.options("nmax"))) {
+    plot(x, y, xlim = xlim, ylim = ylim, ...)
+    # text(x, y)
+    x = x + rnorm(n)
+    y = y + rnorm(n)
+    Sys.sleep(interval)
+  }
+invisible(NULL)
+}
+# Change options from default (interval = 1, nmax = 50)
+oopt = ani.options(interval = 0.05, nmax = 100)
+brownian.motion(pch = 16, cex = 1.5)
+ani.options(oopt) # Restore default options
+
+
+
+
+
+
+
+

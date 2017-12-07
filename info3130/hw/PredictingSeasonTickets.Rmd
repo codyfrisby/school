@@ -1,0 +1,57 @@
+---
+title: "Predicting Theater Season Ticket Renewals"
+author: "Cody Frisby"
+date: "10/28/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 
+                        'center', warning = F, message = F)
+library(xlsx)
+```
+
+
+```{r data prep}
+train <- read.xlsx("~/Documents/school/info3130/data/TheaterData.xlsx", 
+                   sheetIndex = 1)
+train <- train[-1] # get rid of ID
+names(train) <- c("renewed", "price", "tickets", "users",
+                  "voucher", "timeBeforeCurtain", "performances")
+test <- read.xlsx("~/Documents/school/info3130/data/TheaterData.xlsx", 
+                  sheetIndex = 2)
+test <- test[-1] # get rid of ID
+names(test) <- c("price", "tickets", "users",
+                  "voucher", "timeBeforeCurtain","performances")
+```
+
+The number of performances attended (performances) appears to have the largest influence on the response variable (Ticket Renewal).  This makes intuitive sense.  Why would you buy season tickets if you never attend the theater?  Next largest influencer appears to be the number of different users (users) of the tickets.  This sort of makes sense.  People may buy season tickets as a group and then share them among the group where only a subset of the group goes to each performance.  Next up is the average time before the curtain (timeBeforeCurtain).  It appears people who are serious about attending the theater arrive earlier, on average.  As a general rule, the more you do something the better you get at it.  Season ticket holders likely make an event out of attending.  They get ready, know by when they need to eat, and then arrive at the theater before the show begins so that they have time to check their coat, visit the concessions, and use the facilities.  
+
+
+```{r fit model}
+fit <- glm(renewed ~ ., data = train, 
+           family = binomial(link = "logit"))
+pred <- predict(fit, test, type = "response")
+tmp <- summary(fit)$coef
+knitr::kable(tmp)
+```
+
+Let's see what the model looks like with predicting on a blind dataset. 
+
+Since we cannot represent all variables, I've chosen to exclude time (as this was our least significant out of the significant factors :)) and to include **users**, **timeBeforeCurtain**, and the predicted probabilities.  
+
+```{r plot model}
+library(ggplot2)
+test$pred <- pred
+test$users <- as.factor(test$users)
+gg <- ggplot(data = test, aes(x = performances, y = pred, 
+                            color = users))
+gg <- gg + geom_point(size = 2) + xlab("Number of Performances")+ ylab("Predicted Probability of Purchasing Season Tickets") + theme_bw()
+gg + geom_smooth(method = "glm", 
+                 method.args = list(family = "binomial"), 
+                 se = F)
+```
+
+It appears that the model at least appears to be predicting to what intuition would suggest based on the model and that it does reasonably well on the blind dataset.  Huzzah!  
+
+If we make the decision point (whether or not someone will renew) as $p = 0.5$ then we can predict that **27** will renew, or around **55%** of those in the test dataset.  

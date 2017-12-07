@@ -1,0 +1,89 @@
+---
+title: "K-Means"
+author: "Cody Frisby"
+date: "9/30/2017"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = F, message = F)
+```
+
+
+```{r}
+df <- read.csv("~/Documents/school/info3130/data/kmeansHybrid")
+```
+
+
+```{r}
+km <- kmeans(df, centers = 5)
+df$group <- factor(km$cluster)
+```
+
+Using 20 observations, I produce the plot using the R API of `plotly`.  Cool thing about rendering a scatterplot using `plotly` is that it is interactive.  It appears that there are 3 or 4 groups depending on how to "slice" it.  I can see a group of the older individuals, all grandparents.  I can see one of the short/lower-weight individuals (all children) as well.  Centroids could be 
+
+$$Centroid_1 = (age = 10,~ weight = 57,~ height = 53)$$
+$$Centroid_2 = (age = 30,~ weight = 150,~ height = 69)$$
+$$Centroid_3 = (age = 66,~ weight = 180,~ height = 67)$$
+
+
+```{r, eval=F}
+library(plotly)
+p <- plot_ly(df, x = ~age, y = ~weight, z = ~height) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'Age'),
+                     yaxis = list(title = 'Weight'),
+                     zaxis = list(title = 'Height')))
+
+p
+```
+
+![3D Scatterplot](~/Documents/school/info3130/img/3dscatter1.png)
+
+If we choose $k = 3$ using k-means clustering and then coloring the points by group we can see how well we do.  
+
+```{r, eval=F}
+library(plotly)
+p <- plot_ly(df, x = ~age, y = ~weight, z = ~height, color = ~group) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'Age'),
+                     yaxis = list(title = 'Weight'),
+                     zaxis = list(title = 'Height')))
+
+p
+
+```
+
+![3D Scatterplot with Kmeans Groups](~/Documents/school/info3130/img/3dscatter2.png)
+
+Not too bad, if we orient it right we can see the distinct groups better.  *Kmeans* includes the taller/heavier oldest individual in the tall/heavier group where I would have grouped that individual in the "grandparents" group.  But other than that it doesn't look too bad.  For reference I show the kmeans centroids.  
+
+```{r}
+knitr::kable(km$centers)
+```
+
+
+What if we sliced it using 3 groups and hiearchal clustering with single linkage, still using $k = 3$ as the number of clusters. 
+
+```{r}
+hc <- hclust(dist(df[-4]), method = "single")
+mb <- cutree(hc, k = 5)
+df$cluster <- factor(mb)
+```
+
+
+```{r, eval=F}
+p <- plot_ly(df, x = ~age, y = ~weight, z = ~height, color = ~cluster) %>%
+  add_markers() %>%
+  layout(scene = list(xaxis = list(title = 'Age'),
+                     yaxis = list(title = 'Weight'),
+                     zaxis = list(title = 'Height')))
+
+p
+```
+
+
+Groups are different, I'd even argue they are "
+better".  

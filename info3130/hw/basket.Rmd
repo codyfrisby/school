@@ -1,0 +1,51 @@
+---
+title: "Association Rules"
+author: "Cody Frisby"
+date: "9/19/2017"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 'center', message = F, warning = F)
+library(arules)
+library(arulesViz)
+```
+
+
+## Using R   
+
+The output from the `apriori` function is below.  For brevity, I only display the first 5 rules after sorting them in decending order by confidence.    
+
+
+```{r}
+df <- read.csv("~/Documents/school/info3130/data/market.csv", colClasses = "factor")
+df <- df[-1]
+df[df == 0] <- NA
+```
+
+
+
+```{r, comment=""}
+rules <- apriori(df,
+        parameter = list(supp = 0.01, conf = 0.5))
+```
+
+
+```{r, eval=FALSE}
+rules <- sort(rules, by = "confidence", decreasing = TRUE)
+inspect(rules[1:5])
+plot(rules[1:5], method="graph", engine = 'interactive'
+     ,shading = "confidenced")
+```
+
+
+```{r, eval=FALSE}
+rules <- sort(rules, by = "support", decreasing = TRUE)
+inspect(rules[1:6])
+plot(rules[1:6], method = "grouped", measure = "support")
+plot(rules[1:6], method="graph", engine = 'interactive'
+     ,shading = "confidence")
+```
+
+
+## Using RapidMiner  

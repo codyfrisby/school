@@ -1,0 +1,78 @@
+---
+title: "Chapter 4 Homework"
+subtitle: "Info 3130"
+author: "Cody Frisby"
+date: "9/18/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, warning=F, message=F, cache = TRUE)
+library(MVA) # library for the textbook.
+library(ggplot2)
+library(dplyr)
+library(ggrepel)
+library(reshape)
+```
+
+# PGA Tour Data  
+
+My data comes mainly from the PGA Tour.  Included in my data set are also the results of simulations run using probabilities generated from fitting an proportional odds model to a set of predictor variables.  Also included are the Vegas Odds for the Masters golf tournament for each year, if available, the *actual finish* for each player each year, and their official world golf ranking in April and February of each year.  Although the years included in the data set are 2004 - 2017, the Vegas odds were only able to be gathered going back to 2014.  The **sg** catagories are calculated by the PGA tour for each player who appears on the PGA tour.  They are a measure of the individual players skill in the different catagories compared to his peers.    
+
+For the correlation matrix below I've included the variables *prob*, *sg.approach*, *sg.around*, *sg.tee*, *sg.putt*, *sg.total*, and *owgr.April*.  
+
+```{r}
+# using my masters data :)
+masters <- read.csv("~/Documents/masters/allyears.csv")
+s <- c("prob", "sg.approach", "sg.around", "sg.tee", "sg.putt",
+       "sg.total", "owgr.April")
+masters$winner <- factor(ifelse(masters$actualrank == 1, 1, 0))
+#temp <- cor(df[s], use = "complete.obs")
+```
+
+
+```{r, cache=T}
+GGally::ggpairs(masters[s])
+```
+
+
+The largest correlation exists between *owgr.April* and *prob*.  Recall that *prob* is the modeled/simulated probability of a given player winning the Masters.  This large correlation indicates the large influence that a players Official World Golf Ranking has on the modeled/simulated probabilites.  
+
+The next largest correlation exists between *sg.total* and *sg.approach*.  This makes sense since *sg.total* is the sum of all the **sg** catagories.  Additionally, if a player is better than his peers in the "approach" catagory then that would directly affect their "total" **sg** score.   
+
+There appears to be some outliers among the *prob* variables.  When investigating this further, it appears these are mainly Tiger Woods for a few years that he was extremely dominant.  
+
+If we zoom in on on just one of the bivariate plots we can see how dominant Tiger Woods was for a few years.  I've also added some coloring where we can see who actually won the masters each year in our data set (blue triangle).  
+
+```{r}
+masters$rank <- NULL
+# fix some of the ties for first
+masters[masters$name == "DiMarco, Chris" & masters$year == 2005, "actualrank"] <- 2
+masters[masters$name %in% c("Perry, Kenny", "Campbell, Chad") & masters$year == 2009, "actualrank"] <- 2
+masters[masters$name == "Oosthuizen, Louis" & masters$year == 2012, "actualrank"] <- 2
+masters[masters$name == "Cabrera, Angel" & masters$year == 2013, "actualrank"] <- 2
+x <- as.character(masters$name)
+l <- strsplit(x, ", ")
+firstname <- sapply(l, "[", 2)
+lastname <- sapply(l, "[", 1)
+masters$name <- paste(firstname, lastname)
+df <- masters[, c("name", "year", "owgr.April", "prob", "winner")]
+df$is_outlier <- ifelse(df$owgr.April >= 15, 1, NA)
+# so the year is displayed
+df$name <- paste(df$name, df$year)
+df$name[which(is.na(df$is_outlier))] <- as.numeric(NA)
+gg <- ggplot(data = df, aes(x = owgr.April, y = prob))
+gg <- gg + geom_point(aes(color = winner, shape = winner, 
+                          size = winner, alpha = winner)) + 
+  theme_bw() + ylab("Predicted Probability of Winning") + 
+  xlab("World Golf Ranking in April") + 
+  geom_text_repel(aes(label = name), na.rm = TRUE, 
+                  size = 2, segment.alpha = 0.5, 
+                  segment.size = 0.5) + 
+  scale_size_manual(values = c(3, 5)) + 
+  scale_alpha_manual(values = c(0.35, 1)) + 
+  theme(legend.position = "none")
+gg
+```
+
+

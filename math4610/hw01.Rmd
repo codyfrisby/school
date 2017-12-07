@@ -1,0 +1,311 @@
+---
+title: "Homework 1"
+subtitle: "Math 4610"
+author: "Cody Frisby"
+date: "9/16/2017"
+output: 
+  pdf_document:
+    includes:
+      in_header: mystyles.sty
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi = 200, warning = FALSE, message = FALSE)
+# source the custom functions needed to solve these things
+source("~/Documents/math4610/R/root.R")
+#source("~/Documents/math4610/R/qsolve.R")
+```
+
+
+```{r, eval=FALSE}
+# visualize convergence:
+lin <- numeric()
+qua <- numeric()
+cub <- numeric()
+quad <- numeric()
+for (i in 1:10) {
+  lin[i] <- 1 / 2^(1*i)
+  qua[i] <- 1 / 2^(2*i)
+  cub[i] <- 1 / 2^(3*i)
+  quad[i] <- 1 / 2^(4*i)
+}
+print(cbind(lin, qua, cub, quad))
+df <- data.frame(lin, qua, cub, quad)
+df <- rbind(1, df)
+df <- stack(df)
+names(df) <- c("Pn", "Type")
+df$iteration <- rep(0:10, 4)
+library(ggplot2) 
+gg <- ggplot(data = df[df$iteration <= 5, ], aes(x = iteration, y = Pn, color = Type))
+gg + geom_line()
+```
+
+
+## 1.  Let  
+
+$$f(x) = -2 ~~~ for ~~~ x \leq 2.5$$
+$$f(x) = -2 + 6(x - 2.5) ~~~ for ~~~ 2.5 < x$$  
+
+A sketch is included for reference.  
+
+```{r}
+f <- function(x) {
+  ifelse(x <= 2.5, -2, -2 + 6 * (x - 2.5))
+}
+fprime <- function(x) {
+  ifelse(x <= 2.5, 0, 6)
+}
+# first "sketch" the function
+curve(f(x), 0, 3, col = "red")
+grid()
+abline(h = 0, lty = 3) # x axis
+abline(v = 0, lty = 3)# y axis
+```
+
+
+```{r}
+# run this function through the various root finding methods asked from the problem.  
+Sm <- secant2(FUN = f, p0 = 3, p1 = 2)
+Nm <- newton2(x0 =3, FUN = f, FP = fprime)
+Bm <- bisection(a = 3, b = 2, FUN = f, n = 100)
+Fp <- Fposition(FUN = f, p0 = 3, p1 = 2)
+```
+
+Of the 4 methods used, and with a similar set tolerance for each method, Newton's converges the quickest, needing just two iterations to find the root, which is approximately 2.833333.  First guess for each method is 3.  If a method requires two initial points then the second one is 2.  
+
+```{r}
+knitr::kable(Nm)
+```
+
+Next fastest was the false position method.  It needed 3 iterations to converge on the solution.  
+
+```{r}
+knitr::kable(Fp)
+```
+
+And third is the secant method, needing 4.  
+
+```{r}
+knitr::kable(Sm)
+```
+
+For the sake of brevity, I do not include all the iterates of the bisection method.  It took 28 to converge on the root, being very slow at the end.  
+
+```{r}
+knitr::kable(Bm[c(1, 3, 10, 13, 27, 28), ])
+```
+
+
+## 2.  Write down a quadratically convergent method to solve the following equation for x.  
+
+$$\int_0^x e^{-t^2} dt = 0.1$$  Visually, the solution is the area under the curve that is equal to 0.1 from 0 to x.  
+
+```{r}
+fp <- function(x) {
+  exp(-x^2)
+}
+curve(fp(x), from = -1, to = 3, ylab = "", xlab = "")
+grid()
+abline(h = 0, lty = 3) # x axis
+abline(v = 0, lty = 3)# y axis
+xx <- 0.2
+x <- seq(0, xx, 0.01)
+cord.x <- c(0, x, xx)
+cord.y <- c(0, fp(x), 0)
+polygon(x = cord.x, y = cord.y, col = "dodgerblue", lty = 3, border = "red")
+text(xx, -0.018, "x")
+```
+
+
+I do not know of a way to find the indefinite integral $\int e^{-x^2}$.  But, we could take the Taylor series expansion of $e^{-x^2}$ out to two terms, integrate,  and then solve using a technique that converges quadratically.  
+
+$$\int_0^x 1 - t^2 ~dt = 0.1$$
+$$x - \frac{x^3}{3} - 0.1 = 0$$  
+
+And since newton's method converges *at least* quadratically, we can apply it using the second function above and its derivative, which after 3 iterations we get
+
+```{r}
+f <- function(x) x - x^3/3 - 0.1 
+fp <- function(x) 1 - x^2
+nm <- newton2(x0=0, FUN = f, FP = fp)
+```
+
+$$x = `r nm[dim(nm)[1], 1]`$$  
+
+```{r}
+knitr::kable(nm)
+```
+
+In summary, using Newton's method, my solution looks like this:
+
+$$x_{n+1} = x_n - \frac{x_n - \frac{x_n^3}{3} - 0.1}{1 - x_n^2}$$
+
+In class the method indicated could be 
+
+$$x_{n+1} = x_n - \frac{\int_0^x e^{-t^2} dt - 0.1}{e^{-t^2}}$$
+
+## 3.  Find a third order convergent method to approximate a solution of $f(x) = 0$.  
+
+A sequence that has cubic convergence could look something like 
+$$P_n = 10^{-3^n}$$
+
+and a method that has this same behavior approximating $f(x) = 0$ is $$x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)} - \frac{1}{2} \frac{f(x_n)^2 f^2(x_n)}{f'(x_n)^3}$$ which when tested on, say, $f(x) = cos(x) - x = 0$ converges to a given tolerance one iteration quicker than Newton's method.  
+
+```{r}
+f <- function(x) cos(x) - x
+fp <- function(x) -sin(x) - 1
+temp1 <- cubic(FUN = f, x0 = 0)
+temp2 <- newton2(x0=0)[, c(1, 4)]
+#x <- x0 - (1/dfx) * fx - (1/2) * (fx^2 * sx1)/(dfx^3)
+# cubic converges on sin(x) - x 10 iterations faster than newtons
+```
+
+Below are the results comparing two methods.  The initial guess is $x_0 = 1$ for both methods.    
+
+Table: Newton's Method for $cos(x) - x = 0$
+```{r}
+knitr::kable(cbind(n = 1:5, temp2))
+```
+
+Table: Third Order Convergent Method for $cos(x) - x = 0$
+
+```{r}
+knitr::kable(cbind(n = 1:4, temp1))
+```
+
+It is interesting to visualize the three iterations for $f(x) = cos(x) - x$. 
+
+```{r}
+curve(cos(x) - x - (cos(x) - x)/(-sin(x) - 1), add = FALSE, 
+      col = "red", lty = 2, from = -1, to = 2.6, , xlab = "x", 
+      ylab = "")
+curve(cos(x) - x, add = TRUE)
+grid()
+abline(h = 0, lty = 3) # x axis
+abline(v = 0, lty = 3)# y axis
+curve(cos(x) - x - (cos(x) - x)/(-sin(x) - 1 - ((cos(x) - x)^2 * -cos(x)) / (2 * (-sin(x) - 1)^3)), add = TRUE, 
+      col = "darkblue", lty = 3, lwd = 2)
+legend("topright",bty = "n", lty = c(1, 2, 3), 
+       col = c("black", "red", "darkblue"),
+       legend = c("f(x)", "g(x)", "h(x)"))
+```
+
+$$g(x) = cos(x) - x - \frac{cos(x) - x}{-sin(x) - 1}$$
+$$h(x) = cos(x) - x - \frac{cos(x) - x}{-sin(x) - 1} - \frac{(cos(x) - x)^2 - cos(x)}{2 (-sin(x) - 1)^3}$$  
+
+## 4.  Write Muller's method in the form  
+
+$$x_{n+1} = x_n + []f(x_n)$$ where the expression in the brackets is an approximation of $\frac{-1}{f'(r)}$.  
+
+I have no idea how to do this one.  Sorry.  
+
+Muller's method can be written, with initial guesses $p_0, p_1, p_2$, as $$x_{n+1} = x_n - (x_n - x_{n - 1})\frac{2c}{max(b \pm \sqrt{b^2 - 4ac})}$$ where a, b, and c are found using 
+
+$$c = f(p_2)$$ 
+
+$$b = \frac{(p_0 - p_2)^2 [f(p_1) - f(p_2)] - (p_1 - p_2)^2 [f(p_0) - f(p_2)]}{(p_0 - p_2)(p_1 - p_2)(p_0 - p_1)}$$ 
+
+$$a = \frac{(p_1 - p_2) [f(p_0) - f(p_2)] - (p_0 - p_2) [f(p_1) - f(p_2)]}{(p_0 - p_2)(p_1 - p_2)(p_0 - p_1)}$$  
+
+......
+
+
+```{r, eval=FALSE}
+# test out muller's method, page 98
+f <- function(x) x^4 - 3*x^3 + x^2 + x + 1
+muller(f, p0 = 0.5, p1 = -0.5, p2 = 0)
+curve(f(x), -0.5, 2.5)
+grid()
+abline(h = 0, lty = 3) # x axis
+abline(v = 0, lty = 3)# y axis
+```
+
+
+## 5.  When does the method $x_{n+1} = x_n + f(x_n)$ converge to a soluton $r$ o
+f $f(x) = 0$?  
+
+This occurs when $|(x_n + f(x_n))'| < 1$.  This can converge very rapidly or very slowly (like with $sin(x) - x = 0$) depending on how closely the values of $x_{n+1}$ and $|(x_n + f(x_n))'|$ are to each other.  
+
+## 6.  
+
+```{r}
+# I finally figured this one out.
+f <- function(x) x^2 - 3 - 0.001
+fp <- function(x) 2 * x
+temp <- err(p0 = 1, p1 = 4)
+```
+
+$x_0 = `r temp$x0`$.  The results of Newton's method, using this value for my starting point are here as well.  
+
+```{r}
+knitr::kable(temp$check)
+```
+
+
+For the Newton's method of the problem, I define the following functions:
+
+$$f(x) = x^2 - 3 = 0$$ 
+$$f'(x) = 2x$$
+
+Here's is the code of my function: 
+
+```{r, eval = FALSE, echo=TRUE}
+err <- function(p0 = 1, p1 = 4, n = 30, e = 0.001) {
+  q0 <- newton2(x0 = p0, n = 3)[3, 4] - e
+  q1 <- newton2(x0 = p1, n = 3)[3, 4] - e
+  r <- p1 - q1 * ((p1 - p0) / (q1 - q0))
+  for(i in 1:n) {
+    q0 <- newton2(x0 = p0, n = 3)[3, 4] - e
+    q1 <- newton2(x0 = p1, n = 3)[3, 4] - e
+    r <- p1 - q1 * ((p1 - p0) / (q1 - q0))
+    if (abs(q1) <= 1e-14) {
+      names(r) <- NULL
+      break
+    }
+    i <- i + 1
+    p0 <- p1
+    q0 <- q1
+    p1 <- r
+    q1 <- newton2(x0 = r)[3, 4] - 0.001
+  }
+  names(r) <- NULL
+  CHECK <- newton2(x0 = r, n = 3)
+  RESULT <- r
+  return(list(x0 = r, check = CHECK))
+}
+```
+
+
+
+## 7.  
+
+$$x_{n+1} = g(x, a) = ax - ax^2$$ 
+
+For the below plot, *a* starts at 1 and goes to 4 by 0.01 and initial point $x_0 = 0.5$.    
+
+```{r}
+g <- function(x, a) { # define the function for the problem.
+  a*x - a*x^2
+}
+a0 <- 2.5
+b0 <- 4
+### professor Palais helped me write the below code.
+A <- seq(a0, b0, 0.01) # generate a bunch of As
+x0 <- 0.5 # initial x
+plot(c(a0, b0), c(0, 1.25), type = "n", xlab = "a", 
+     ylab = "g(xn, a)") # empty plot.  Needed so we can just
+# add the points later on in the program.  
+grid() # grid looks better than just blank white.
+for(i in 1:length(A)) { # This is the "A" loop.  So we can vary A
+  a <- A[i] # grab the ith A
+  x <- x0 # first "guess"
+  for(j in 1:200) { # inner loop to compute the vector
+    x[j+1] <- g(x[j], a)#iterate g(x_n) for all the values for A
+  }
+  points(cbind(A[i], x[50:200]), cex = 0.25, pch = 16)
+  # add the points A[i] and the last 50 iterates of x to see
+  # if we converged about a fixed point.
+}
+```
+
+Thanks for walking me through this problem, professor.

@@ -1,0 +1,334 @@
+---
+title: "Numerical Analysis Class Notes"
+author: "Cody"
+date: "8/25/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F)
+source("~/Documents/school/math4610/R/qsolve.R")
+source("~/Documents/school/math4610/R/root.R")
+```
+
+# Class Notes  
+
+## 8-23-17  
+
+No specific programming language required. He has experience in a lot.
+
+EMAIL: numerical...
+
+First book used was Atkinson 1987.
+Analysis and Algorithms.
+
+Using desmos.com
+
+Root Finding problem
+HW problem will be to invent a method that is better than Newton's method for cubics.
+
+Principal of least action or least time.
+Calculus of variations
+
+All of Math is:
+	1.	Inversion (finding the input that gives a particular output)
+	2.	Optimization (describes the cosmos, relativity, etc)
+	3.	Modeling
+
+The solution to the Fibonacci equation….
+
+Why do we have so many second order equations?
+The world is second order.
+
+Newton's method…. Initial guess…. Then I take the tangent..(derivative)…..
+
+What we will see, is the next error is proportional to the previous error^2
+
+Quadratic convergence.
+Secant method
+The mid point is a weighted average of the two points. 
+Set of functions that have derivatives of all orders on X:
+		Polynomial
+		Rational
+		Trigonometric
+		Exponential
+		Logarithmic
+These are all in 
+
+Homework : Read about the Bisection Method.
+Things to understand in order to understand bisection method:
+Intermediate Value Theorem
+Rolle's Theorem
+Mean Value Theorem
+Extreme Value Theorem
+Generalized Rolle's Theorem
+
+
+## 8-25-17
+
+Code for bisection method in `C` from prof.  
+
+We want the roots for when $$x^2 = 2$$
+
+Numerical analysis -> What kind of functions cause algorithms to behave badly?  How do I evaluate my polynomial?  
+
+Using a calculator, pick a number, and take the cos of it.  Then take the cosine of the results and repeat.  What number are we converging to?
+
+The results is the intersection of $y = x$ and $g(x)$.  I picked 5.2.  What did I do?  I took my function, g, which in this case is cosine, and I took the output and put it in the input.  (Visual graph of this result in class.  Very cool).  
+
+Find the input that gives a particular output.  "Inverse form".  
+
+$$x + c(x^2 - 2) = x$$  
+
+He's rewritten this as a fixed point problem.  What's $g(x_0)$?  $x_1$.  What's $g(x_1)$?  $x_2$ and so on.  
+
+$$\frac{x_{n+1} - r}{x_n - r} = \frac{g(x_n) - g(r)}{x_n - r}$$
+
+This is general fixed point iteration.  What do I need to do to make the top of the above equation even smaller? Think geometric series and mean value theorem.  
+
+So here's the first theorem.  IF $$|g'(r)| < 1$$ I am going to converge, aka, my error will go to zero.  
+  
+  
+**Exercise 2.1**:  Use bisection method to find $p_3$ for $$f(x) = \sqrt{x} - cos x = 0$$ on [0,1].  
+
+```{r}
+source("~/Documents/school/math4610/R/root.R")
+f <- function(x) {
+  sqrt(x) - cos(x)
+}
+bisection(0, 1)[1:3, ]
+#p3 would be the guess from the third row
+```
+
+What does this function look like?
+
+```{r}
+f.plot(from = -2, to = 10, xlim = c(-1, 5))
+# what about our guesses?
+temp <- bisection(0, 1)
+plot(temp[,3], xlab="Iteration", ylab="f(x)", type = "b")
+abline(h = 0.6417141, col = "red", lty=3)
+```
+
+Looks like the bisection method converges quite quickly with this particular function.  
+
+## 8-28-17  
+
+Showing us a PDF file he is going to show us.  
+
+OK... Fixed Point Iteration.  
+
+Golden Ratio.  Fibinocci converges to a polynomial.  
+
+$$F_{n+2} = F_{n+1} + F_{n+0}$$  
+
+Rewrite  
+
+$$X^2 = x + 1 = 1 + \frac{1}{x}$$
+
+The right side above is a fixed point equation.  
+
+Start at 1.  Sequence is 1, 2, $\frac{3}{2}$, $\frac{5}{3}$, $\frac{8}{5}$, $\frac{13}{8}$, .....
+
+Which converges to $$\frac{1 + \sqrt{5}}{2}$$ which is known as the Golden Ratio.  
+
+Sidetracking..
+
+$$\frac{dy}{dt} = y(t)$$ where $y(0) = 1$. 
+
+How do we solve this?  (now he's just doing some crazy integrals.)  
+
+$$\int_1^{e^x} \frac{1}{t} dt = x$$
+
+$$ln(x) = \int_1^x \frac{1}{t} dt$$  
+
+Last time we talked about the mean value theorem.  Who can prove that off the top of your head?  (not i).  
+
+Back to $$\frac{dy}{dt} = y(t)$$ where $y(0) = 1$. 
+
+Let's solve this.  Integrate both sides.  $$\int \frac{dy}{dt} = \int y(t)$$  
+.... (can't keep up here with the white board).
+
+There's a method to his madness.  You don't learn math by memorizing.  You gotta have pictures.  You just have to have it within you.  Math is empowering.  He wants to motivate you that if you learn this one principal that it's going to give you the most bang for your buck.  
+
+Today he lectured in MATH 1050 on the midpoint formula.  
+
+$$midpoint = (\frac{x_1 + x_2}{2} \frac{y_1 + y_2}{2})$$ This formula isn't good for much.  But we can rewrite it.  
+
+The concept of weighted average is going to get you a lot of bang for your buck.  
+
+$$\frac{1}{2} p_1 + \frac{1}{2} p_2 = (1 - \alpha)p_1 + \alpha p_2$$  
+
+If you can see lots of things as manifistations then it's worth truly learning that one thing.  Fixed point iteration is one of those things as is weight averages.  
+
+Everything's weighted averages.  If you learn fixed point iteration it's all very useful.  
+
+**Theorem**:  Let $r = g(r)$, $g \in C(\Re)$.  Define $x_{n+1} = g(x_n)$.  If $|g'(r)| \leq k < 1$ for $x \in (r - \delta$, $r + \delta$).  If $x_0$ is in I then $x_n \rightarrow r$ and $\frac{x_{n+1} - r}{x_n -r}$ approaches $g'(r)$.  
+
+Part 1 of the proof implies $$x_0 \in I \Rightarrow x_1 \in I \Rightarrow x_2 \in I,..., x_n \in I$$  
+
+What's Rolle's theorem say?  
+Fermot's theorem?  
+
+Error of interpolation... What if I have three points with the same value?...If I have three points where something is zero, then I know the error function, it's derivative is zero in that interval... and so on.. That's super Rolle.  
+
+## 8-30-17  
+
+**NOTE:  Review the geometric series.**  
+
+Linear convergence with rate = 1/r.  
+
+If the derivative is between plus or minus one then you will converge.  AKA slope is between plus or minus one.  
+
+There's two versions of the secant method.  One version gets rid of the oldest point.  False position is safe but slow......
+
+Always trying to get 
+$$\frac{-1}{f'(r)}$$
+
+Stephenson's method:  
+
+$$\frac{f(x_n + f(x_n)) - f(x_n)}{f(x_n)}$$  This is the formula for the derivative when we talke the limit as x approaches h but we replace h with $f(x_n)$.  
+
+
+## 9-1-17  
+
+If it ain't broke don't fix it.  
+
+$$g(x) = x + ()f(x)$$  What should $()$ be?  You have a function $f(x) = 0$.  Any function up close looks like what?  A strait line.  
+
+$$x_{n+1} = r + e_n$$  
+
+$$x_n - r = e_n$$  
+
+$$r + e_n + c (me_n) = r$$  
+
+Rewriting some of the above: 
+$e_n + cme_n = 0~~~$$~~~(1+cm)e_n~~~~$$~~~c = \frac{-1}{m}$  
+
+**(See the PDF in the `reference` directory)**  
+
+If a function is differentiable, pictorally this means that if you zoomed in close enough the function would look like a strait line, ...
+
+
+Newton's method:
+
+$$x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}$$  
+
+Here we go
+$$x_n = r + e_n$$ are we good with that?  
+
+What do we know about $x_{n+1}$?  $x_{n+1} = x_n + f(x_n)$.  When is this going to converge and not going to converge?  It's derivative (absolute value) has to be less than 1.  Each time, regardless of if it diverges or converges, it will be multiplied by its slope.  We want $k = 1 + f'(r)$ to be less than one.  Back to the above... 
+
+$$x_n = r + e_n$$
+$$x_{n+1} = r + ke_n$$
+$$x_{n+2} = r + k^2e_n$$ and don't keep going, just solve for r.  Combining some of the above equations we get
+$$x_{n+1} - x_n = ke_n - e_n = (k-1)e_n$$  
+$$x_{n+2} - x_{n+1} = k^2e_n - ke_n = k(k-1)e_n$$ and now what if we substract these.  After a bunch of algebra on the board he arrived at 
+
+$$r = x_n - e_n = x_n - \frac{(x_{n+1} - x_n)^2}{(x_{n+2} - x_{n+1}) - (x_{n+1} - x_n)}$$
+
+(and now I'm lost)  
+
+We are almost done with one of the main objectives of the course.  
+
+He needs to show IF $g'(r) = 0$ and $g''(r) \neq 0$ THEN $x_{n+1} - r \aprox$.....  
+
+
+## 9-6-17  
+
+Let's try to apply what we know to a concrete problem.  
+
+$e^x = 2$ the solution of which is $r = ln(2)$.  
+
+$$x_{n+1} = g(x_n) = x_n + c(e^{x_n} - 2)$$  
+
+Possible test question:  For what values of c does this converge?  
+- $g(r) = r$ ?
+- $g'(r) = 1 + ce^x$
+- 
+
+## 9-8-17  
+
+Last of the root finding methods.  Taylor polynomial relationships.  Talk about multiple zeros and convergence.  What type of functions have multiple zeros?  Polynomials.  
+
+We will talk about interesting behavior $sin x = x$ and $cos x = x$.  
+
+Jordan Cannonical Form.  Or a Jordan Block matrix.  
+Taylor polynomial expansion  
+Shift operator  
+What should they teach as the power rule?  Differentiation is just a shift to the left.  Antiderivative is a shift to the right.  Here's the shift to the left:  $$\frac{d}{dx} \frac{x^n}{n!} = \frac{x^{n-1}}{(n-1)!}$$
+
+"Every matrix can be written as a diagonizable matrix plus one of these".  (not sure what "one of these" is).  He finds this a much easier way to remember the taylor polynomial.  Instead you are often told it is $$\frac{f^n}{} = \frac{x^n}{n!}$$ (I can't remember...)  
+
+**Thought exercise: find a series where we can violate monotenicity and thereby diverge.**
+
+## 9-11-17  
+
+I took notes by hand today.
+
+
+## 9-15-17  
+
+I skipped class on 9-13-17, It's been hell week at work.  
+
+LU decomposition of a matrix (LU is lower/upper triangular matrix).  The idea of making it triangular....
+
+
+## 9-25-17  
+
+Legrange polynomial for $x_0 = -1, x_1 = 0, x_2 = 1$.  
+
+
+## 10-8-17, Chapter 8 
+
+### Discrete Least Squares Approximation  
+
+```{r}
+# page 506  
+x <- c(1:10)
+y <- c(1.3, 3.5, 4.2, 5, 7, 8.8, 10.1, 12.5, 13, 15.6)
+n <- length(x)
+df <- data.frame(x, y)
+ggplot(data = df, aes(x = x, y = y)) + 
+  geom_point() + 
+  geom_line(data = data.frame(spline(df, n = n * 10))) + 
+  geom_smooth(method='lm',formula=y~x, color = "blue", se = F)
+```
+
+## 10-9-17  
+
+```{r}
+# Notes from class
+# for(k = 0; k <= m+n, k++)
+# sum = 0.0;
+# for( i = 0; i <= m; i++)
+# if(k-i >=0 & k-1 <= n) sum+ = p[i] * q[k-i]
+```
+
+For a function $$f(x) = -19 + 7x - 4x^2 + 6x^3$$ evaluate $f(3)$.  
+
+```{r}
+horner <- function(x, v) { # Horner's method
+  Reduce(v, right = TRUE, f = function(a, b) b * x + a)
+}
+v <- c(-19, 7, -4, 6)
+horner(3, v)
+
+f <- function(x) -19 + 7*x - 4 *x^2 + 6*x^3
+f(3) # same answer.  
+```
+
+
+## 10-23-17  
+
+$$||v||_2 = (v_1^2 + v_2^2)^{\frac{{1}{2}}}$$ 
+
+
+## 11-1-17  
+
+```{r}
+source("~/Documents/school/math4610/R/root.R")
+
+```
+
+

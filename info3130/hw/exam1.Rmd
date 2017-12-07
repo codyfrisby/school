@@ -1,0 +1,145 @@
+---
+title: "Exam 1"
+author: "Cody Frisby"
+date: "10/2/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F)
+```
+
+
+## 1  
+
+### What is the total number of citations for all criminals on the criminal activity sheet?  
+
+```{r}
+library(xlsx)
+df <- read.xlsx("~/Documents/school/info3130/data/Exam 1 Data.xlsx", sheetIndex = 1)
+sum(df$Num_of_Citations)
+```
+
+
+### Using the 2x standard deviation method, how many criminals, if any, have total outstanding fines that would be considered serious outliers? 
+
+```{r}
+x <- df$Outstanding_Fines
+s <- sd(x); m <- mean(x)
+sum(x >= m + 2 * s) + sum(x <= m - 2*s)
+```
+
+
+### List all three measures of central tendency and one measure of dispersion for the age at first felony for the 30 to 34-year-old age demographic.
+
+
+```{r}
+df_age <- df[df$Age.in.Years >= 30 & df$Age.in.Years <= 34, ]
+m <- table(df_age$Age_First_Felony)
+```
+
+The mean is `r mean(df_age$Age_First_Felony)`.  
+The median is `r median(df_age$Age_First_Felony)`.  
+The mode is 23.  This is the most frequent value for our dataset.  
+The standard deviation is `r sd(df_age$Age_First_Felony)`.  
+
+## 2)  
+
+There appears to be significant correlation between a criminal's voilence index and other criminality measures.  The correlations are displayed below.
+
+```{r}
+m <- cor(df[-1])
+knitr::kable(m[, 3])
+```
+
+
+There is strong positive correlation with **Number of Arrests** as well as with **Outstanding Fines**.  There is strong negative correlation with **Number of Citations**.  
+
+## 3)  
+
+```{r}
+ken <- cor(df, method = "kendall")
+diag(ken) <- 0
+```
+
+The value for the largest correlation is `r max(ken)`.  The two variables are **Outstanding Fines** and **Violence Index**.  Kendall would argue that his method is superior becuase it is a rank-based calculation and doesn't rely too much on any underlying assumptions of linearity between the two variables.  
+
+## 4)  
+
+Using kmeans, we can create 3 clusters from the data.  The three cluster centroids are displayed below.  
+
+```{r}
+df <- read.xlsx("~/Documents/school/info3130/data/Exam 1 Data.xlsx", sheetIndex = 2)
+km <- kmeans(df, centers = 3)
+knitr::kable(km$centers)
+```
+
+
+```{r}
+df$cluster <- km$cluster
+```
+
+For an individual in cluster 1, generally they would have the shortest length of stay and the lowest overall bill.  These people would also be the youngest, on average. For one individual in this group, their triage score was 1, they were 20 years old, their total bill was 4600, and they stayed for 36 days.  
+
+For one in cluster 2, a triage score of 3, age was 23, total bill was 10200, and they stayed for 52 days.  
+
+And finally for an individual in cluster 3.  They had a triage score of 3, they were 38 years old, their bill was 14000, and their length of stay was 45 days.  
+
+## 5)  Assuming a 75% confidence limit, are there any indicators of fraud risk that are so frequently related to one another that you would consider their relationship to be a rule? If so, identify them (reduce your Min. Criterion Value all the way) and list both their support and confidence percentages. (Hint: Import your data set with binominal data types). Write the the Support and Confidence Percentages between unverified_phone and unverified_address.  
+
+```{r}
+df <- read.csv("~/Documents/school/info3130/data/fraud.csv", colClasses = "factor")
+```
+
+
+```{r}
+df_sub <- df[, -(1:3)]
+df_sub[df_sub == 0] <- NA
+library(arules)
+```
+
+
+```{r, eval = F}
+rules <- apriori(df_sub, parameter = list(supp=0.05, conf=0.75))
+rules <- sort(rules, by = "confidence", decreasing = TRUE)
+inspect(rules[1:5])
+```
+
+I used R for this problem (all of the actually).  The top rules based on confidence (set at 0.75 with supp = 0.05) did not contain any rules that had one of **unverified_phone** on either LH or RH and the other (**unverified_address**) on the other side.  But the rule {unverified_addres, unverified_phone, surveillance_data} $\rightarrow$ {international_passport} has a support of 0.054 and a confidence of 0.8709677.    
+
+## 6)  
+
+```{r}
+df <- read.xlsx("~/Documents/school/info3130/data/Exam 1 Data.xlsx", sheetIndex = 1)
+df35 <- df[df$Age.in.Years > 35, ]
+table(df35$Num_of_Arrests)
+```
+
+The most common number of arrests is 4 for ages greater than 35.  The output above is from R where we count how many times each value occurs.  As can bee seen, 4 has the largest value.  
+
+## 7)  
+
+```{r, cache=T}
+x <- c(8,2,4,5,6,8,9,9,2,3,4,5,6,4,3,4,6,7,8,5,4,3,9,8,7,6,4,3,3,9)
+mx <- mean(x)
+km <- kmeans(x, centers = 2)
+temp <- data.frame(km$size, km$centers)
+g1 <- x[x < mx]
+g2 <- x[x >= mx]
+```
+
+The mean of all the values is `r mx`.  
+
+We then split the data here where all values above and below are assigned group membership.  We then calculate the mean for each group.  This is **centroid**.  We then count how many elements are in each group.  This is **size**.  Centorid at 7.57 has size 14.  Centroid at 3.625 has size 16.  
+
+```{r, eval = F}
+names(temp) <- c("size", "centroid")
+knitr::kable(temp)
+```
+
+
+## 8)  
+
+Business/Org Understanding $\rightarrow$ Data Understanding $\rightarrow$ Data Preperation $\rightarrow$ Modeling $\rightarrow$ Evaluation $\rightarrow$ Deployment.  And then repeat.  
+
+

@@ -1,0 +1,153 @@
+---
+title: "Decision Trees"
+author: "Cody Frisby"
+date: "11/5/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 
+                        'center', warning = F, message = F)
+library(rpart)
+library(rpart.plot)
+library(xlsx)
+```
+
+Quickly looking at the data, it became apparent that some of the predictor variables are highly correlated with each other.  Also, some variables are missing MOST of the values in addition to being very messy when reading into R.  The **Name** variable appears to contain the title of each passenger.  I'd like exclude **Name** from the analysis but perhaps include the title.  Parsing out the title from each name (In R that can be done by running the `gsub` on the **Name** variable) I get a new variable called **title**.  **Cabin** is another categorical variable that contains way too levels.  We could perform a similar operation to **Cabin** that we did to **Name**, extracting out the meaningful/alike levels, reducing the number of levels to a value much less than 186.  Additionally it contains 1013 missing values.  We would also need handle all these missing values to include it in the analysis so for the purposes of this study I will exclude it.  
+
+For the **Fare** variable, there appears to be a few extreme outliers.  For this analysis, I've chosen to exclude any values that are greater than 300.  
+
+Using a simple random sample of 75% of the data, I've split it into two data sets, train and test (train being the larger of the two).  
+
+Below is a table showing this new variable, **title**, by **Sex**.  As can be seen, title and sex are highly correlated.  
+
+```{r data prep}
+df <- read.xlsx("~/Documents/school/info3130/data/Titanic Passengers.xlsx", sheetIndex = 1)
+df$title <- gsub('(.*, )|(\\..*)', '', df$Name)
+df$Name <- as.character(df$Name)
+df$surname <- sapply(df$Name, 
+                     function(x) strsplit(x, split = '[,.]')[[1]][1])
+df$FamSize <- df$Siblings.and.Spouses + df$Parents.and.Children + 1
+# remove Fare outliers
+df <- df[df$Fare <= 300, ]
+# replace rare titles with a single grouping
+raretitle <- c("Capt", "Don", "Dona", "Jonkheer", "Lady", "Major", "Sir",
+              "the Countess", "Major", "Col", "Dr", "Rev")
+df$title[df$title == "Ms" | df$title == "Mlle"] <- "Miss"
+df$title[df$title == "Mme"] <- "Mrs"
+df$title[df$title %in% raretitle] <- "Rare"
+df$Passenger.Class <- as.factor(df$Passenger.Class)
+#logitMod <- glm(Survived ~ Passenger.Class + Sex + Age + Fare
+#             + title + FamSize, data = df, family = binomial())
+#table(logitMod$y, logitMod$fitted.values >= 0.5)
+df$Survived <- ifelse(df$Survived == 0, "died", "survived")
+## split the data
+set.seed(1234)
+n <- dim(df)[1]; x <- seq(1, n); s <- sample(x, n * 0.75, replace = F)
+train <- df[s, ]
+test <- df[-s, ]
+knitr::kable(table(df$Sex, df$title))
+```
+
+The below plot is a visual representation of the model.  Each box contains three items: the predicted class, predicted probability, and the percentage of observations in that node.
+
+```{r model 1}
+## fit the model
+fit1 <- rpart(Survived ~ Passenger.Class + Sex + Age + Fare
+              + title + FamSize, data = train, cp = 0.01, 
+              method = "class")
+# Plot it
+rpart.plot(fit1, uniform = TRUE,
+     main = "Classification Tree for Titanic Suvival")
+```
+
+
+The first decision rule is **Sex** of the passenger (which is correlated to **title** for the most part).  Go to the left if "male".  For male, the next decision rule is **title** while for female it is **Passanger.Class**.  It can be easily seen that if the passenger was female AND from class 1 or 2 they had a 94 percent of survival.  This model is fit with the defaults from the `rpart` function and the control arguments for this function, `rpart.control`, were $cp = 0.01$ which is the default.
+
+This model does OK when using it to predict the probabilities of survival on the test data set.  Using 0.5 as the cutoff value for whether or not someone survives, we get the following matrix. 
+
+
+```{r predict 1}
+p1 <- predict(fit1, test)
+SurvivalPredicted <- ifelse(p1[,1] >= 0.5,  "PredictDie",
+                            "PredictSurvive")
+test$SurvivedPred <- SurvivalPredicted
+temp <- table(test$Survived, test$SurvivedPred)
+mc1 <- temp[1,2]; mc2 <- temp[2,1]
+error <- (mc1 + mc2) / length(test$SurvivedPred)
+knitr::kable(temp)
+```
+
+
+As can be seen, this model isn't AWESOME.  We miss-classify $`r mc1` + `r mc2` = `r mc1 + mc2`$ of the observations from the test set, for a miss-class error of $`r error`$.  At least it's better than a coin flip.  Now, if we changed some of the parameters to the model and then testing our model, we might see a contrast to the above result.  Changing `cp` argument to $0.001$ (basically this means the next attempted split must reduce the overall lack of fit by 0.001 before attempting the split.  If you recall, for the first model this number was 0.02.  The smaller the number here, the more likely we are to over-fit.) will force the model to include more nodes than before.      
+
+```{r model 2}
+fit2 <- rpart(Survived ~ Passenger.Class + Sex + Age + Fare
+              + title + FamSize, data = train, cp = 0.001, 
+              method = "class")
+rpart.plot(fit2, uniform = TRUE)
+```
+
+
+How well does this model perform on the test set?
+
+```{r predict 2}
+p1 <- predict(fit2, test)
+SurvivalPredicted <- ifelse(p1[,1] >= 0.5,  "PredictDie",
+                            "PredictSurvive")
+test$SurvivedPred <- SurvivalPredicted
+temp <- table(test$Survived, test$SurvivedPred)
+mc1 <- temp[1,2]; mc2 <- temp[2,1]
+error <- (mc1 + mc2) / length(test$SurvivedPred)
+knitr::kable(temp)
+```
+
+
+And you can see that our miss-class error hasn't moved much.  We miss-classify $`r mc1` + `r mc2` = `r mc1 + mc2`$ of the observations from the test set, for a miss-class error of $`r error`$.   
+
+On the other extreme, not including enough information, we can also see that will will have a lot of error in our predictions.  Setting `cp` = $0.05$ we get the model that is visualized below.  Basically, we are predicting survival based on the *title* of the passanger.  
+
+
+```{r model 3}
+fit3 <- rpart(Survived ~ Passenger.Class + Sex + Age + 
+                Fare + title + FamSize, data = train, cp = 0.05, 
+              method = "class")
+rpart.plot(fit3, uniform = TRUE)
+```
+
+As can be seen, this model is very simple.  It simply predicts survival based on the gender of the passanger.  
+
+```{r predict 3}
+p <- predict(fit3, test)
+SurvivalPredicted <- ifelse(p1[,1] >= 0.5,  "PredictDie",
+                            "PredictSurvive")
+temp <- table(test$Survived, SurvivalPredicted)
+mc1 <- temp[1,2]; mc2 <- temp[2,1]
+error <- (mc1 + mc2) / length(SurvivalPredicted)
+knitr::kable(temp)
+```
+
+We miss-classify $`r mc1` + `r mc2` = `r mc1 + mc2`$ of the observations from the test set, for a miss-class error of **$`r error`$**.  We do slightly worse with this more simplified model.  I'd stick with the first one.  It's more simple than the second and does better than the last one. 
+
+One last thing.  Was the extra effort to create the **title** variable worth it?  Well, if it predicts better, then yes.  Let's check that by fitting the model without **title**.  
+
+```{r model 4}
+fit4 <- rpart(Survived ~ Passenger.Class + Sex + Age + 
+                Fare + FamSize, data = train, cp = 0.01, 
+              method = "class")
+
+rpart.plot(fit4, uniform = TRUE)
+```
+
+
+```{r}
+p <- predict(fit4, test)
+SurvivalPredicted <- ifelse(p1[,1] >= 0.5, "PredictDie",
+                            "PredictSurvive")
+temp <- table(test$Survived, SurvivalPredicted)
+mc1 <- temp[1,2]; mc2 <- temp[2,1]
+error <- (mc1 + mc2) / length(SurvivalPredicted)
+```
+
+Looks like it performs a little worse on the test set when excluding **title**, $error = `r error`$.  I would have guessed that it would be the same.  
+

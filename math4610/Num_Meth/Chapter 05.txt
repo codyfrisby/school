@@ -1,0 +1,536 @@
+## Chapter 5
+
+## Wilkinson's polynomial
+
+require{PolynomF}
+W=(x-1)
+for (j in 2:20) W = W*(x-j)
+solve(W)
+polyroot(coef(W))
+
+###############
+
+## Bisection method
+
+bisectionroot = function(f, xmin, xmax, tol=1e-5) {
+  a = xmin; b = xmax
+  # Check inputs
+  if (a >= b) {
+    cat("error: xmin > xmax \n")
+    return(NULL)
+  }
+  if (f(a) == 0) {
+    return(a)
+  } else if (f(b) == 0) {
+    return(b)
+  } else if (f(a)*f(b) > 0) {
+    cat("error: f(xmin) and f(xmax) of same sign \n")
+    return(NULL)
+  }
+  # If inputs OK, converge to root
+  iter = 0
+  while ((b-a) > tol) {
+    c = (a+b)/2
+    if (f(c) == 0) {
+      return(c)
+    } else if (f(a)*f(c) < 0) {
+      b = c
+    } else {
+      a = c
+    }
+    iter = iter + 1
+    }
+    return(c((a+b)/2, iter, (b-a)))
+}
+f = function(x) x^3 - sin(x)^2
+bisectionroot(f,0.5,1)
+
+###############
+
+## Newton's method
+
+f = function(x) x^3 - sin(x)^2
+curve(f, -pi,pi)
+df = function(x) 3*x^2 - 2*cos(x)*sin(x)
+newtonroot = function(f, df, x0, tol=1e-5, maxit = 20) {
+  root = x0
+  for (jit in 1:maxit) {
+    dx = f(root)/df(root)
+    root = root - dx
+    if (abs(dx) < tol) return(c(root, jit, dx))
+  }
+  print(" Maximum number of iterations exceeded.")
+}
+newtonroot(f,df,1)
+
+###############
+
+## Fig 5.1 Roots of a function
+
+f = function(x,a) x^(1/3)*sin(5*x) - a*x^(1/2)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(f(x,a=0.5),0,5)
+abline(h=0, lty=3)
+
+uniroot(f,c(.1,1),a=0.5)
+
+require(rootSolve)
+zpts=uniroot.all(f,c(0,5),a=0.5)
+zpts
+yz=rep(0,length(zpts))
+points(zpts,yz)  # Locate roots on graph of function
+
+###############
+
+## Solving a 4x4 system of linear equations
+
+options(digits=3)
+set.seed(3)
+m = matrix(runif(16), nrow = 4)
+m
+b = runif(4)
+b
+solve(m,b)
+m%*%solve(m,b) # Should recover b
+solve(m)%*%b  # Same: multiply b by inverse of m
+
+###############
+
+## Inverse of a matrix
+
+set.seed(333)
+M = matrix(runif(9), nrow=3)
+M
+Minv = solve(M)
+Minv
+Minv%*%M
+zapsmall(Minv%*%M)
+
+###############
+
+## Singular matrix
+
+A.sing = matrix(c(1,2,-1,-2,2,1,1,-1,1,-1,2,1,1,3,-2,-3),nrow=4,byrow=T)
+A.sing
+B = c(-1,4,5,-3)
+solve(A.sing,B)
+
+################
+
+## Viscosity of water
+
+options(digits=3)
+tC = seq(0,100,10)  # Temperatures between freezing and boiling
+visc = c(1.787,1.307,1.002,0.798,0.653,0.547,0.467, 0.404,0.355,0.315,0.282)
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(tC,visc)
+const = rep(1,length(tC)) # For proper representation of quadratic
+tC_sq = tC^2
+A = cbind(const,tC,tC_sq)
+
+qr.solve(A,visc)
+# or equivalently
+solve(qr(A,LAPACK=TRUE),visc)
+
+require(MASS)
+gv = ginv(A)%*%visc
+gv
+# Define a function with the calculated coefficients
+g = function(x) gv[1,1] + gv[2,1]*x + gv[3,1]*x^2
+# Superimpose the function plot on the data points
+curve(g(x),0,100,add=T)
+
+install.packages("limSolve")
+require(limSolve)
+Solve(A,visc)
+
+###############
+
+## Tridiagonal matrix
+
+n = 1001
+m = matrix(n,n,data=0) # Set up square matrix
+aa = rep(1,n) # Put 1s below the diagonal
+aa[1] = aa[n] = 0 
+aa = aa[-1] # Trim aa to fit below the diagonal
+bb = rep(-1.99,n) # Set up diagonal
+bb[1] = bb[n] = 1
+cc = rep(1,n) # Put 1s above the diagonal
+cc[1] = cc[n] = 0
+cc = cc[-n] # Trim cc to fit above the diagonal
+d = rep(0,n)
+d[1] = 0.5
+d[n] = 0.69
+m[1,1:2] = c(bb[1],cc[1])
+m[n,(n-1):n] = c(aa[n-1],bb[n])
+for (i in 2:(n-1)) m[i,(i-1):(i+1)] = c(aa[i-1],bb[i],cc[i])
+options(digits=3)
+# m
+system.time(soln <- solve(m,d)) # Note <- rather than =
+# soln
+
+###############
+
+## Using Solve.tridiag
+
+require(limSolve)
+n = 1001
+aa = rep(1,n)
+aa[1] = aa[n] = 0
+aa=aa[-1]
+bb = rep(-1.99,n)
+bb[1] = bb[n] = 1
+cc = rep(1,n)
+cc[1] = cc[n] = 0
+cc=cc[-n]
+d = rep(0,n)
+d[1] = 0.5
+d[n] = 0.69
+options(digits=3)
+system.time(tri.soln <- Solve.tridiag(aa,bb,cc,d))
+
+###############
+
+## Banded matrix
+
+require(limSolve)
+options(digits=3)
+set.seed(333)
+n = 500
+dn1 = runif(n-1)
+dn2 = runif(n-2)
+bb = runif(n)
+up1 = runif(n-1)
+up2 = runif(n-2)
+
+abd = rbind(c(0,0,up2),c(0,up1),bb,c(dn1,0),c(dn2,0,0))
+B = runif(n)
+system.time(Band <- Solve.banded(abd, nup=2, nlow=2,B))
+Band[1:5]
+
+## Now with solve
+
+bndmat = matrix(nrow=n,ncol=n,data=rep(0,n*n))
+diag(bndmat) = bb
+for(i in 1:(n-2)) bndmat[i+2,i] = dn2[i]
+for(i in 1:(n-1)) bndmat[i+1,i] = dn1[i]
+for(i in 1:(n-1)) bndmat[i,i+1] = up1[i]
+for(i in 1:(n-2)) bndmat[i,i+2] = up2[i]
+system.time(bnd <- solve(bndmat,B))
+bnd[1:5]
+
+###############
+
+## Block matrix
+
+require(limSolve)
+
+AA = matrix (nr= 12, nc=12, 0)
+AA[1,1:4]  = c( 0.0,  -0.98, -0.79, -0.15)
+AA[2,1:4]  = c(-1.00,  0.25, -0.87,  0.35)
+AA[3,1:8]  = c( 0.78,  0.31, -0.85,  0.89, -0.69, -0.98, -0.76, -0.82)
+AA[4,1:8]  = c( 0.12, -0.01,  0.75,  0.32, -1.00, -0.53, -0.83, -0.98)
+AA[5,1:8]  = c(-0.58,  0.04,  0.87,  0.38, -1.00, -0.21, -0.93, -0.84)
+AA[6,1:8]  = c(-0.21, -0.91, -0.09, -0.62, -1.99, -1.12, -1.21,  0.07)
+AA[7,5:12] = c( 0.78, -0.93, -0.76,  0.48, -0.87, -0.14, -1.00, -0.59)
+AA[8,5:12] = c(-0.99,  0.21, -0.73, -0.48, -0.93, -0.91,  0.10, -0.89)
+AA[9,5:12] = c(-0.68, -0.09, -0.58, -0.21,  0.85, -0.39,  0.79, -0.71)
+AA[10,5:12] = c( 0.39, -0.99, -0.12, -0.75, -0.68, -0.99,  0.50, -0.88)
+AA[11,9:12] = c( 0.71, -0.64,   0.0,  0.48)
+AA[12,9:12] = c( 0.08, 100.0, 50.00, 15.00)
+˜
+AA
+
+B = c(-1.92,-1.27,-2.12,-2.16,-2.27,-6.08,-3.03,-4.62,-1.02,-3.52,0.55,165.08)
+
+(Top = matrix(nr=2, nc=4, data=AA[1:2,1:4]) )
+(Bot = matrix(nr=2, nc=4, data=AA[11:12,9:12]) )
+(Blk1 = matrix(nr=4, nc=8, data=AA[3:6,1:8]) )
+(Blk2 = matrix(nr=4, nc=8, data=AA[7:10,5:12]) )
+
+AR = array(dim=c(4,8,2),data=c(Blk1,Blk2))
+
+(Solve.block(Top,AR,Bot,B,overlap=4) )
+
+###############
+
+## QR decomposition
+
+# Overdetermined system
+set.seed(321)
+A = matrix((1:12)+rnorm(12),nrow=4)
+b = 2:5
+qr.solve(A,b)  # Solution in a least-squares sense
+qr(A)
+
+# Underdetermined system
+set.seed(321)
+A = matrix((1:12)+rnorm(12),nrow=3)
+b = 3:5
+qr.solve(A,b) # Default LAPACK = FALSE uses LINPACK
+solve(qr(A, LAPACK = TRUE),b)
+
+###############
+
+## SVD
+
+set.seed(13)
+A = matrix(rnorm(30), nrow=6)
+svd(A)
+
+#################
+
+## Eigenvalues and eigenfunctions
+M = matrix(c(2,-1,0,-1,2,-1,0,-1,2), nrow=3, byrow=TRUE)
+eigen(M)
+
+#################
+
+## LU decomposition
+
+options(digits=3)
+set.seed(1)
+require(Matrix)
+mm = Matrix(round(rnorm(9),2), nrow = 3)
+mm
+lum = lu(mm)
+str(lum)
+elu = expand(lum)
+elu # three components: "L", "U", and "P", the permutation
+
+#################
+
+## Solution of cubic with multiroot
+require(rootSolve)
+fs = function(s) s^3 - 3*s^2 + 4*rho
+rho = 0.96
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+curve(fs(x),0,3); abline(h=0)
+options(digits=3)
+multiroot(fs, c(1.5,2.5))
+
+#################
+
+## Two nonlinear equations without Jacobian
+
+require(rootSolve)
+model = function(x) c(F1 = 10*x[1]+3*x[2]^2-3, 
+   F2 = x[1]^2 -exp(x[2]) -2)
+(ss = multiroot(model,c(1,1)))
+
+## and with analytic Jacobian
+
+model = function(x) c(F1 = 10*x[1]+3*x[2]^2-3, 
+   F2 = x[1]^2 -exp(x[2]) -2)
+derivs = function(x) matrix(c(10,6*x[2],2*x[1],
+  -exp(x[2])),nrow=2,byrow=T)
+(ssJ = multiroot(model,c(0,0),jacfunc = derivs))
+
+#################
+
+## Root-finding with nleqslv
+
+install.packages("nleqslv")
+require(nleqslv)
+model = function(x) {
+  y = numeric(2)
+  y[1] = 10*x[1]+3*x[2]^2-3
+  y[2] = x[1]^2 -exp(x[2]) -2
+  y
+}
+(ss = nleqslv(c(1,1), model)) 
+
+#################
+
+## Root-finding with dfsane in BB
+
+install.packages("BB") # If not already installed
+require(BB)
+model = function(x) c(F1 = 10*x[1]+3*x[2]^2-3, F2 = x[1]^2 -exp(x[2]) -2)
+ans = dfsane(par=c(1,1), fn=model)
+ans
+
+#################
+
+## Solving with BBSolve()
+
+require(BB)
+froth = function(p){
+   f = rep(NA,length(p))
+   f[1] = -13 + p[1] + (p[2]*(5 - p[2]) - 2) * p[2]
+   f[2] = -29 + p[1] + (p[2]*(1 + p[2]) - 14) * p[2]
+   f
+}
+p0 = c(3,2)
+BBsolve(par=p0, fn=froth)
+
+# Compare with
+dfsane(par=p0, fn=froth, control=list(trace=FALSE))
+
+#################
+
+## Solving 10,000 simultaneous equations with BB/dfsane
+
+trigexp = function(x) {
+   n = length(x)
+   F = rep(NA, n)
+   F[1] = 3*x[1]^2 + 2*x[2] - 5 + sin(x[1] - x[2]) * sin(x[1] + x[2])
+   tn1 = 2:(n-1)
+   F[tn1] = -x[tn1-1] * exp(x[tn1-1] - x[tn1]) + x[tn1] * 
+     ( 4 + 3*x[tn1]^2) + 2 * x[tn1 + 1] + sin(x[tn1] - 
+     x[tn1 + 1]) * sin(x[tn1] + x[tn1 + 1]) - 8
+   F[n] = -x[n-1] * exp(x[n-1] - x[n]) + 4*x[n] - 3
+   F
+   }
+n = 10000
+p0 = runif(n) # n initial random starting guesses
+ans = dfsane(par=p0, fn=trigexp, control=list(trace=FALSE))
+ans$message
+ans$resid
+ans$par[1:10] # Just the first 10 out of 10,000 solution values
+
+#################
+
+## Solving simultaneous equations with multiStart()
+
+hdp = function(x) {
+   r = rep(NA, length(x))
+   r[1] = 5 * x[1]^9 - 6 * x[1]^5 * x[2]^2 + x[1] * x[2]^4 + 2 * x[1] * x[3]
+   r[2] = -2 * x[1]^6 * x[2] + 2 * x[1]^2 * x[2]^3 + 2 * x[2] * x[3]
+   r[3] = x[1]^2 + x[2]^2 - 0.265625
+   r
+}
+p0 = matrix(runif(900), 300, 3)
+ans = multiStart(par = p0, fn = hdp, action = "solve", quiet=T)
+sum(ans$conv)
+pmat = ans$par[ans$conv, ]
+ord1 = order(pmat[, 1])
+ans = round(pmat[ord1, ], 4)
+ans[!duplicated(ans), ]
+
+#################
+
+## Fig 5.2 Spectrum of a mixture
+
+gauss = function(I,x0,sig,x) {I/(sqrt(2*pi)*sig)*exp(-(x-x0)^2/(2*sig^2))}
+A1 = function(x) gauss(6000,230,10,x)
+A2 = function(x) gauss(4500,260,15,x)
+A3 = function(x) gauss(3000,280,11,x)
+A4 = function(x) gauss(5700,320,20,x)
+x = 180:400 # Plot spectrum between 180 nm and 400 nm
+A = matrix(nrow = length(x), ncol = 4) # Initialize A matrix
+# Calculate Ai’s at each wavelength
+for (i in 1:length(x)) {
+  xi = x[i]
+    for (j in 1:4){ 
+    A[i,1] = A1(xi) 
+    A[i,2] = A2(xi)
+    A[i,3] = A3(xi)
+    A[i,4] = A4(xi)
+    }
+  }
+conc = c(7,5,8,2)*1e-3   # Vector of concs (molar)
+OD = A%*%conc # Multiply A matrix into conc vector
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(x, OD, type="l")
+
+###############
+
+## Determining concentrations from measurements at four wavelengths
+
+x.meas = c(220,250,280,310)
+A.meas = matrix(nrow = length(x.meas), ncol = 4)
+for (i in 1:length(x.meas)) {
+  A.meas[i,1] = A1(x.meas[i])
+  A.meas[i,2] = A2(x.meas[i])
+  A.meas[i,3] = A3(x.meas[i])
+  A.meas[i,4] = A4(x.meas[i])
+  }
+conc = c(7,5,8,2)*1e-3
+OD = A.meas %*% conc
+round(OD,3)
+solve(A.meas,OD)
+
+###############
+
+## Determining concentrations from measurements at six wavelengths
+
+x.meas = c(220,250,265,280,300,310) # 6 measured wavelengths
+A.meas = matrix(nrow = length(x.meas), ncol = 4)
+for (i in 1:length(x.meas)) {
+  A.meas[i,1] = A1(x.meas[i])
+  A.meas[i,2] = A2(x.meas[i])
+  A.meas[i,3] = A3(x.meas[i])
+  A.meas[i,4] = A4(x.meas[i])
+  }
+OD = A.meas %*% conc
+round(OD,3)
+qr.solve(A.meas,OD)
+
+###############
+
+## van der Waals gas
+
+Tr = 0.95
+pr = seq(0.5,3,0.01)
+npr = length(pr)
+Vr = numeric(npr)
+for( i in 1:npr) {
+	Pr = pr[i]
+	c0 = -1/Pr
+	c1 = 3/Pr
+	c2 = -1/3*(1+8*Tr/Pr)
+	c3 = 1
+	prc = polyroot(c(c0,c1,c2,c3))
+	for (j in 1:3) if (abs(Im(prc[j])) <= 1e-12) Vr[i] = Re(prc[j])
+}
+par(mar=c(4,4,1.5,1.5),mex=.8,mgp=c(2,.5,0),tcl=0.3) 
+plot(Vr,pr,xlim=c(0,max(Vr)),ylim=c(0,max(pr)),cex = 0.3,ylab="Pr")
+
+Tr = 1.5
+pr = seq(0.5,3,0.01)
+npr = length(pr)
+Vr = numeric(npr)
+for( i in 1:npr) {
+	Pr = pr[i]
+	c0 = -1/Pr
+	c1 = 3/Pr
+	c2 = -1/3*(1+8*Tr/Pr)
+	c3 = 1
+	prc = polyroot(c(c0,c1,c2,c3))
+	for (j in 1:3) if (abs(Im(prc[j])) <= 1e-12) Vr[i] = Re(prc[j])
+}
+lines(Vr,pr)
+
+
+#################
+
+## Chemical equilibrium
+
+require(nleqslv)
+model = function(r) {
+FX = numeric(4)
+r1 = r[1]; r2 = r[2]; r3 = r[3]; r4 = r[4]
+ntot = 4-2*r1+r3-4*r4
+FX[1] = r1*(r1-r2+2*r4)*ntot^2-69.18*(3-3*r1+r2-5*r4)^3*(1-r1-r2+2*r3-2*r4)
+FX[2] = (r2-r3)*(3-3*r1+r2-5*r4)-4.68*(1-r1-r2+2*r3-2*r4)*(r1-r2+2*r4)
+FX[3] = (1-r1-r2+2*r3-2*r4)^2-0.0056*(r2-r3)*ntot
+FX[4] = r4*(r1-r2+2*r4)^2*ntot^4-0.141*(3-3*r1+r2-5*r4)^5*(1-r1-r2+2*r3-2*r4)^2
+FX
+}
+(ss =nleqslv(c(.25,.25,.25,.25),model))
+r = ss$x
+ntot = 4-2*r[1]+r[3]-4*r[4]
+X = numeric(6)
+X[1] = (3-3*r[1]+r[2]-5*r[4])/ntot
+X[2] = (1-r[1]-r[2]+2*r[3]-2*r[4])/ntot
+X[3] = r[1]/ntot
+X[4] = (r[1] - r[2] + 2*r[4])/ntot
+X[5] = (r[2] - r[3])/ntot
+X[6] = r[4]/ntot
+X
+
+#################
+
+
+

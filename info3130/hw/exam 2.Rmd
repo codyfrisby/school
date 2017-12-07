@@ -1,0 +1,258 @@
+---
+title: "Exam 2"
+author: "Cody Frisby"
+date: "11/13/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F,
+                      dpi = 200, fig.align = 'center')
+library(xlsx)
+library(nnet) # neural nets
+library(rpart) # decision trees
+library(rpart.plot) # plotting trees
+library(ggplot2)
+```
+
+## 1.  
+
+Below is a plot of the `Diamonds` dataset.  As can be seen, **Carat** is highly correlated with **Value** among other variables.  
+
+
+```{r linear regression, cache=TRUE}
+diamond <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetName = "Diamonds")
+## Guessing the diamond dataset is appropriate for regression
+fitlm <- lm(Value ~ ., data = diamond)
+temp <- data.frame(Color = c(4, 5, 7), Cut = c(3, 1, 3), 
+                   Clarity = c(3, 8, 7), Carat = c(.65, .55, .94))
+temp$predictedValue <- predict(fitlm, temp)
+slm <- summary(fitlm)
+GGally::ggpairs(diamond)
+```
+
+Model table is below.  
+
+```{r}
+knitr::kable(slm$coefficients)
+r <- slm$r.squared
+```
+
+
+### A.  
+
+**Cut** is not a significant predictor of **Value** and should NOT be included in the model.  
+
+### B.  
+
+**Color** is the most significant predictor in the model ($p < 0.000001$).
+
+### C.  
+
+The model explains $`r r * 100`$`%` of the variation in **Value**.  This is the $R^2$ value of the model.  We can interpret it as the amount of variation in $Y$ that is explained by $X$.  
+
+### D. Predictions   
+
+The preditions for the table of values is below.  
+
+```{r}
+knitr::kable(temp)
+```
+
+
+## 2.  
+
+```{r logistic regression}
+# guessing this dataset is for the logistic regression question
+train2 <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetName = "InvestmentCustomers")
+test2 <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetName = "InvestmentMarketing")
+## looks like we are likely predicting investment services
+fit <- glm(use_investment_services ~ ., data = train2, 
+             family = binomial(link = "logit"))
+p <- predict(fit, test2, type = "response")
+## cut-off probability is 0.5
+temp <- sum(p >= 0.5)
+```
+
+
+Below is a histogram of our predicted probabilities for the "**InvestmentMarketing**" dataset.  I've drawn a vertical line at $0.5$ which can be thought of as our cutoff.  All the values to the right of the line would be our "yes" class.  
+
+```{r}
+hist(p, col = "green", main = "Predicted Probabilities (Logistic Regression)")
+abline(v = 0.5, lty = 3, lwd = 2)
+```
+
+### A.  
+
+Counting all the values that meet the criteria ($0.5 \geq$) the total number is $`r temp`$.  
+
+
+### B.  
+
+The largest predicted value is $`r max(p)`$.  This means, according to our model, that there is a $`r max(p)`$ probability that they will use investment services.  
+
+### C.  
+
+The table below shows the coefficients of the model with their probabilities.  As can be seen, the worst predictor is **region**.  
+
+
+```{r}
+knitr::kable(summary(fit)$coef)
+```
+
+
+## 3.  Using a Decision Tree, predict the spending group for the following individuals:  
+
+```{r Trees LDA KNN or NB}
+## Trees, LDA,KNN, or Naive Bayes
+train1 <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetName = "Spending")
+row.names(train1) <- train1$id
+train1$id <- NULL
+test1 <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetName = "SpendingPredict")
+row.names(test1) <- test1$id
+test1$id <- NULL
+```
+
+For this tree I used $cp = 0.01$ using the training dataset to build the tree.    
+
+```{r DecisionTree}
+## decision tree
+fittree <- rpart::rpart(spending_group ~ ., data = train1, cp = 0.01, 
+              method = "class")
+# Plot it
+rpart.plot::rpart.plot(fittree, uniform = TRUE,
+     main = "")
+```
+
+### A.  44 year old man who pays for his Deluxe, non-international account using a credit card.
+
+**Ultra-High** is the predicted class.  
+
+### B. High school student who pays cash for a Basic account with no added features  
+
+**High** is the predicted class.  
+
+### C.  17 year old who uses bank transfer to pay for a Basic account, but has added on features including international calling, voice messaging, call forwarding.  
+
+**Medium** is the predicted class.  
+
+## 4.  
+
+```{r NaiveBayes}
+## Naive Bayes
+nb <- e1071::naiveBayes(spending_group ~ ., data = train1)
+pnb <- predict(nb, test1, type = "raw")
+row.names(pnb) <- row.names(test1)
+p <- predict(nb, test1)
+```
+
+### A.  
+
+For the predictions of each class the counts for each class are shown in the table below.  
+
+
+High       Low       Medium      UltraHigh
+-------   ------   ----------   ----------
+5             2       1             0
+
+
+### B.  
+
+Below is a table with the predicted probabilites for each class using a naive bayes model.  As we can see, **ID182710** ($catagory = Low$) has the largest probability.  
+
+```{r}
+knitr::kable(pnb)
+```
+
+### C.  
+
+The most likely group (among men and women) appears to be women, but only slightly.  Below is the table values for the conditional probabilities for variable **sex**.  
+
+```{r}
+knitr::kable(nb[["tables"]]$sex)
+```
+
+
+## 5.  
+
+Like I did in the homework, I first standardize the variables by diving each element of the variable by the range, i.e. $$\frac{x_i}{range(X)}$$  where $x_i$ is the ith element of the $Xth$ variable.  
+
+```{r Neural Nets, eval=FALSE}
+## dataset for fitting a NN model on the exam, i'm guessing
+train3 <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetIndex = 6)
+row.names(train3) <- train3$RecordID
+train3$RecordID <- NULL
+test3 <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetIndex = 7)
+row.names(test3) <- test3$RecordID
+test3$RecordID <- NULL
+## combine the two datasets and then standardize the data
+df <- rbind(train3[-5], test3)
+y <- train3$PromotionPriority
+## first scale your data, excluding the class variable
+df_range <- as.data.frame(apply(df, 2, 
+                                function(x) x / diff(range(x))))
+rm(df)
+####
+train3 <- df_range[1:676, ]
+train3$PromotionPriority <- y
+test3 <- df_range[-(1:676), ]
+rm(df_range)
+## neural net model
+fitnn <- nnet(PromotionPriority ~ ., data = train3, size = 10,
+              maxit = 1e5)
+pnn <- predict(fitnn, test3)
+write.csv(pnn, "~/Documents/school/info3130/temp/p1nn.csv", 
+          row.names = FALSE)
+```
+
+
+```{r Neural Net Eval}
+# read in the predicted probs
+pnn <- read.csv("~/Documents/school/info3130/temp/p1nn.csv")
+## try to visualize our predictions compared to actual class
+f <- function(x) {
+  m <- which.max(x)
+  n <- names(m)
+}
+classes <- apply(pnn, 1, f)
+#temp <- table(observed = test$class, predicted = classes)
+#knitr::kable(temp)
+#row.names(pnn) <- row.names(test3)
+```
+
+The predicted number of each catagory is in the table below.  
+
+High      Medium     Low       Lowest
+-------  --------   ------    ----------
+4             26       12             1
+
+
+The person(s) with the largest probability of being promoted are 
+ **3835921**, **6439891**, **8903741**, **7787991**.  These people have probability of close to 1 for $class = High.Priority$.  
+
+
+```{r ANN compare and plot, eval = FALSE}
+# just messing around 
+pnn$observation <- factor(1:dim(pnn)[1])
+mpnn <- melt(pnn)
+gg <- ggplot(data = mpnn, aes(x = observation, y = value, 
+                              color = variable))
+gg + geom_point()
+## what do the non standardized data look like?
+train3 <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetIndex = 6)
+row.names(train3) <- train3$RecordID
+train3$RecordID <- NULL
+test3 <- read.xlsx("~/Documents/school/info3130/data/Exam 2 Data.xlsx", sheetIndex = 7)
+row.names(test3) <- test3$RecordID
+test3$RecordID <- NULL
+### fit other model, without standardizing
+fitNO <- nnet(PromotionPriority ~ ., data = train3, size = 10,
+              maxit = 1e5)
+pNO <- as.data.frame(predict(fitNO, test3))
+pNO$observation <- factor(1:dim(pNO)[1])
+mpNO <- melt(pNO)
+gg <- ggplot(data = mpNO, aes(x = observation, y = value, 
+                              color = variable))
+gg + geom_point()
+
+```
