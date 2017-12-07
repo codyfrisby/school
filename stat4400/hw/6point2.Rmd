@@ -1,0 +1,77 @@
+---
+title: '6.2'
+author: "Cody Frisby"
+date: "4/23/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, warning=F, message=F, cache = TRUE)
+library(MVA) # library for the textbook but with my modifications.
+# other libraries used for FA
+```
+
+## 6.2  
+
+Here I use $$1 - cor(stocks)$$   for my dissimilarity matrix, where **stocks** are the 5 stock variables from the data file. 
+
+
+```{r, comment=NA}
+k <- 2
+df <- read.table("~/Documents/STAT4400/data/stock-price.txt", 
+                 header = TRUE)
+rownames(df) <- paste0("week", rownames(df))
+# another way to work the problem:
+d <- as.dist(cor(df))
+d <- 1 - d # since d is a "similarity" structure
+d
+```
+
+
+Above are the "distances" used to draw the below dendograms.  
+
+
+
+```{r, fig.height=3.5}
+clust_s <- hclust(d, method = "single")
+clust_c <- hclust(d)
+# vector of colors 
+labelColors <- c(1:k)
+# cut dendrogram in 4 clusters
+clusMember <- cutree(clust_s, k)
+t_single <- table(clusMember)
+# function to get color labels
+colLab <- function(n) {
+  if (is.leaf(n)) {
+    a <- attributes(n)
+    labCol <- labelColors[clusMember[which(names(clusMember) == a$label)]]
+    attr(n, "nodePar") <- c(a$nodePar, lab.col = labCol)
+  }
+  n
+}
+# using dendrapply
+hcd <- as.dendrogram(clust_s)
+clusDendro <- dendrapply(hcd, colLab)
+# make plot
+par(mfrow = c(1, 2))
+library(dendextend)
+clusDendro %>% set("nodes_pch", 19) %>% 
+  plot(main = "Single Linkage")
+v <- round(clust_s$height, 3)
+text(c(1.5, 4.5, 3.5, 2.5), v, v, cex = 0.6, pos = c(1,1,1,1))
+# cut dendrogram in 4 clusters
+clusMember <- cutree(clust_c, k)
+t_complete <- table(clusMember)
+# using dendrapply
+hcd <- as.dendrogram(clust_c)
+clusDendro <- dendrapply(hcd, colLab)
+# make plot
+clusDendro %>% set("nodes_pch", 19) %>% 
+  plot(main = "Complete Linkage")
+v <- round(clust_c$height, 3)
+text(c(1.5, 4.5, 3.5, 2.5), v, v, cex = 0.6, pos = c(1,1,1,1))
+```
+
+
+CODY!!!  This is still not correct according to your professor. 
+

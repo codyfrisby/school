@@ -1,0 +1,300 @@
+---
+title: "PHYS 2210 Exam 2"
+author: "Cody Frisby"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = F, message = F,
+                      dpi = 200, fig.align = 200)
+```
+
+## 1.  Suppose a 900 kg satellite is orbiting the earth one earth radius above the surface.  
+
+### a. **Find the force of gravity between the earth and the satellite**.  
+
+```{r}
+m1 <- 900 # mass of satellite (kg)
+m2 <- 5.972e24 # mass of earth (kg)
+r <- 6.371e6 # radius of earth (m)
+G <- 6.67408e-11 # gravitational constant
+FG <- (G * m1 * m2)/(2*r)^2
+
+FGrav <- function(m1, m2, r) {
+  G <- 6.67408e-11 # universal constant
+  RESULT <- (G * m1 * m2) / r^2
+  return(RESULT)
+}
+```
+
+This can be found using 
+
+$$F_g = G\frac{M_{satellite}M_{earth}}{r^2} = `r round(G,2)`\frac{(`r round(m1,2)`)(`r round(m2,2)`)}{`r round(2*r^2,2)`} = `r round(FG,2)` ~N$$  
+
+where $r$ is the distance from the center of the earth to the satellite and $G$ is the gravitational constant.  
+
+### b. **Find the orbital period of the satellite**.  
+
+```{r}
+velocity <- function(m, r) {
+  G <- 6.67408e-11 # universal constant
+  RESULT <- sqrt((G * m) / r)
+  return(RESULT)
+}
+period <- function(m, r) {
+  G <- 6.67408e-11 # universal constant
+  RESULT <- 2 * pi * sqrt(r^3 / (G * m))
+  return(RESULT)
+}
+
+p <- period(m2, 2*r)
+v <- velocity(m2, 2*r)
+```
+
+This can be found using 
+
+$$T = 2 \pi \sqrt{\frac {r^3} {GM_{earth}}} = 2\pi \sqrt{\frac {`r round(2*r^3,2)`} {`r round(G,2)` (`r round(m2,2)`)}} =`r round(p,2)` ~seconds$$
+
+### c. **Find the tangential velocity required to keep the satellite in orbit**.  
+
+This can be found using 
+
+$$ v = \sqrt{\frac{GM_{earth}}{r}} = \sqrt{\frac{`r round(G * m2,2)`}{`round(r 2 * r,2)`}} = `r round(v,2)` ~\frac{m}{s}$$
+
+### d. **Find the angular velocity of the satellite**.  
+
+```{r}
+angular <- function(m, r) {
+  G <- 6.67408e-11 # universal constant
+  RESULT <- sqrt((G * m) / r^3)
+  return(RESULT)
+}
+a <- angular(m2, 2*r)
+```
+
+Angular velocity can be found using $\omega^2r = \frac{GM_E}{r^2}$ and solving for $\omega$ (where $\omega$ is the angular velocity) we get  
+
+$$\omega = \sqrt {\frac {GM_{earth}} {r^3} } = \sqrt { \frac {`r round(G * m2,2)`} {`r round((2*r)^3,2)`} } = `r round(a,6)` ~ \frac{rad}{s}$$  
+
+**Side note:**  We could find the orbital period from here since $$T = \frac{2 \pi}{\omega} = \frac{2 \pi}{`r round(a, 6)`} = `r  round(1 / (a / (2*pi)),2)`$$  which is the same answer we got for part **b**.  
+
+
+## 2) A painter is standing on 4 kg board which is 12 m long and suspended on each end by a rope. The painter is standing 3 m from the left side, closer to the first rope. The mass of the painter is 90 kg.  
+
+```{r}
+m1 <- 4
+m2 <- 90
+l <- 12
+x <- 3
+g <- 9.8
+t1 <- g * (m1*l/2 + m2*(l-x)) / l
+```
+
+
+### a. **Find the tension in the first rope**.  
+
+The system is in equilibrium so the sum of the forces is zero ($\sum F = 0$) AND the sum of the torques is zero ($\sum \tau = 0$).  
+
+$$(m_{board}(CM) + m_{painter}(L - x))g + TL $$ where $CM$ is the center of mass of the board and $L - x$ is the distance from the edge of the board (L) that the painter is standing on and $g$ is the acceleration of gravity.  So 
+
+$$T_1 = g\frac {m_1 \frac{L}{2} + m_2(L-x)} {L} = `r t1` ~N$$
+
+### b. **Find the tension in the second rope**.  
+
+```{r}
+t2 <- g * (m1 + m2) - t1
+```
+
+
+$$T_2 = (m_1 + m_2)9.8 - Tension_1 = `r t2` ~N$$  
+
+Checking the equilibrium of the system, i.e. $g(m_1 + m_2) = T_1 + T_2$, we can see that $$9.8(`r m1` + `r m2`) = `r t1` + `r t2` = `r t1+t2`~N$$  
+
+
+### c. **The painter climbs down from the board, just before the second rope suddenly snaps. Find the instantaneous angular acceleration of the board**.  
+
+```{r}
+i <- m1*l^2 / 3
+tau <- m1*g*(l/2)
+```
+
+Since $L = I\omega$, where L is the angular momentum, angular acceleration can be found by $\tau = I\alpha$, where $\alpha$ is the angular acceleration, so angular acceleration can be found by $\alpha = \frac{\tau}{I}$.  
+
+So we need to find I and $\tau$.  Using $I = \frac{Ma^2}{3} = `r i`$ since the pivot point is now 12 meters from where the rope snaps and $\tau = mg \frac{L}{2} = `r tau`$.    
+$$\alpha = \frac{`r tau`}{`r i`} = `r tau/i` ~\frac{rad}{s}$$
+
+
+## 3) A certain thin (one-dimensional) rod has a length of L and a non-uniform density which is given by the following function:  
+
+$$\rho(L) = \frac{L^2}{7}$$  
+
+We can picture the density of the rod as a function of L.  A plot of this function is pictured here for reference for lengths from 0 to 10.  
+
+```{r}
+rho <- function(x) (x^2) / 7
+curve(rho(x), 0, 10, col = "dodgerblue", xlab = "L", 
+      ylab = expression(rho(L)))
+grid(); abline(h = 0, lty = 3); abline(v = 0, lty = 3)
+```
+
+We can see that the density takes on what appears to be an exponential function, meaning that the density of the rod increases exponentially with its length.  
+
+### a. **Find the rod’s center of mass as a function of L**.  
+
+The mass of our object depends on it's length.  
+
+$$ m = \int_0^L\frac{1}{7}x^2 dx = \frac{1}{21} L^3 ~ kg $$
+
+Now, the center or mass, or $\bar x$, can be defined as 
+$$ \bar x = \int_0^L \frac{\rho(x) dx}{m}x$$ where I have already found $m$ above, I focus on the top piece.
+
+$$ \bar x = \frac{{\int_0^L \rho(x)xdx}}{m} = \frac{1}{m} \int_0^L \frac {x^3} {7}dx = \frac {1} {28m} L^4 $$ 
+
+Plugging in for m we get 
+
+$$\bar x = \frac {21L^4} {28L^3} = \frac{3}{4}L $$
+
+### b. **Find the moment of inertia for the rod if it is rotated about its midpoint**$(\frac{L}{2})$.  
+
+In general the moment of inertia ($I$) can be defined as
+
+$$I = mr^2$$   
+
+where $m$ is the objects mass and $r$ is the distance of the object from the axis of rotation.  In part *a* we found that $m = \frac{1}{21}L^3$.  For a solid object we have to take all the particles that make up it's mass into account (you didn't make this easy).  Using (since it's one-dimensional linear density)
+
+$$ dI = x^2 dm $$ I will attempt to find the moment of inertia of our non-uniform rod.  Recall that $\rho(x) = \frac{x^2}{7}$ (our density function) and $dm = \rho(x) dx$.  
+
+$$dI = \frac{x^4}{7} dx $$
+
+$$I = \int_{-\frac{L}{2}}^{\frac{L}{2}} dI = \int_{-\frac{L}{2}}^{\frac{L}{2}} \frac{x^4}{7} dx = \frac {1} {35}[\frac{L^5}{2^5} - (-\frac {L^5} {2^5})] = \frac{1}{560}L^5 $$  
+**Note:** This is about 45% smaller than if we were to use the formula for the moment of inertia for a rod of uniform density($\frac{1}{12}MR^2$), which would end up being approx. $\frac{1}{252}L^5$.    
+
+## 4) A large metal ball with a uniform density is dropped into a lake. The ball has a radius of 12 cm and (beginning at rest) sinks 40 m to the bottom in 3.6 s.  
+
+### a. **How much water pressure does the ball experience at the bottom of the lake**?  
+
+```{r}
+r <- 12 / 100 # meters, radius of ball
+h <- 40 # depth of lake bottom
+t <- 3.6 # seconds it takes to sing
+g <- 9.8 # we are on earth
+vb <- (4/3) * pi * r^3
+ab <- pi * r^2
+p <- 1000 * 9.8 * 40
+a <- 2 * h / (t^2)
+pball <- round((g * 1000) / (9.8 - a), 2)
+```
+
+Using 
+
+$$ Pressure = \frac{Force}{Area}$$ 
+
+we can then rewrite this as 
+
+$$P = \frac {\rho g h \pi r^2} {\pi r^2} = \rho g h $$
+
+and applying it to our problem we get (assuming the density of the lake water is $1000 \frac{kg}{m^3}$)
+
+$$P = 1000 \frac{kg}{m^3} (9.8)\frac{m}{s^2} (40)m =  `r p` Pa$$
+
+### b. **What is the ball made of? (Hint: Find its density)**. 
+
+Density ($\rho$) is equal to the volume of an object divided by it's mass.  
+
+Ignoring the drag force, the net force ($F_{net}$) of the system is 
+$$F_{net} = W_{ball} - F_{b} = 9.8 \rho_{ball}V - 9.8 \rho_{water} V$$ where $F_b$ is the buoyant force and $V$ is the volume of the ball.  
+
+In order to solve this we need to know the acceleration of the ball (we could also use this equality to solve for $a$ if we knew the density of the ball and water).  Using the kinematic equation, $x = \frac{1}{2} a t^2$, I can solve for $a$ since I know $x$ and $t$.  
+
+$$a = \frac{2x}{t^2} = \frac{80}{3.6^2} = `r round(a, 2)`~ \frac{m}{s^2}$$  
+
+Doing some more rearranging I get 
+
+$$\rho_{ball} = \frac {9.8 (1000) \frac{kg}{m^3}} {9.8 - `r a`} = `r round(pball, 2)` ~ \frac{kg}{m^3}$$  
+
+The ball is made of aluminum (Al), which has a density of $2.70 \frac{g}{cm^3}$. 
+
+## 5) Astronauts use springs to work out in space because there isn’t enough gravity to provide significant resistance to keep their muscles from atrophying. Suppose an astronaut is attached to a horizontal spring and begins oscillating back-and-forth once every 2 seconds. Back on Earth, a 20 kg mass was hung vertically on this same spring, causing it to stretch 21 cm.  
+
+### a. **What is the mass of the astronaut**?  
+
+```{r}
+# spring constant
+m1 <- 20 # kg
+g <- 9.8 # gravity on earth
+x <- 0.21 # m, distance the spring is stretched
+k <- (m1 * g) / (x)
+period <- 2
+m2 <- (k * period^2) / (4 * pi^2)
+```
+
+First, the spring constant is 
+$$F = -kx$$  
+
+$$k = \frac{mg}{x} = \frac{(20 kg) (9.8) \frac{m}{s^2}}{0.21 m} = `r round(k,2)` ~\frac{N}{m}$$  
+
+and now mass can now be found with period, $T = 2 s$.  The period is defined as 
+$$T = 2\pi \sqrt {\frac {m} {k}}$$ 
+
+and so solving for $m$ we get
+
+$$m = \frac {k T^2} {4 \pi^2} = \frac {`r round(k,2)` (4)} {4 \pi^2} =  `r m2`~ kg$$  
+
+
+## 6) Suppose a certain musical instrument consists of a pipe which is open at one end and closed at the other. Music is produced as sound waves move through the pipe, creating standing wave patterns. The pipe has a length of 80 cm.  
+
+### a. **Find the wavelength of the first, third, and fifth harmonics (show your work)**.  
+
+```{r}
+freq <- function(n = 1, v = 343, l = 0.80) {
+  RESULT <- (n * v) / (4 * l)
+  return(RESULT)
+}
+wavelength <- function(n = 1, l = 0.80) {
+  RESULT <- (4 * l) / (n)
+  return(RESULT)
+}
+w1 <- wavelength(n = 1)
+w3 <- wavelength(n = 3)
+w5 <- wavelength(n = 5)
+```
+
+Using $$f_n = \frac{nv}{4L}$$ where $f_n$ is the nth frequency and $v$ is the speed of sound (I'll use $343 \frac{m}{s}$) and $L$ is the length of the pipe, in this case $0.8~m$. Wavelength, ($\lambda$), can be found using $$\lambda_n = \frac{4L}{n}$$ 
+
+$$\lambda_1 = \frac {4 (0.80)} {1} = `r round(w1,2)`~m$$
+$$\lambda_3 = \frac {4 (0.80)} {3} = `r round(w3,2)`~m$$
+$$\lambda_5 = \frac {4 (0.80)} {5} = `r round(w5,2)`~m$$
+
+
+### b. **Find the frequency of the first, third, and fifth harmonics (show your work)**.  
+
+```{r}
+f1 <- freq(n = 1)
+f3 <- freq(n = 3)
+f5 <- freq(n = 5)
+```
+
+
+$$f_1 = \frac {1 (343) \frac{m}{s}} {4 (0.80) m} = `r round(f1,2)`~Hz$$
+
+$$f_3 = \frac {3 (343) \frac{m}{s}} {4 (0.80) m} = `r round(f3,2)`~Hz$$
+
+$$f_5 = \frac {5 (343) \frac{m}{s}} {4 (0.80) m} = `r round(f5,2)`~Hz$$
+
+
+### c. **Suppose you were riding your bike at 18 m/s towards the instrument as the fifth harmonic was being played. What frequency would you hear**?  
+
+We can use what's known as the Doppler effect to solve this one.  This is stated in the equation 
+$$f_L = \frac {\nu + v_L} {\nu + v_s}f_s$$ where $\nu$ is the speed of sound, $f_L$ is the frequency as heard by the listener, $v_L$ is the velocity of the listener, $f_s$ is the frequency of the source, and $v_s$ is the velocity of the source.  
+
+```{r}
+doppler <- function(v = 343, vl, vs, n = 1, l = 0.8) {
+  RESULT <- ((v + vl) / (v + vs)) * freq(n, v, l)
+}
+fl <- doppler(vl = 18, vs = 0, n = 5)
+```
+
+$$f_L = \frac {(343 + 18) \frac {m}{s}} {(343 + 0)\frac{m}{s}} `r round(f5,2)`~Hz = `r round(fl,2)` ~ Hz$$  
+This is slightly higher than the original pitch which is what we would expect.  
+

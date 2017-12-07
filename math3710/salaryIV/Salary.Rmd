@@ -1,0 +1,100 @@
+---
+title: "Indicator Variables"
+author: "Cody Frisby"
+date: "March 10, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+Salary example shared in class.  
+
+```{r, dpi=200, fig.align='center', cache=TRUE, message=FALSE, warning=FALSE}
+library(xlsx) # read excel files
+sal <- read.xlsx("~/Documents/MATH3710/salaryIV/Salary.xlsx", 
+                 sheetIndex = 1)
+sal <- sal[1:45,] # remove NA lines from bottom of sal
+```
+
+We need to recode some of these vars.  Here's one, simple, way to do it in R.
+
+```{r}
+sal$bachelors <- 0 #create a new var with zeros
+sal$grad_deg <- 0 # ditto
+# we need statement to fill in our new vars with 1s
+sal[sal$Education == "BS", "bachelors"] <- 1
+sal[sal$Education == "BS+", "grad_deg"] <- 1
+# now one for manager
+sal$mgr <- 0
+sal[sal$Manager == "Yes", "mgr"] <- 1
+sal$EM1 <- sal$bachelors*sal$mgr
+sal$EM2 <- sal$grad_deg*sal$mgr
+head(sal) # look at the data
+```
+
+Now, for ease, I'm going to subset our data table. Sal2 is a new data frame that contains the variables we are interested in.
+
+```{r}
+sal2 <- sal[,c(1:2,6:8)]
+head(sal2)
+```
+
+### Box plot of Salary by Education level
+
+```{r, fig.align='center', dpi=200, message=F, warning=F}
+library(ggplot2)
+bx <- ggplot(sal, aes(Education, Salary))
+bx <- bx + geom_boxplot(fill = "lightblue") + geom_jitter() + theme_bw()
+bx
+```
+
+### Box plot of Salary by Manager
+
+```{r, fig.align='center', dpi=200, message=F, warning=F}
+library(ggplot2)
+bx <- ggplot(sal, aes(Manager, Salary))
+bx <- bx + geom_boxplot(fill = "lightblue") + geom_jitter() + theme_bw()
+bx
+```
+
+
+###More Plotting, scatter plots with color and shape as dimensions
+
+```{r, dpi=200, fig.align='center', cache=TRUE, message=FALSE, warning=FALSE}
+g <- ggplot(data = sal, aes(x=Experience, y=Salary))
+g <- g + geom_point(aes(shape=Education, colour=Manager), size = 3)
+g
+```
+
+Now, let's fit the model, using indicator variables
+
+```{r}
+fit <- lm(Salary ~ ., sal2) #data frame with only the vars we want
+summary(fit)
+```
+
+### Residual Diagnostics
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit, which = c(1,2))
+```
+
+By the looks of it, we have an issue with "clustering" possibly due to th catagories.  There may be an interaction we are not accounting for in our model. 
+
+### Model with interaction
+
+```{r}
+fit2 <- lm(Salary ~ . + grad_deg*mgr+bachelors*mgr, sal2)
+summary(fit2)
+```
+
+### Model Diagnostics  
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit2, which = c(1,2))
+```
+
+Looking much better now.
+

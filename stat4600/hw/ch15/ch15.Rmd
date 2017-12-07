@@ -1,0 +1,100 @@
+---
+title: "Chapter 15 Homework"
+author: "Cody Frisby"
+date: "11/16/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+library(qcc); library(SixSigma); library(qualityTools); library(rms)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+## Assignment: ##
+# 1-8
+```
+
+## 15.1  
+
+```{r, fig.height=4}
+c <- 1
+n <- 50
+p <- 1:100/1000
+plot(p ,pbinom(c, n, p), type = "l",
+     xlab = "Lot Fraction Defective, p", ylab = "Probability of Acceptance, Pa",
+     col = "blue", main = paste0("OC curve for n = ", n, " c = ", c))
+# another way
+library(AcceptanceSampling)
+oc <- OC2c(n, c)
+#plot(oc, xlim=c(0, 0.1))
+```
+
+
+## 15.2 
+
+```{r, fig.height=4}
+# Draw the type-B OC curve for 
+n <- 100
+c <- 2
+plot(p ,pbinom(c, n, p), type = "l",
+     xlab = "Lot Fraction Defective, p", ylab = "Probability of Acceptance, Pa",
+     col = "blue", main = paste0("OC curve for n = ", n, " c = ", c))
+```
+
+## 15.3 
+
+```{r}
+# part a) type-A OC curve for N=5000, n=50, c=1
+n <- 50; c <- 1; N <- 5000
+plot(p ,phyper(c, p*N, N - p*N, n), type = "l",
+     xlab = "Lot Fraction Defective, p", ylab = "Probability of Acceptance, Pa",
+     col = "blue", main = paste0("OC curve for n = ", n, " c = ", c))
+points(p, pbinom(c, n, p), type = "l", col = "black", lty = 2)
+legend("bottomleft", legend = c("type-A", "type-B"), col = c("blue", "black"),
+       lty = c(1,2), bty = "n")
+```
+
+They are nearly identical.  Either would be appropriate.  
+
+
+## 15.4  
+
+```{r}
+library(AcceptanceSampling)
+# single sampling plan for
+# p1=0.01, alpha = 0.05, p2 = 0.1, beta = 0.1
+p1 <- 0.01; p2 <- 0.1
+PRP <- c(p1, 1 - .05)
+CRP <- c(p2, .1)
+# from find.plan we find that n = 52, c = 2
+n <- 52
+c <- 2
+plan <- find.plan(PRP, CRP)
+```
+
+$n = `r plan$n`$ and $c =  `r plan$c`$. 
+
+
+## 15. 5 
+
+```{r}
+plan <- find.plan(c(.05, .95), c(.15, .1))
+```
+
+$n = `r plan$n`$ and $c =  `r plan$c`$.  
+
+
+## 15. 6
+
+```{r}
+plan <- find.plan(c(.02, .99), c(.06, .1))
+```
+
+$n = `r plan$n`$ and $c =  `r plan$c`$. 
+
+
+```{r}
+qcc.options(old)
+```
+

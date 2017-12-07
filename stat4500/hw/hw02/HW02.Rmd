@@ -1,0 +1,458 @@
+---
+title: "Homework 2 STAT 4500"
+author: "Cody Frisby"
+output: pdf_document
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200,warning=F,message=F)
+
+library(nortest)
+library(randtests)
+library(exactRankTests)
+```
+
+## 4.1  
+
+First we take a look at the empirical CDF of our data after being normalized with the normal CDF overlayed in red:  
+
+```{r}
+x <- c(13,13,22,26,33,33,59,72,72,72,77,78,78,80,81,82,85,85,85,86,88)
+# is age at death normally distributed?
+v <- ecdf(x)
+Sx <- v(x) # empirical CDF
+z <- (x - mean(x))/sd(x) # observations normalized
+df <- data.frame(x, z, Pz = pnorm(z), Sx, Diff = pnorm(z) - Sx, 
+                 Diff.1 = pnorm(z) - c(0,Sx[-length(Sx)]))
+stat <- max(abs(c(df$Diff, df$Diff.1)))
+test <- shapiro.test(x)
+plot(ecdf(z), verticals = T, pch="")
+curve(pnorm(x), lty=3, col="red", add = TRUE)
+```
+
+At first glance, this does not appear to take the shape of the normal distribution CDF.   
+
+A table of our observed data and subsequent calculations for our test is displayed for reference (having removed repeated values of x):  `r knitr::kable(df[!duplicated(df$x), ])`  and our test statistic is the largest of the values of the differences, in this case it is `r stat` which under the null hypothesis is an improbable value so we reject the null hypothesis that the data is normally distributed.  This same statistic, using Lilliefors' test to compute p-value, gives us $p = `r lillie.test(x)$p.value`$.  
+
+Similarly, using the Shapiro-Wilk test for normality, the computed p-value is $`r test$p.value`$, we conclude that it is **improbable** that the time at death is normally distributed.  Our conclusion is the same, but our p-value is much smaller using the Shapiro-Wilk test for normality.  
+
+```{r, eval=F}
+# Trying to learn how to approximate with random sampline:
+# i think we first have to scale our data down to unit vectors
+u <- function(x) {x / sqrt(sum(x^2))}
+y <- u(x)
+a <- min(y); b <- max(y)
+g <- function(x) y <= f(x)
+n <- 10000
+ps <- matrix(runif(n*2), ncol=2)
+z <- g(c(ps[,1],ps[,2]))
+zz <- matrix(z, ncol=2)
+```
+
+
+## 4.3  
+
+```{r}
+x <- c(1175,1183,1327,1581,1592,1624,1777,1924,2483,2642,2713,3419,535
+       ,7615)
+testl <- lillie.test(x)
+test <- shapiro.test(x)
+```
+
+First, I plot the empirical CDF of the observed data with a normal CDF on top of it, after having standardized the observed values with $$y_i = \frac{x_i - \bar x}{\sqrt{\frac{\sum_{i=1}^{n}(x_i - \bar x)^2}{n -1}}}$$ 
+
+```{r}
+y <- (x - mean(x))/sd(x)
+plot(ecdf(y), verticals = T, pch="")
+curve(pnorm(x), lty=3, col="red", add = TRUE)
+```
+
+The normal CDF curve does not appear to be near "enough" to the empirical CDF.  We can probably assume that the data is not normally distributed.  Testing the normality hypothesis using the Shapiro-Wilk test we get a test stat of `r test$statistic` and the p-value = $`r test$p.value`$.  We reject the null hypothesis that the data is normally distributed.  The Lilliefor's test has a test statistic of `r testl$statistic` and a p-value of `r testl$p.value`.  We would come to the same conclusion using either test.    
+
+
+## 4.4  
+
+First, examining a historgram and a CDF plot we can start to get clues about the distribution of our data.  
+
+```{r}
+# test whether the data from 3.14 comes from U(1100, 7700)
+x <- c(1175,1183,1327,1581,1592,1624,1777,1924,2483,2642,2713,3419,
+       5350,7615)
+test <- ks.test(x, "punif", min = 1100, max = 7700) # no ties
+# or
+v <- ecdf(x)
+Sx <- v(x) # empirical CDF
+Fx <- punif(x, min=1100, max=7700)
+df <- data.frame(x, Sx, Fx, Diff = Fx - Sx, 
+                 Diff.1 = Fx - c(0,Sx[-length(Sx)]))
+stat <- max(abs(c(df$Diff, df$Diff.1)))
+par(mfrow=c(1,2))
+hist(x, col="green")
+plot(ecdf(x), verticals = T, pch="")
+curve(punif(x, min=1100, max=7700), add = TRUE, col="red", lty=3)
+```
+
+The histogram indicates a large scew to the left, meaning the data is likely to not be uniformally distirbuted.  Running a test for distribution using the Kolmogorov method we find that our test statistic is `r stat` and the associated p-value is $p = `r test$p.value`$.  There is evidence to reject that the data is from a uniform distribution, U(1100, 7700).  
+
+
+##  4.12 
+
+```{r}
+# we want to run a trend test...
+x <- c(76,92,105,86,91,81,103,92,71,132,71,57,48,63,43,60)
+n <- length(x)
+d <- diff(x) # differences of x1-x2, x2-x3, x3-x4 and so on.
+s <- sign(d) # the sign of the differences
+r <- length(rle(s)$length) # how many runs are there?
+test <- cox.stuart.test(x)
+```
+
+Here, we need to run a trend test.  Using the Cox-Stuart test from the text, we find $p = `r test$p.value`$.  There is weak evidence of a trend in the data.  Visually, we can see this negative trend, albeit the test does show weak evidence, as does the plot.  *Note: this is a two-sided p-value.  If we suspected a negative or positve trend, we could run a one-sided test and our p value would be half `r test$p.value`*.  
+
+```{r, fig.height=3.5, fig.width=4}
+scatter.smooth(x, lpars = list(col = "red", lwd = 3, lty = 3),
+               pch=16,xlab="Time",ylab="No. of Deaths")
+```
+
+
+## 4.13 
+
+First I display a plot of the data where the points are the locations on the road of the observed car accidents using the unit circle.  
+
+```{r, fig.height=5, fig.width=4.75}
+x <- c(10,35,82,87,94,108,125)
+# whtat the hell is this test?  Why?  I don't give a shit!  
+plot(c(-1,1), c(-1,1), xlim = c(-1.25,1.25), 
+     ylim = c(-1.25,1.25), type = "n", xlab = "", ylab = "")
+# unit circle: x^2 + Y^2 = 1
+curve(sqrt(1 - x^2) , -1, 1, add=TRUE, n=1000)
+curve(-1 * sqrt(1 - x^2) , -1, 1, add=TRUE, n=1000)
+# adding the town hall :)
+rect(-.1, -.1, .1, .1); text(.02, .16, "Town Hall", cex=0.7)
+# and the traffic accidents  
+points(cos(x * (pi/180)), sin(x * (pi/180)), pch=16, cex=1.5)
+text(c(1.12, 0),c(0,-1.12), c("East", "South"))
+n <- length(x)
+r <- (max(x) - min(x)) * (pi/180)
+p <- n * (1 - (2*pi - r)/(2*pi))^(n-1)
+t <- 0; p2 <- (choose(n,t) * (n - 2 * t))/2^(n-1)
+```
+
+There appears to be some clustering of car accidents.  If there was no correlation to accidents and sections of road we would expect to see the points scattered randomly along the circle.  Running the *Hodges-Ajne Test* where the null hypothesis is that the population of car accidents on this road are uniformly distributed along the circumfrence of a circle m = 0 since we can draw a line through the center where all of the points are on one side of.  $$m < t = \frac{n}{3} = \frac{`r n`}{3} = `r n/3`$$ and the probability that $m = 0$ is `r p2`.  Another appropriate test for this sample could be *The Range Teset* since it appears we do not have any outliers.  Here $r = `r r`$ and the p-value is `r p` using formula 4.9 in the text.  We conclude the same as the *Hodges-Ajne Test*.  There is evidence of clustering of car accidents.  
+
+## 4.17  
+
+
+```{r}
+# w =1, d = 0, l = -1
+x <- c(1,1,1,0,0,1,1,-1,-1,-1,-1,1)
+r <- rle(x) # runs length encoder
+R <- length(r$lengths)
+n1 <- sum(r$lengths[r$values == 1])
+n2 <- sum(r$lengths[r$values == 0])
+n3 <- sum(r$lengths[r$values == -1])
+n <- n1+n2+n3
+p <- c(n1,n2,n3)/n
+eR <- n*(1 - sum(p^2)) + 1
+vR <- n*(sum(p^2 - 2*p^3) + sum(p^2)^2)
+z <- (R - eR)/sqrt(vR)
+p.value <- pnorm(z) #Asymptotic normal p value
+```
+
+Running a few lines of R code, finding n = `r n`, n1 = `r n1`, n2 = `r n2` and n3 = `r n3` and then approximating the p-value using the asymtotic normal approach, we find the p-value is `r p.value`.  This is the p-value for a two-tailed test.  The book has an exact p-value for a one-sided test.  If I multiply mine by 2 I get `r p.value*2`.  This is very close to the exact p-value.  At $\alpha = 0.05$ our conclusions would be the same, there is evidence of NON-randomness.  The team tends to go on winning streaks and also losing streaks.  
+
+##  6.2  
+
+```{r}
+# H = 1, L = -1
+temp <- c(1,-1,1,1,1,-1,1,-1,-1,1,1,-1,-1,-1,-1,-1)
+temp <- as.factor(ifelse(temp == 1, "H", "L"))
+m <- length(temp[temp=="H"]); n <- length(temp) - m
+# rank softest to hardest
+rank <- 1:16
+sx <- sum(rank[temp == "H"])
+sy <- sum(rank[temp == "L"])
+wy <- sy - (n*(n+1))/2
+wx <- sx - (m*(m+1))/2
+p.value <- pwilcox(min(c(wx, wy)),m,n)*2 # two sided
+```
+
+First, taking a look at a boxplt of the data for context:  
+
+```{r}
+#library(plotly)
+boxplot(rank ~ temp, col = "lightblue", xlab="Temp", ylab = "Rank")
+#plot_ly(y = rank, color = temp, type = "box") #prettier plot
+```
+
+By visual inspection there appears to be a relationship between hardness and temperature, with the lower temperature creating harder specimins on average.  Running a nonparametric test (WMW) we get $p = `r p.value`$.  This is a "small" p-value albeit not "significant" at $\alpha = 0.05$.  We would not reject at the traditional $\alpha = 0.05$ level but there is slight evidence of a relationship.  Further investation is warranted.  
+
+##  6.4  
+
+```{r}
+x <- c(15.7,14.8,14.2,16.1,15.3,13.9,17.2,14.9)
+y <- c(13.7,14.1,14.7,15.4,15.6,14.4,12.9,15.1,14.0)
+m <- min(c(length(x), length(y)))
+n <- max(c(length(x), length(y)))
+df <- data.frame(x = c(x,y), grp = c(rep("x", m), rep("y", n)))
+df$rank <- rank(df$x)
+sx <- sum(df$rank[df$grp == "x"])
+sy <- sum(df$rank[df$grp == "y"])
+wy <- sy - (n*(n+1))/2
+wx <- sx - (m*(m+1))/2
+test <- wilcox.test(x,y, conf.int = TRUE, conf.level = 0.95)
+p.value <- pwilcox(min(c(wx, wy)),m,n)*2 # two sided
+t3 <- t.test(x, y, var.equal = TRUE)
+```
+
+There does not appear to be any strong evience of a difference between the two insulations.  The firms' conclusions seem justified.  A confidence interval contructing using the non-parametric method (WMW) contains zero [`r test$conf.int`].  Additionally, if we assume normality our conclusions do not change; 0 is also contained in the 95% confifence interval for the t test, [`r t3$conf.int`].  
+
+##  6.10  
+
+```{r, fig.width=5}
+x <- c(.21,-16.2,-10.1,-8.67,-11.13,1.96,-10.19,-15.87,-12.81)
+y <- c(1.59,2.66,-6.27,-2.32,-10.87,7.23,-3.76,3.02,15.01)
+boxplot(x,y, col = "lightblue", xlab="Dose", ylab = "Response")
+test <- wilcox.test(x,y, conf.int = TRUE)
+```
+
+Running a WMW test on the data and computing a confidence interval, we can see at significance level of 0.05, zero is NOT in our interval, [`r test$conf.int`].  There is evidence of a median response time difference between *dose I* and *dose II*.  *Dose I* median response time appears to be lower.      
+
+##  6.11  
+
+```{r}
+# we are to run an asymptotic test
+x <- c(8,6,4,2,10,5,6,6,19,4,10,4,10,12,7,2,5,1,8,2,0,7,6,4,
+       4,11,2,16,8,7,8,4,0,2)
+y <- c(4,4,4,10,7,8,10,3,13,8,7,8,4,4,8,8,11,8,8,6,7,4,15,9,
+       14,9,10,5,8,16,6,14,14,4,9,15,12,8,10,9,9,4,9,7,6,9,12,3,
+       8,11,9,12,7,3)
+r <- rank(c(x,y))
+ix <- 1:length(x)
+m <- length(x); n <- length(y)
+sm <- sum(r[ix])
+Um <- sm - (m * (m + 1))/2; Un <- m*n - Um
+e.w <- (n*(m+n+1))/2
+v.w <- (m*n*(m+n+1)/12)
+z <- (Um - ((m*n)/2))/sqrt(m*n*(m+n+1)/12)
+p.value <- pnorm(z) * 2
+test <- wilcox.exact(x,y, exact = TRUE, conf.int = TRUE)
+```
+
+Using these results  
+
+$$E(W) = \frac{n(m+n+1)}{2}$$   
+
+$$V(W) = \frac{mn(m+n+1)}{12}$$   
+
+$$Z = \frac{W_{mn} - E(W)}{\sqrt{V(W)}}$$   
+
+we compute the asymptotic z statistic $z = `r z`$ and the two-tailed probability of z is $p = `r p.value`$.  We conclude that there is a difference between DMF scores for males and females among first year dental students.  
+
+There are quite a few ties.  This could sway which test statistic is appropriate to use.  However, the data does not appear to be grouped so I believe $U_m$ is an appropriate statistic here, using mid-ranks for ties.  
+
+##  6.13  
+
+```{r}
+# using the data from EXAMPLE 6.11
+x <- c(177,200,227,230,232,268,272,297); m <- length(x)
+y <- c(47,105,126,142,158,172,197,220,225,230,262,270); n <- length(y)
+```
+
+Running some R code, I rank the data according to the *Seigel-Tukey* test, after shifting the **male** values by the mean of x minus the mean of y, `r mean(x)-mean(y)`.  
+
+```{r}
+x <- x - (mean(x) - mean(y)) #shift x
+data <- data.frame(c(x, y), rep(c(0, 1), c(length(x), length(y))))
+names(data) = c("x", "y")
+sort.x <- sort(data$x)
+sort.id <- data$y[order(data$x)]
+x <- data$x
+y <- data$y
+data.matrix <- data.frame(sort.x, sort.id)
+base1 <- c(1, 4)
+iterator1 <- matrix(seq(from = 1, to = length(x), by = 4)) - 1
+rank1 <- apply(iterator1, 1, function(x) x + base1)
+iterator2 <- matrix(seq(from = 2, to = length(x), by = 4))
+base2 <- c(0, 1)
+rank2 <- apply(iterator2, 1, function(x) x + base2)
+if (length(rank1) == length(rank2)) {
+    rank <- c(rank1[1:floor(length(x)/2)],
+              rev(rank2[1:ceiling(length(x)/2)]))
+  } else {
+    rank <- c(rank1[1:ceiling(length(x)/2)],
+              rev(rank2[1:floor(length(x)/2)]))
+  }
+unique.ranks <- tapply(rank, sort.x, mean)
+unique.x <- as.numeric(as.character(names(unique.ranks)))
+rank.matrix <- data.frame(unique.x, unique.ranks)
+ST.matrix <- merge(data.matrix, rank.matrix, by.x = "sort.x", 
+                     by.y = "unique.x")
+df <- as.data.frame(unique.ranks)
+names(df) <- "Rank"
+knitr::kable(df)
+sm <- sum(ST.matrix$unique.ranks[ST.matrix$sort.id == 0])
+stat <- sm - (m * (m+1))/2
+# or: 
+ranks0 <- ST.matrix$unique.ranks[ST.matrix$sort.id == 0]
+ranks1 <- ST.matrix$unique.ranks[ST.matrix$sort.id == 1]
+test <- wilcox.test(ranks0, ranks1)
+```
+
+
+We do NOT reject the null hypothesis that the variances are equal.  The test statistic is `r stat` and the p-value is `r test$p.value`.  Also $s_m = `r sm`$.     
+
+## 6.15  
+
+```{r}
+x <- c(204,218,197,183,227,233,191)
+y <- c(243,228,261,202,343,242,220,239)
+boxplot(x, y, col="lightblue", names=c("Without", "With"), ylab="Time (s)")
+```
+
+By visual inspection, it appears there is a difference between the two samples.  Plotting the CDF of both samples below we see that they are not the same.  Additionally, since one sample is greater than the other at every step of the CDF, a one-sided test may be appropriate here.  But, using tables provided, I report the two-tailed p-value.  Having said that, there are other ways to run the test and get a p-value for a "greater" than alternative hypothesis and the results are not too different.  
+
+```{r}
+plot(ecdf(x), verticals = TRUE, pch="", col="blue", xlab="", ylab = "",
+     main = "", xlim=c(min(c(x,y)), max(c(x,y))))
+lines(ecdf(y), verticals=TRUE, pch="", col="red")
+legend(310, 0.2, legend = c("Without", "With"), bty="n", 
+       col=c("blue", "red"), lty=1)
+```
+
+And using a Smirnov test where the psycologist believes these two samples are from different populations we find that
+
+```{r}
+test <- ks.test(x,y)
+u <- ecdf(x); v <- ecdf(y)
+stat <- max(u(x) - v(x))
+```
+
+the probability that x lies above y is `r test$p.value`.  We do not reject at $\alpha = 0.05$, although there is weak evidence of a difference between the two groups.  Running a one tailed test we get `r ks.test(x,y, alternative = "greater")$p.value`.  
+
+##  6.16
+
+I'd like to first plof the empirical CDF of both samples.  
+
+```{r}
+y <- c(21,20,17,25,29,21,32,18,32,31)
+x <- c(45,14,13,31,35,20,58,41,64,25)
+# we are to test these two samples for:
+# i) difference between the two samples centrality
+# ii) Difference in variances
+# iii) distributions of the two samples are different?
+# iv) are the data from either sample normally distributed?  
+# if we run a shapiro wilk test first (checking for normality) 
+# and we do not reject then we could run parametric tests....
+
+x1 <- (x - mean(x))/sd(x); y1 <- (y - mean(y))/sd(y)
+plot(ecdf(x1), verticals = TRUE, pch="", col="blue", xlab="", ylab = "",
+     main = "", xlim=c(min(c(x1,y1)), max(c(x1,y1))))
+lines(ecdf(y1), verticals=TRUE, pch="", col="red")
+legend(0.5, 0.2, legend = c("Bradley","Conover"), bty="n", 
+       col=c("blue", "red"), lty=1)
+curve(pnorm(x), lty=3, col="black", add = TRUE)
+```
+
+First off, it appears that both ecdfs follow the normal cdf very closely.  This indicates that both samples are approximately normally distributed.  If we can assume normality, we can run tests based on this assumption.  But, for purposes of practice I run nonparametric tests on the samples.  
+
+```{r}
+# i)  Note, there are ties.
+test <- wilcox.test(x,y, conf.int = TRUE)
+r <- rank(c(x,y)); m <- length(x); n <- length(y)
+sm <- sum(r[1:length(x)]); sn <- sum(r[-(1:length(x))])
+Um <- sm - (m * (m + 1))/2; Un <- m*n - Um
+p <- pwilcox(min(c(Um,Un)),m,n) * 2
+```
+
+- i)  I run a wilcox test where the sum of the x observations is `r sm` and $m = `r m`$.  There are ties among the data, which means our p value will not be exact when looking it up uisng the provided tables.  However, the exact p-value and the table p-value do not differ greatly to cause any concerns.  Computing a two-sided p value we get $p = `r p`$.  We can not reject the null hypothesis, $H_0: \eta_1 = \eta_2$.  
+
+```{r}
+#x <- x - (median(x) - median(y)) #shift x
+data <- data.frame(c(x, y), rep(c(0, 1), c(length(x), length(y))))
+names(data) = c("x", "y")
+sort.x <- sort(data$x)
+sort.id <- data$y[order(data$x)]
+x <- data$x
+y <- data$y
+data.matrix <- data.frame(sort.x, sort.id)
+base1 <- c(1, 4)
+iterator1 <- matrix(seq(from = 1, to = length(x), by = 4)) - 1
+rank1 <- apply(iterator1, 1, function(x) x + base1)
+iterator2 <- matrix(seq(from = 2, to = length(x), by = 4))
+base2 <- c(0, 1)
+rank2 <- apply(iterator2, 1, function(x) x + base2)
+if (length(rank1) == length(rank2)) {
+    rank <- c(rank1[1:floor(length(x)/2)],
+              rev(rank2[1:ceiling(length(x)/2)]))
+  } else {
+    rank <- c(rank1[1:ceiling(length(x)/2)],
+              rev(rank2[1:floor(length(x)/2)]))
+  }
+unique.ranks <- tapply(rank, sort.x, mean)
+unique.x <- as.numeric(as.character(names(unique.ranks)))
+rank.matrix <- data.frame(unique.x, unique.ranks)
+ST.matrix <- merge(data.matrix, rank.matrix, by.x = "sort.x", 
+                     by.y = "unique.x")
+df <- as.data.frame(unique.ranks)
+names(df) <- "obs       Rank"
+# or: 
+ranks0 <- ST.matrix$unique.ranks[ST.matrix$sort.id == 0]
+ranks1 <- ST.matrix$unique.ranks[ST.matrix$sort.id == 1]
+test <- wilcox.test(ranks0, ranks1)
+sm <- sum(ranks0); sn <- sum(ranks1)
+Um <- sm - (n * (n+1)/2); Un <- m*n - Um
+```
+
+- ii) At first glance, it appears that there may be a difference in variance among the two samples.  Running a non-parametric test for variance, here I use the *Siegel-Tukey* test, we find that there is evidence to reject the null hypothesis.  Interestingly, both the F test and the Siegel-Tukey test both reject the null hypotheis.  Using either test, we would conclude the same.  **The variances are NOT equal**.  
+
+```{r}
+x <- c(21,20,17,25,29,21,32,18,32,31)
+y <- c(45,14,13,31,35,20,58,41,64,25)
+test <- ks.test(x,y)
+u <- ecdf(x); v <- ecdf(y)
+stat <- max(u(x) - v(x)) # test statistic  
+knitr::kable(df)
+```
+
+- iii)  There is not evidence to conclude that the distributions are different.  Test statistic is `r stat`.  Looking up $mn(`r stat`) = `r m*n*stat`$ on an appropriate table shows the p-value is 0.2.  *Note, there are ties so this p-value is not exact*.    
+
+```{r}
+t1 <- shapiro.test(x); t2 <- shapiro.test(y)
+t3 <- lillie.test(x); t4 <- lillie.test(y)
+```
+
+- iv)  There is NOT evidence to conclude that data isn't normally distributed.  Shapiro-Wilk, KS test, and Lilliefor's test all conclude the same.  
+
+
+## 6.17 
+
+```{r, fig.height=5, fig.width=4.75}
+# who could care about this?  Honestly, I want to know what researcher would
+# want to know about this?  I'm so sick of this textbook.  
+x <- as.Date(c("2000-01-03", "2000-02-28", "2000-04-14", "2000-05-14,",
+               "2000-08-31","2000-10-02","2000-12-07"))
+x <- as.numeric(format(x, format ="%j"))
+y <- as.Date(c("2000-01-30", "2000-02-28", "2000-03-05", "2000-04-14",
+               "2000-06-29","2000-07-08","2000-07-17","2000-08-04",
+               "2000-09-17","2000-10-09","2000-10-26","2000-11-17",
+               "2000-12-11"))
+y <- as.numeric(format(y, format ="%j"))
+# 360 degress = 365x days
+# 360 degrees = 2pi radians
+
+plot(c(-1,1), c(-1,1), xlim = c(-1.25,1.25), 
+     ylim = c(-1.25,1.25), type = "n", xlab = "", ylab = "")
+# unit circle: x^2 + Y^2 = 1
+curve(sqrt(1 - x^2) , -1, 1, add=TRUE, n=1000)
+curve(-1 * sqrt(1 - x^2) , -1, 1, add=TRUE, n=1000)
+points(cos(x * (2*pi/365)), sin(x * (2*pi/365)), col="blue", pch=16)
+points(cos(y * (2*pi/365)), sin(y * (2*pi/365)), col="red")
+text(c(1.15,0), c(0,-1.15), c("Jan 1","Sep 30"))
+legend("topleft", legend = c("Identical", "Not Identical"), pch = c(16,1),
+       col = c("blue", "red"), bty = "n")
+m <- length(x); n <- length(y)
+```
+
+Visually inspecting a plot of the data we can easily see that there isn't any clustering.  Births appear to be occuring at random throughout the year.  The number or runs around the circle is 12 (there are a few ties).  The p-value is greater than 0.378.  We do not reject.  

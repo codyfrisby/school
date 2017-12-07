@@ -1,0 +1,112 @@
+---
+title: "Ch 5 Exercises"
+author: "Cody Frisby"
+date: "10/13/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi=200, fig.align = 'center',
+                      fig.height = 5)
+```
+
+# Chapter 5 exercises:  1-20, 24-31 
+
+## 5.1  
+
+Chance causes of variability are sources of variation that are inherent part of the process.  Assignable cause variation is usually large when compared to the background noise of an operating process.  Sources can usually be assigned to machines, operators, or raw material.  When present, the process is usually out of control.  
+
+## 5.2  
+
+The upper and lower control limits can serve as the rejection region of the null hypothesis.  As long as we are inside these limits we do not reject, or in other words we are in control.  If we are ever outside these limits we reject the null hypothesis, or $\mu_1 \neq \mu_0$, and we are out of control.  
+
+## 5.3  
+
+Type I and type II errors when dealing with control charts can be described as one, concluding that the process is out of control when it is in control and two, concluding the the process is in control when it isn't.  
+
+## 5.4  
+
+A process is said to be in a state of statistical control when all or nearly all of the product is within $\pm 3\sigma$ and one that is operating with only chance causes of variation.  On a control chart, this would visually show all the points plotting in between the control limits.  
+
+## 5.5  
+
+Yes.  A process that is in a state of **statistical control** means that all or nearly all of the units will be within the upper and lower specification limits.  
+
+## 5.6  
+
+The use of 3 sigma limits means that we can expect that 99.9% of the units will be within the control limits.  
+The more we move the control limits away from the center line the lower the type I error rate but the type II rate becomes larger.  The closer to the center line we move the control limits the larger the type I error rate.  
+
+## 5.7  
+
+Warning limits are generally limits that are narrower than the upper and lower control limits.  They are in place to notify personell of potential issues with a process.  They can serve as a way to react sooner to potentially more catastrophic departures from control.  These limits are usually set at $\pm 2\sigma_{\bar x}$.  
+
+## 5.8  
+
+Discuss the rational subgroup concept. What part does it play in control chart analysis?  
+
+How the sample for the control chart is obtained from production is essential here.  We must have a throrough understanding of the process when establishing sampling criteria.  The idea of rational subgroup is to obtain the as much useful information as possible from the control chart.  
+
+## 5.9  
+
+We want assignable causes to occur between groups.  We want this assignable cause to be maximized between sub groups and minimized within subgroups.  Ideally the subgroups are selecting so that all units with the group are as similar as possible and units in differing subgroups are as different as possible.  
+
+## 5.10  
+
+Sampling from each cavity of the mold is of importance since the each cavity's critical dimensions can vary independently from the others.  And since the critical dimension is the wall thickness of the part.  We will be more likely to assign probable cause to a single cavity from a particular mold using this method.  
+
+## 5.11 
+
+Average run length (ARL) is equal to $\frac{1}{p}$ where $p = 0.0027$ with three-sigma control limits.  As the text demonstrates, this equates to detection of an OOC unit every 370 units, on average.  In this example, we are selected one unit out of every 250, approximately.  This equates to 2 units per hour and 5 units in 2.5 hours.  This scheme will most likely not detect a short, instantaneous upward shift in the mean.  We would most likely want to take larger samples more frequently if we are to find assignable cause to this short, instantaneous shift.  
+
+## 5.12  
+
+I think the procedure from 5.11 would be appropriate for a slowly trending upward shift in the mean.  We would be able to assign probably cause if the time of the samples is known.  
+
+## 5.13  
+
+If time is NOT recorded it becomes very difficult, if not impossible, to find root cause of a shift in the process.  Data logs become vital to any investigation into OOC events.  
+
+## 5.14  
+
+Sample size (displayed as the different curves), the value for the quality charicteristic, and the probability of $\bar x$ falling between the control limits on the chart.  We are able to examine the probability of detecting a shift in teh meanas a function of sample size.  
+
+## 5.15  
+
+Isn't it obvious?  I guess not.  Well, if sampling is destructive and/or expensive, then we need to minimize sampling.  On the other hand, producing a defective unit costs about the same as producing a working unit.  Engineering and investigation also carries a cost component.  Searching for assignable cause takes time and money.  Ideally, we'd like to find the best balance where we can minimize all three of these.  Creating a sampling scheme where we find assignable cause early with minimal cost would be ideal.  The investigations into root cause could then happen quickly and early on before we send on many OOC units.  
+
+## 5.16  
+
+
+
+## 5.17  
+
+The pattern appears to be random.  
+
+## 5.18  
+
+The pattern appears to be random.  
+
+## 5.19  
+
+The pattern appears to by cyclic and therefore NOT random.  
+
+## 5.20  
+
+Yes.  If we had warning rules in place, such as *n out of m samples decreasing* we would be made aware of this signal and then could respond to it before it went OOC and possibly find root cause to the downward trend.  
+
+## 5.24  
+
+- a -> 2
+- b -> 4
+- c -> 5
+- d -> 1
+- e -> 3
+
+## 5.25  
+
+![Late for Work](~/Documents/STAT4600/hw/hw03/5-25.png)  
+
+## 5.26  
+
+

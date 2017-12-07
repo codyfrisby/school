@@ -1,0 +1,96 @@
+---
+title: "NY Rivers"
+author: "Cody Frisby"
+date: "March 3, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+Here we repeat the examples from class using the New York Rivers data.  You can find this csv file in the directory "MATH3710/datafiles".  
+
+```{r, dpi=200, fig.align='center'}
+ny <- read.csv("~/Documents/MATH3710/datafiles/nyriver.csv", header = T)
+# get rid of the index var
+ny <- ny[,2:7]
+ny_reduced <- ny[!(ny$River %in% c("Neversink", "Hackensack", "Fishkill", 
+                             "Oatka", "Wappinger")),]
+# matrix scatterplot, exploratory step
+plot(ny)
+plot(ny_reduced)
+```
+
+In R, when you fit a linear model using lm(y ~ x1+x2+.....+xk) and store it in a variable, you have access to dffits, hatvals, and all sorts of these diagnostic values.  
+
+```{r}
+# fit a linear model
+fit <- lm(Nitrogen ~ ComIndl, data = ny)
+# store the hatvals
+h <- hatvalues(fit)
+# hat matrix, define X first
+X <- as.matrix(cbind(rep(1), ny$ComIndl))
+H <- X %*% solve(t(X) %*% X) %*% t(X)
+H <- diag(H)
+# diag(H) = h
+# get the dfits
+d <- dffits(fit)
+# you can also do this
+influence.measures(fit)
+```
+
+You're probably familiar with the diagnostic plots when you call plot(fit, which = c(1,2)).  When you plot a model, R has 4 built in plots that it returns.  Now, we'd like the other two as well.
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(2,2))
+plot(fit)
+```
+
+From the 4th plot and the output above, we can identify observation 4 and 5 as influential points.
+
+The reduced data set, fit.reduced, diagnostic plots:
+
+```{r, dpi=200, fig.align='center'}
+fit.reduced <- lm(Nitrogen ~ ComIndl, data = ny_reduced)
+par(mfrow=c(2,2))
+plot(fit.reduced)
+```
+
+The scatter plots from the original data set and the reduced one:
+
+```{r, dpi=200, fig.align='center', fig.height=3}
+library(ggplot2)
+g <- ggplot(data=ny, aes(x=ComIndl, y=Nitrogen))
+g <- g + geom_point(size = 4, colour = "black")
+g <- g + geom_smooth(method = "lm", colour = "black")
+gg <- ggplot(data=ny_reduced, aes(x=ComIndl, y=Nitrogen))
+gg <- gg + geom_point(size = 4, colour = "black")
+gg <- gg + geom_smooth(method = "lm", colour = "black")
+gridExtra::grid.arrange(g,gg, ncol=2)
+```
+
+And the diagnostic data from the reduced data set.
+
+```{r}
+influence.measures(fit.reduced)
+```
+
+Just came across a few more R functions from various libraries that will assist you in model selcection and leverage/influential values.  
+
+```{r, message=F, warning=F}
+library(leaps)
+# model selection
+all.models <- regsubsets(Nitrogen ~ ., data = ny[,2:6])
+all.models
+leaps(x = ny[2:5], y = ny[,6])
+```
+
+
+```{r}
+data(swiss)
+a<-regsubsets(as.matrix(swiss[,-1]),swiss[,1])
+summary(a)
+b<-regsubsets(Fertility~.,data=swiss,nbest=2)
+summary(b)
+coef(a, 1:3)
+vcov(a, 3)
+```

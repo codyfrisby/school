@@ -1,0 +1,151 @@
+---
+title: "Cereal Report"
+author: "Cody Frisby"
+date: "3/18/2017"
+header-includes:
+   - \setlength\parindent{24pt}
+output:
+  pdf_document:
+    fig_caption: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, warning=F, message=F, cache = TRUE)
+library(MVA) # library for the textbook but with my modifications.
+```
+
+  I have been asked to report my findings on the 50 cereals and the variables that the agency has analyzed: *calories*, *protein*, *fat*, *sodium*, *fiber*, *carbohydrates*, *sugar*, and *potassium*.  
+
+```{r}
+df <- read.csv("~/Documents/STAT4400/data/cereals.csv")
+id <- df$Brand
+df <- df[-1]
+row.names(df) <- id
+original <- names(df)
+```
+
+I start by looking at summary statistics of the data.  Additionaly, a method we can apply that can help in identifying varibles who have considerable correlation and also in identifying observations that are possible extremes, so as to further our exploratory investigation of the data, is the use of the bivariate box plot.  Like the univariate box plot, this method helps us identify potential "outliers", or observations that are extremes.  For our data we have $\binom{8}{2} = 28$ plots since there are 8 variables.  Using this method and identifying the outliers on each of those 28 plots the most frequent cereals taht are "outliers" are summarized in the table below.  
+
+```{r}
+freq <- read.csv("~/Documents/STAT4400/data/proj1freqtable.csv")
+knitr::kable(freq[1:7, ])
+```
+
+Table: Outliers
+  
+This table includes the name of the cereal and the number of times it was an outlier.  Figure 1 shows one of the plots out of 28 to illustrate the correlation of two of the variables, those with the largest correlation, $cor(fiber, potassium) = `r max(cor(df)[lower.tri(cor(df))])`$.  We can clearly see that **ALLBRAN** is way out to the top and right.  If we are to move forward with further analysis we may want to consider excluding this ceral and perhaps one or two others that are requent outliers.  It can be clearly seen from figure 2 that **ALLBRAN** is an extreme for the variable *fiber* AND *potassium*, **PuffedRice** and **PuffedWheat** are extremes for the variable *calories* (perhaps this makes sense since those cerals are mostly air?), and **QUAKER2** appears to be an extreme for the variable *Carbohydrates*.      
+
+Figure 1 also illustrates the possibility of some clustering of the cereals around certain values.  Investigating further it appears that almost half, $\frac{22}{50}$, of the cereals have a reported 110 calories.  Is this due to the manufacturers controlling serving size so that each serving hits a certain amount?  Or could it be an issue with our measurement?  Perhaps this warrants further investigation from the board.  
+
+What kind of questions do we have about the data?  Do we wish to know which of the observed variables are the most influential in predicting a cereals calories?  Are there certain natural groupings of the variables that we wish to explore the relationships among?  **Are there cereals that are alike?**  What kind of assumptions must we make about the data in order to use statistical methods like regression or principal components analysis?  We need to keep these things in mind as we proceed with an analysis of the data.  
+
+One sanity check on the data that could be performed is to see if the *Calories* reported makes sense **given** the reported grams of protein, fat, and carbs.  For example, it is well known that there are 9 calories per gram of fat and 4 calories per gram of protein and carbs.  Assuming that *fat*, *protein*, and *carbohydrates* are in grams per serving units I proceed with the following calculation.  
+
+```{r}
+f <- function(x) sum(x * c(4, 9, 4))
+X <- df[, c("Protein", "Fat", "Carbohydrates")]
+df$cals_hat <- apply(X, 1, f)
+rm(X)
+```
+
+$$\hat{calories} = 4  Protein + 9  Fat + 4  Carbohydrates$$  
+
+Table 2 displays the discrepencies between our calculated calories and the reported ones ($delta = Calories - \hat{cals}$) ordered by largest *delta* on top and excluding those that don't have a *delta* greater than 10.  As you can see from table 2, we have quite a few cereals whose *delta* is greater than 10.  We may need to go back and check our measurements.  Either our *Calorie* value is incorrect or our values for grams of *Protein*, *Fat*, and/or *Carbohydrates*are wrong.  Those with the largest negative deltas are of most concern to me.  This would mean that either the company is under-reporting the calories or there are concerning issues with our data gathering (measuring or other) procedures.  Either way, I might consider excluding these observations from further analysis while we check on them.  
+
+
+```{r}
+df$delta <- df$Calories - df$cals_hat
+X <- df[, c("Calories", "cals_hat", "delta")]
+# order X by largest delta
+X <- X[order(abs(X$delta), decreasing = TRUE), ]
+knitr::kable(X[abs(X$delta) > 10, ])
+```
+
+Table: Discrepancies
+
+Above I posed the question "**Are there cereals that are alike?**".  I explore that question using principal component analysis.  For the uninitiated, principal component analysis is a technique that attempts to summarise and/or visualize the given data into fewer dimensions, or variables.  Each principal component is a linear combination of the included variables, for our case there are 8.  Using this technique we would in turn derive 8 principal components, but not all need be considered important or significant.  If there are few that are important than principal component analysis is more useful that simply using the original data since we can then summarize relationships and/or groups of the variables with fewer dimensions.  
+
+```{r}
+pc <- prcomp(df[, original], scale. = TRUE)
+```
+
+Figure 3 displays our derived principal components.  The plot on the left we would like to see a sudden bend or elbow, which we really are not seeing.  The right plot shows the accumulated variance as a function of the number of principal components.  Ideally, you'd like to hit 80-90% by component 2 or 3.  Here we hit 91.7 by component 5.  Perhaps we can reduce the dimensions of our data from 8 down to 5.  
+
+Our first principal component might be thought of as the most "healthy" cereals considering cereals that are high in both protein and potassium (see figure 3).  These are those that fall to the right and outside the inner ellipse.  **PuffedWheat** and **PuffedRice** appear to be grouped high and to the left.  This can be thought of as those cereals that are't high in *fiber* or *potassium* and low, or have negative association, with the other variables, particularly low *calories* and *sugar*.  If we desired a ceral that had low sugar content and lots of fiber and potassium (perhaps a more healthy choice?) then we may be able to look to the right and up.  
+
+
+```{r,results='hide',fig.keep='all',fig.cap="Fiber vs. Potassium"}
+## figure 1
+bvbox(df[, c("Fiber", "Potassium")], labels = id, xlab = "", ylab = "")
+```
+
+
+```{r, fig.cap="Principal Component Summaries"}
+## figure 2
+par(mfrow = c(1,2))
+plot(pc$sdev^2, type = "b", xlab = "Component Number", 
+     ylab = "Eigenvalue")
+# plotting the cummulative variance of the principal components
+plot(cumsum(pc$sdev^2)/sum(pc$sdev^2), ylim = c(0, 1.1), 
+     type = "h", lty = 3, xlim = c(0.7, length(pc$sdev) * 1.1), 
+     lwd = 2, xlab = "Component Number", 
+     ylab = "Cummulative Variance (%)")
+text(1:length(pc$sdev), cumsum(pc$sdev^2)/sum(pc$sdev^2), pos = 3, 
+     paste(round(cumsum(pc$sdev^2)/sum(pc$sdev^2), 3)*100, 
+           sep = ""), cex = 0.65)
+lines(1:length(pc$sdev), cumsum(pc$sdev^2)/sum(pc$sdev^2), lty = 3)
+```
+
+
+
+```{r, results='hide', fig.keep='all', fig.cap="PC1 vs. PC2"}
+## figure 3
+dfpc <- as.data.frame(pc$x)
+bvbox(dfpc[, 1:2], labels = id, xlab = "", ylab = "")
+```
+
+
+
+```{r, eval=FALSE}
+#####  NOT RUN ######
+# this is code used to explore the data.  Some is used in the above report. 
+pc <- prcomp(df[, c("")], scale. = TRUE)
+summary(pc)
+pc
+# this is used for exploratory purposes and will not be printed at this point in the analysis.
+car::spm(df, diagonal = "histogram", smoother = NULL, reg.line = NULL,
+         labels = id, id.method = "mahal", id.n = 2, id.cex = 0.7, 
+         cex.labels = 1)
+
+GGally::ggpairs(df, diag = list("barDiag"))
+combos <- t(combn(1:length(names(df)), 2))
+outliers <- list()
+# plot all 28 plots and store the outliers in a list
+library(MVA)
+for (i in 1:dim(combos)[1]) { outliers[[i]] <- bvbox(df[, combos[i,]], 
+    xlab = names(df)[combos[i, ]][1], 
+    ylab = names(df)[combos[i, ]][2], labels = id) 
+} 
+freq <- table(names((unlist(outliers))))
+freq <- as.data.frame(freq)
+freq <- freq[order(freq$Freq, decreasing = TRUE), ]
+names(freq) <- c("Brand", "frequency")
+# caching the freq table so that I can include it in the report. 
+write.csv(freq, "~/Documents/STAT4400/data/proj1freqtable.csv", row.names = F)
+
+# bivariate boxplots using principal components
+df <- as.data.frame(pc$x[, 1:5])
+combos <- t(combn(1:length(names(df)), 2))
+outliers <- list()
+library(MVA)
+for (i in 1:dim(combos)[1]) { outliers[[i]] <- bvbox(df[, combos[i,]], 
+    xlab = names(df)[combos[i, ]][1], 
+    ylab = names(df)[combos[i, ]][2], labels = id) 
+} 
+text(pc$x[,1], pc$x[,2], id, cex = 0.65)
+freq <- table(names((unlist(outliers))))
+freq <- as.data.frame(freq)
+freq <- freq[order(freq$Freq, decreasing = TRUE), ]
+names(freq) <- c("Brand", "frequency")
+```
+

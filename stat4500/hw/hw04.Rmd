@@ -1,0 +1,263 @@
+---
+title: "Homework 4"
+subtitle: "STAT 4500"
+author: "Cody Frisby"
+date: "12/10/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200,warning=F,message=F)
+#library(coin) # not used
+#library(nortest) # not used
+#library(randtests) # not used
+#library(clinfun) # not used
+#library(DescTools) # not used
+#library(Kendall) # not used
+#library(SuppDists) # not used
+
+library(mblm) # used for non-parametric lineral models
+library(exact2x2) # fishers and Mcnears exact tests
+
+# Last homework assignment for STAT 4500
+```
+
+## 5.6  
+
+```{r}
+# was there a change in attitudes?  
+a <- matrix(c(41, 16, 27, 58), nrow = 2, dimnames =
+       list(After = c("For", "Against"), Before = c("For", "Against")))
+rows <- apply(a, 1, sum)
+cols <- apply(a, 2, sum)
+test <- mcnemar.exact(a)
+```
+
+`r knitr::kable(a)`  Running an exact test testing whether or not there was a change in attitude towards routinely asking patients about alcohol consumption before and after a video/discussion $$H_0: Before ~ and ~ After ~ are ~ equal$$ This is a binomial sign test with 27 minus signs and 16 plus signs, $n = `r 27 + 16`$ and $p = 0.5$. Additionaly it is two-sided so  $$ P(X \leq 16) = 2\sum_{x=0}^{16} \binom{43}{x}(0.5)^{x}(0.5)^{43-x} = `r pbinom(16, 43, 0.5) * 2`$$ It appears there is not any significant evidence that the video/disscussion altered the attitudes of the general practitioners.  
+
+## 11.2  
+
+```{r}
+x <- 0:6
+y <- c(2.5,3.1,3.4,4,4.6,5.1,11.1)
+fit <- lm(y ~ x)
+sse <- sum(fit$residuals)
+xsse <- sum(x*fit$residuals)
+```
+
+We get the residuals ($e_i$) but fitting a linear model (`lm` in `R`) and extracting the residuals.  The sum of the residuals is `r round(sse, 8)`.  The sum the the residuals multiplied by the x's is also `r round(xsse, 8)`.  The procudure of least squares estimation estimates $\beta_0$ and $\beta_1$ percisley by minimizing the differences of the fitted line and the observed data.  Summing these differences, by definition, has to be zero.  
+
+## 11.3  
+
+```{r}
+x <- c(3,5,8,11,15,18,20,25,27,30)
+y <- c(2,4,7,10,17,23,29,45,59,73)
+fit <- mblm(y ~ x, repeated = F) # False for Theil-Kenkall method
+b <- fit$coefficients
+```
+
+A plot of the data is below with fitted Theil-Kendall line $$\hat y = `r b[1]` + `r b[2]`x$$
+
+```{r, fig.height=4, fig.width=5}
+plot(x,y, pch = 16, col = "blue", ylab = "No. of Rotten Oranges",
+     xlab = "No. of Days in Storage")
+abline(fit$coefficients[1], fit$coefficients[2], lty = 3)
+```
+
+and the scatter plot of the data appears to show some non-linear behavior.  
+
+```{r, cache=T}
+# bootstrap of 11.3 problem to get confidcene interval on the betas
+B <- 1000
+n <- 10
+df <- data.frame(x, y)
+boot <- numeric(B)
+for(i in 1:B){
+  s <- sample(1:n, n, replace = TRUE)
+  df.samp <- df[s, ]
+  boot[i] <- mblm(y ~ x, data = df.samp, repeated = F)$coef[2]
+}
+q.boot <- quantile(boot, c(0.025, 0.975))
+q.ken <- confint.mblm(fit)[2,]
+cv <- fit$coefficients[2]
+
+```
+
+The confidence interval from bootstrapping apears to be much wider than the confidence interval based on the Theil-Kendall method.  $$[`r q.boot`]$$  $$[`r q.ken`]$$  Taking a look at a plot of all the bootstrapped betas with a layer of color where $\beta_{bootstrap} >= \hat \beta$ we can see that approximately 50% are greater than or equal to `r cv`. 
+
+```{r, fig.height=4, fig.width=5}
+plot(boot, col = ifelse(abs(boot) >= cv, "blue", "black"), 
+     xlab="Boostrap Samples",ylab = "Beta", pch = ifelse(abs(boot) >= cv,
+                                                         18, 1))
+```
+
+## 11.10  
+
+```{r}
+x <- c(0, 1, 2, 3, 99, 100, 101)
+y <- c(2.5, 3.1, 3.4, 4, 99.6, 100.1, 101.1)
+fit <- mblm(y ~ x, repeated = F)
+conf.int <- confint.mblm(fit)
+```
+
+The estimate for $\beta$ is $`r fit$coefficients[2]`$.  A 95% confidence interval is $[`r conf.int[2,]`]$.  Below is a plot of the data with introduced outlier points.  
+
+```{r}
+# we also would like to explore influential points....
+# .... what about one around 80,40
+x <- c(0, 1, 2, 3, 80, 99, 100, 101)
+y <- c(2.5, 3.1, 3.4, 4, 10, 99.6, 100.1, 101.1)
+fit <- mblm(y ~ x, repeated = F)
+plot(y~x, col = "red", main = "")
+abline(lm(y~x), lty = 3, col = "red")
+x <- c(0, 1, 2, 3, 10, 99, 100, 101)
+y <- c(2.5, 3.1, 3.4, 4, 80, 99.6, 100.1, 101.1)
+fit <- mblm(y ~ x, repeated = F)
+points(jitter(x),jitter(y), col = "blue")
+abline(lm(y~x), lty = 2, col = "blue")
+abline(fit, lty = 1)
+# the line is the same using Theim-Kendall method.
+legend("topleft", 
+       legend = c("Large X, Small Y", "Small X, Large Y", "Theil-Kendall"), 
+       bty="n", col=c("red", "blue", "black"), lty=c(3,2,1), cex = 0.6)
+```
+
+Neither of these outliers have any influence on the fit of the line using the Theil-Kendall method.  But they do influence the fit of the line using the least squares method as can be seen from the red and blue lines.  
+
+## 11.11  
+
+A scatter plot of the data appears to indicate a linear relationship between these two areas for the given plants.  Ivy is somewhat seperated from the rest of the observations by quite a few days, but appears to be consistent with the linear relationship here.  A linear model may be appropriate here.
+
+```{r}
+Sw.England <- c(38,57,85,108,129,145,156,185,193,265)
+N.Scotland <- c(56,76,103,131,150,160,168,201,195,292)
+df <- data.frame(Sw.England, N.Scotland)
+df$plant <- c("Hazel", "Coltsfoot", "Wood.Anemone", "Hedge.Garlic",
+              "Hawthorn", "White.Ox.Eye", "Dog.Rose", "Greater.Bindweed",
+              "Harebell", "Ivy")
+plot(Sw.England, N.Scotland, ylim = c(45, 300), xlab = "Southwest England",
+     ylab = "Northern Scotland")
+#text(Sw.England, N.Scotland, df$plant, cex = 0.6, pos = 1)
+fit <- lm(N.Scotland ~ Sw.England)
+# using a linear model we predict...
+b <- fit$coefficients
+p <- predict(fit, newdata = data.frame(Sw.England = 122))
+x <- 122; y <- p
+abline(fit, lty = 3, col = "red")
+points(x,y, pch = 16, col = "blue")
+text(x,y, "Prediction", pos = 1, cex = 0.6, col = "blue")
+```
+
+Using $$\hat y = `r b[1]` + `r b[2]`x$$ where $\hat y$ would be the average days from January to the first flowering of a given plant from Southwest England ($x$) in North Scotland.  $$`r b[1]` + `r b[2]`(122) = `r p`$$ as can be seen on the above plot represented by the blue point.  
+
+## 12.9  
+
+```{r}
+a <- matrix(c(42,20,19,26,18,31,30,41,29,22,31,42,28,19,12,12,21,7),
+              ncol = 3)
+colnames(a) <- c("Excellent", "Reasonable", "Poor")
+rownames(a) <- c("UK", "USA", "France", "Germany", "Portugal", "Brazil")
+# we want to test if there is any indications of difference in views
+rows <- apply(a, 1, sum)
+cols <- apply(a, 2, sum)
+N <- sum(a)
+m <- outer(rows, cols, "*")/N
+stat <- sum((m - a)^2/m)
+test <- chisq.test(a, correct = FALSE)
+```
+
+`r knitr::kable(a)`  
+
+Using a $\chi^2$ test we find the test statistic $\chi^2 = `r stat`$ with $(r-1)(c-1) = (5)(2) = 10$ degrees of freedom.  There is evidence to suggest that the instructions are more acceptable in some countries than in others, $p = `r test$p.value`$.  
+
+--------  
+
+## R Code:  
+
+```{r R CODE, eval=FALSE, echo=T}
+#### 5.6 ####
+a <- matrix(c(41, 16, 27, 58), nrow = 2, dimnames =
+       list(After = c("For", "Against"), Before = c("For", "Against")))
+rows <- apply(a, 1, sum)
+cols <- apply(a, 2, sum)
+test <- mcnemar.exact(a)
+#### 11.2 ####
+x <- 0:6
+y <- c(2.5,3.1,3.4,4,4.6,5.1,11.1)
+fit <- lm(y ~ x)
+sse <- sum(fit$residuals)
+xsse <- sum(x*fit$residuals)
+#### 11.3 ####
+x <- c(3,5,8,11,15,18,20,25,27,30)
+y <- c(2,4,7,10,17,23,29,45,59,73)
+fit <- mblm(y ~ x, repeated = F) # False for Theil-Kenkall method
+b <- fit$coefficients
+# Plot
+plot(x,y, pch = 16, col = "blue", ylab = "No. of Rotten Oranges",
+     xlab = "No. of Days in Storage")
+abline(fit$coefficients[1], fit$coefficients[2], lty = 3)
+# Bootstrap
+B <- 1000
+n <- 10
+df <- data.frame(x, y)
+boot <- numeric(B)
+for(i in 1:B){
+  s <- sample(1:n, n, replace = TRUE)
+  df.samp <- df[s, ]
+  boot[i] <- mblm(y ~ x, data = df.samp, repeated = F)$coef[2]
+}
+q.boot <- quantile(boot, c(0.025, 0.975))
+q.ken <- confint.mblm(fit)[2,]
+#### 11.10 ####
+x <- c(0, 1, 2, 3, 99, 100, 101)
+y <- c(2.5, 3.1, 3.4, 4, 99.6, 100.1, 101.1)
+fit <- mblm(y ~ x, repeated = F)
+conf.int <- confint.mblm(fit)
+# Outlier point plots
+x <- c(0, 1, 2, 3, 80, 99, 100, 101)
+y <- c(2.5, 3.1, 3.4, 4, 10, 99.6, 100.1, 101.1)
+fit <- mblm(y ~ x, repeated = F)
+plot(y~x, col = "red", main = "")
+abline(lm(y~x), lty = 3, col = "red")
+x <- c(0, 1, 2, 3, 10, 99, 100, 101)
+y <- c(2.5, 3.1, 3.4, 4, 80, 99.6, 100.1, 101.1)
+fit <- mblm(y ~ x, repeated = F)
+points(jitter(x),jitter(y), col = "blue")
+abline(lm(y~x), lty = 2, col = "blue")
+abline(fit, lty = 1)
+# the line is the same using Theim-Kendall method.
+legend("topleft", 
+       legend = c("Large X, Small Y", "Small X, Large Y", "Theil-Kendall"), 
+       bty="n", col=c("red", "blue", "black"), lty=c(3,2,1), cex = 0.6)
+#### 11.11 ####
+Sw.England <- c(38,57,85,108,129,145,156,185,193,265)
+N.Scotland <- c(56,76,103,131,150,160,168,201,195,292)
+df <- data.frame(Sw.England, N.Scotland)
+df$plant <- c("Hazel", "Coltsfoot", "Wood.Anemone", "Hedge.Garlic",
+              "Hawthorn", "White.Ox.Eye", "Dog.Rose", "Greater.Bindweed",
+              "Harebell", "Ivy")
+plot(Sw.England, N.Scotland, ylim = c(45, 300), xlab = "Southwest England",
+     ylab = "Northern Scotland")
+#text(Sw.England, N.Scotland, df$plant, cex = 0.6, pos = 1)
+fit <- lm(N.Scotland ~ Sw.England)
+# using a linear model we predict...
+b <- fit$coefficients
+p <- predict(fit, newdata = data.frame(Sw.England = 122))
+x <- 122; y <- p
+abline(fit, lty = 3, col = "red")
+points(x,y, pch = 16, col = "blue")
+text(x,y, "Prediction", pos = 1, cex = 0.6, col = "blue")
+#### 12.9 ####
+a <- matrix(c(42,20,19,26,18,31,30,41,29,22,31,42,28,19,12,12,21,7),
+              ncol = 3)
+colnames(a) <- c("Excellent", "Reasonable", "Poor")
+rownames(a) <- c("UK", "USA", "France", "Germany", "Portugal", "Brazil")
+# we want to test if there is any indications of difference in views
+rows <- apply(a, 1, sum)
+cols <- apply(a, 2, sum)
+N <- sum(a)
+m <- outer(rows, cols, "*")/N
+stat <- sum((m - a)^2/m)
+test <- chisq.test(a, correct = FALSE)
+```
+

@@ -1,0 +1,319 @@
+---
+title: "Homework 1"
+author: "Cody Frisby"
+output:
+  pdf_document: default
+  word_document: default
+always_allow_html: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200,warning=F,message=F)
+```
+
+## 1.4 
+
+Under the null hypothesis we assume the coin is fair, p = 0.5.  If we toss the coin 6 times and get all heads or all tails, the probability under the null hypothesis for that occurring is $0.5^6$.  And for a two-tailed test we get $2 \times 0.5^6 = `r 2*0.5^6`$.  If this were to happen, we would have evidence to suggest the coin may NOT be fair.  
+
+## 1.6 
+
+If $X_i$ is distributed $N(\mu, \sigma^2)$ and all $X_i$ are independent then $$Y = \sum_{i=1}^{n} X_i$$ is distributed $N(n\mu, n\sigma^2)$.  
+
+(i) P(all posts are placed by 10:25AM) = $`r pnorm(85, 90, sqrt(2*9))`$ 
+(ii) P(all posts are placed by 10:30AM) = $`r pnorm(90, 90, sqrt(2*9))`$
+(iii) P(all posts are placed by 10:40AM) = $`r pnorm(100, 90, sqrt(2*9))`$
+
+```{r fig.align='center', dpi=200,fig.width=7,fig.height=3, eval=F}
+# set up plots to be on the same row
+par(mfrow = c(1,3))
+curve(dnorm(x, 10,2), from = 4, to = 16, xlab = " ", ylab = "")
+#trying to add area under the curve that corresponds to the probs
+cord.x <- c(4,seq(4, 85/9, 0.01),(85/9))
+cord.y <- c(0,dnorm(seq(4, 85/9, 0.01),10,2),0)
+polygon(cord.x,cord.y, col="lightblue")
+# next plot
+curve(dnorm(x, 10,2), from = 4, to = 16, xlab = " ", ylab = "")
+cord.x <- c(4,seq(4, 90/9, 0.01),(90/9))
+cord.y <- c(0,dnorm(seq(4, 90/9, 0.01),10,2),0)
+polygon(cord.x,cord.y, col="lightblue")
+# next plot
+curve(dnorm(x, 10,2), from = 4, to = 16, xlab = " ", ylab = "")
+cord.x <- c(4,seq(4, 100/9, 0.01),(100/9))
+cord.y <- c(0,dnorm(seq(4, 100/9, 0.01),10,2),0)
+polygon(cord.x,cord.y, col="lightblue")
+```
+
+## 1.7  
+
+```{r}
+x1 <- c(13.9,2.7,0.8,11.3,1.3)
+x2 <- c(2.7,8.3,5.2,7.1,6.7)
+x1.test1 <- t.test(x1, alternative = "two.sided", mu=8)
+x2.test1 <- t.test(x2, alternative = "two.sided", mu=8)
+x1.test2 <- t.test(x1, alternative = "two.sided", mu=10)
+x2.test2 <- t.test(x2, alternative = "two.sided", mu=10)
+```
+
+(i) Hypothesis for test one is $$H_0: \mu = 8 ~vs~ H_1: \mu \neq 8$$  and for Set I we compute the t test statistic as follows: $$t = \frac{`r mean(x1)` - 8}{\frac{`r sd(x1)`}{\sqrt{`r length(x1)`}}} = `r x1.test1$statistic`$$ And similarly for Set II $$t = \frac{`r mean(x2)` - 8}{\frac{`r sd(x2)`}{\sqrt{`r length(x2)`}}} = `r x2.test1$statistic`$$  We would also need to establish a critical value for t.  Traditionally, we set $\alpha$ equal to 0.05 and compute a t statistic for this value of $\alpha$ with our data sets' sample size.  Using R function qt() we obtain **`r qt(0.975, length(x1)-1)`** where the probability is 0.975 (two-sided t test) and the degrees of freedom are `r length(x1)-1`.  
+
+
+(ii) Hypothesis for test two is $$H_0: \mu = 10 ~vs~ H_1: \mu \neq 10$$  and for Set I we compute the t test statistic as follows: $$t = \frac{`r mean(x1)` - 10}{\frac{`r sd(x1)`}{\sqrt{`r length(x1)`}}} = `r x1.test2$statistic`$$ And similarly for Set II $$t = \frac{`r mean(x2)` - 10}{\frac{`r sd(x2)`}{\sqrt{`r length(x2)`}}} = `r x2.test2$statistic`$$  
+Using the above critical value we would only reject the null hypothesis for the last case.  There is evidence to suggest that the mean for Set II is different from 10.  
+
+Similarly, we could look at 95% confidence intervals for each test.  [`r x1.test1$conf.int[1:2]`] is the interval for Set I and [`r x2.test1$conf.int[1:2]`] for Set II.  As can be seen, 10 is not contained in the second interval.
+ 
+There are a few reservations for this test.  First the sample size is small, there are only 5 observations per sample.  Whenever the sample size is relatively small we need to be cautious about our conclusions.  
+
+## 1.8  
+
+```{r}
+p <- dbinom(0:12, 12, 0.75)
+```
+
+Under the null hypothesis, that p = 0.5, the probability of getting exactly x = 10 or x = 2 "successes" is = `r dbinom(10, 12, 0.5)` and computing a two-sided test would be $`r dbinom(10,12,0.5)` \times 2 = `r dbinom(10,12,0.5)*2`$.  We would have evidence to reject the null hypothesis if we were to observe $x \leq 2$ OR $x \geq 10$, this being our critical region.  The power of the test, $1 - \beta$, when p = 0.75 is the probability of observing 0, 1, 2, 10, 11, or 12, where X ~ BIN(12, 0.75).  This is equal to `r sum(c(p[1:3], p[11:13]))`.  
+
+
+## 2.4  
+
+For this problem we consider the number of observations that were greater than our hypothesized median: $$H_0: \theta = 225~ vs.~ H_1: \theta \neq 225$$  and in this case that number is $12 - 3 = 9$.  The probability of getting a value greater than or equal to 9 is $$ P(X \geq 9) = \sum_{i=9}^{12} \binom{12}{i}(0.5)^{12} = `r sum(choose(12,9:12)*(0.5^12))`$$  This is a relatively small *p-value* but at a reasonable value of $\alpha = 0.05$ we would **fail to reject** the null hypothesis that the median is equal to 225, and for a two-sided test $`r sum(choose(12,9:12)*(0.5^12))` \times 2 = `r sum(choose(12,9:12)*(0.5^12)) *2`$.  The critical region is 2 or 10 books, with a two-sided pvalue of `r dbinom(0:12, 12, 0.5)[3] * 2`.    
+
+## 2.5  
+
+```{r}
+x <- c(126,142,156,228,245,246,370,419,433,454,478,503)
+probs <- dbinom(0:12,12,0.5)
+names(probs) <- paste0("x=", 0:12)
+# non.conf: a function where we can test different values for n
+# the response is the proportion of the input x
+# for a non parametric confidence interval.
+non.conf <- function(x,n,p=0.5){
+  probs <- dbinom(0:length(x), length(x), p)
+  m <- round(length(x)/2)
+  return(sum(probs[(m-n):(m+n)]))
+}
+# bootstrap to get confidence interval
+S <- matrix(sample(x, 100*12, replace=TRUE), 100, 12)
+B <- apply(S, 1, mean)
+C <- quantile(B, c(0.025, 0.975))
+# this interval is much narrower than the non parametric method.
+# a better way?
+p.vals <- 1 - 2 * pbinom(1:5, 12, 0.5)
+```
+
+Writing a function to determine for which values of n would give us a confidence interval *not less than* 0.95, I came up with the following:  
+
+```{r conf.norm, eval=F, echo=T}
+non.conf <- function(x,n,p=0.5){
+  probs <- dbinom(0:length(x), length(x), p)
+  m <- round(length(x)/2)
+  return(sum(probs[(m-n):(m+n)]))
+}
+```
+
+At n = 3 the function returns `r non.conf(x, 3)`.  This is less than 0.95 so we need to try n = 4.  This function returns `r non.conf(x,4)`.  This is much better.  Finding the median value of our data, `r median(x)`, we go plus and minus 4 values to find our confidence interval.
+$$[`r x`]$$  The interval is [156, 454].  
+
+**Update**: Revisiting this problem, I think an easier would be $$1 - 2 * pbinom(k, 12, 0.5)$$ which would give us values of coverage for k = 0, 1, 2, ..., $\frac{n-1}{2}$.  So, for our example where n = 12, I would use k = 0,1,2,3 and we would get $$`r 1 - 2*pbinom(0:3, 12, 0.5)`$$ and at $k = 2$ we have 0.9614.  Sorting the values of x form smallest to largest we would skip over the two values form the far right and far left and that would be our confidence interval, [156, 454].  
+
+## 2.10  
+
+```{r}
+u <- runif(12)
+p <- length(which(u>0.95))/length(u)
+
+```
+
+The probability density function for a random variable X that has a uniform distribution can be defined as 
+$$f(x) = \frac{1}{b - a}$$  and the probability mass function can be defined as $$F(x) = \frac{X - a}{b - a}$$
+
+So, the probability that a single value is greater than 0.95 is quite simply 
+$$P(X > 0.95) = 0.05$$
+which, visually we can see is the area under the uniform distribution from 0:1.
+
+```{r}
+#par(mfrow=c(1,2))
+x.axis <- seq(0,1,9/100)
+plot(x.axis, u, xlim = c(-0.25,1.25), ylim=c(0, 1.25), type="n",
+     xlab = "", ylab="", main="")
+# or using rect()
+rect(0,-0.1, 1, 1, col = par("bg"), border = "blue")
+#0.95
+rect(0.95,-0.1,1,1, density = 10, col="lightblue", lty=6)
+x1 <- 1:12/12
+y1 <- u[order(u)]
+# and plot it like the in class example:
+#plot(y1, x1, type="s", col="blue", xlab = "", ylab = "") # Empirical
+#curve((x),0,1,add=T) # actual distribution
+```
+
+And the probability that a single sample is less than 0.95 is 
+$$P(X < 0.95) = 0.95$$
+and each of the samples being random samples from a uniform distibution we determine the probability that none of the 12 are greater than 0.95 with 
+$$P(no~samples~are~greater~than~0.95) = 1 - 0.95^{12} = `r 1 - 0.95^12`$$
+
+## 2.11  
+
+A plot of the data, with **random uniform** data in blue and **random triangle** distribution in black, looks like  
+
+```{r, cache=F}
+library(triangle)
+x <- c(4.17,8.42,3.02,2.89,9.77,6.06,2.72,5.12,6,4.78,2.62,7.2,
+       1.61,5.92,7.25,8.01,4.76,5.36,5.34,7.59,0.66,7.27,3.39,1.4)
+# a plot of this data appears to be from a random uniform dist
+# NOT a triangle.
+plot(x, xlab="", ylab="", col="red") 
+par(new=T)
+plot(runif(24, 0, 10), xlab = "Index", ylab="",axes = F, col="blue")
+par(new=T)
+plot(rtriangle(n=24,a=0,b=10, c=5), axes=F, col="black", ylab="")
+par(new=F)
+legend(19.9,8.5, legend=c("Observed","Uniform", "Triangle"),
+       text.col=c("red","blue", "black"), 
+      cex=0.6, bty = "n")
+```
+
+This scatter plot does us no good.  Let's try a plot of the three CDFs
+
+```{r}
+# note, you can use plot(ecdf(x)) to plot the empirical CDF
+plot(ecdf(x), ylab = "", main="", verticals = T, pch="")
+curve((x/10), 0, 10, add=T, col="blue", lty=2, lwd=2) #Uniform curve
+curve((x^2/(50)), 0, 5, add=T, col="red", lty=3, lwd=2) # first half of Tri curve
+curve((1 - (10-x)^2/(50)),5,10, add=T, col="red", lty=3, lwd=2) # second half
+legend(1, 1, 
+       legend=c("Empirical", "Uniform", "Triangle"),
+       col=c("black", "blue", "red"), lty=1:3, lwd=2, cex=0.8, bty="n")
+```
+
+It would appear that the data **most likely** follows a symmetric triangle distribution from 0 to 10. We could also look at a histogram although n is quite small for a histogram we can somewhat determine the shape of the distribution.  
+
+```{r, fig.height=3}
+library(triangle)
+par(mfrow=c(1,3))
+hist(x, col = "green", breaks=5, main="x")
+hist(runif(24,0,10), col = "green", breaks=5, main="Uniform")
+hist(rtriangle(24,0,10), col = "green", breaks=5, main = "Triangle")
+```
+
+See how these make it difficult to conclude which distribution our data comes from.  I think the best plot that assists us is the CDF plot.  **The data most likely comes from the symetrical triangle distribution**, per the CDF plots.
+
+
+## 3.5 
+
+```{r}
+# setting up the wilcoxon signed-rank test:
+library(gtools)
+A <- permutations(2, 7, v=c(-1,1), repeats.allowed = T)
+v <- c(4,4,8,8,8,8,8) # observed values
+r <- rank(abs(v - 6))
+S <- t(t(A) * r)
+# for values above 6
+s <- ifelse(S > 6, S, 0) # hypothesized median is 6
+s.. <- prop.table(table(apply(s,1,sum)))
+```
+
+The permutation distribution of the Wicoxon signed-rank test for $H_0: \theta = 6$ is the same as that of the sign test since $|4 - 6| = |8 - 6| = 2$.  They are not the same if $H_0: \theta = 7$ since $|4 - 7| \neq |8 - 7|$, we'd have the same number of negatives and positives as the sign test, but the magnitude is now different.    
+
+## 3.8 
+
+```{r}
+# from 2.5: 
+x <- c(126,142,156,228,245,246,370,419,433,454,478,503)
+w <- wilcox.test(x, mu=400, conf.int = TRUE)
+t. <- t.test(x, mu=400)
+```
+
+Performing a t test and wilcoxon test on the same data from exercise 2.4:  The p-value from the two-sided wilcoxon test where $$H_0: \eta = 400 ~ vs ~ H_1: \eta \neq 400$$ results in `r w$p.value` and the p-value from a t test with the same hypothesis, substituting $\eta$ for $\mu$, we get `r t.$p.value`.  At $\alpha = 0.05$ we wouldn't reject $H_0$ with either test.  A 95% confidence interval for $\eta$ using the wilcoxon test is $$[`r w$conf`]$$ and a 95% confidence interval for $\mu$ using the t test is $$[`r t.$conf`]$$  The t test interval is more narrow which is to be expected.  400 is close to being outside this interval, as can be seen.  
+
+## 3.12 
+
+```{r 3.12}
+library(exactRankTests)
+# 3.12  
+df <- data.frame(length = c(64:73, 75,77,78,83), 
+                 fish = c(1,2,1,1,4,3,4,5,3,3,1,6,1,1))
+l <- df$length; fish <- df$fish
+x <- rep(l, fish)
+w <- wilcox.exact(x, conf.int = T); wl <- wilcox.exact(l, conf.int = T)
+s <- sum(ifelse(x < 69, 1, 0)); n <- length(x)
+v <- sum(ifelse(x > 72, 1, 0))
+z <- ifelse(x>=69 && x<=72, 1, 0)
+b <- binom.test(s+v,n)
+```
+
+First, taking a look at a histogram of the data (keep in mind that the histogram is $x = no.~of~fish~at~each~cm~value$):  
+
+```{r, fig.width=5, fig.height=4}
+hist(x, col="green", main = "", xlab = "")
+```
+
+Confidence interval for wilcoxon sign test is [$`r w$conf.int`$].  This confidence interval is computed when the number of fish for each length is taken into consideration.  Since the upper tail of a 95% confidence interval is above 72, I would disagree that "it is certain the median length of turbot is between 69 and 72 cm".  The confidence interval if we don't weight by no. of fish is [`r wl$conf.int`].  A more conservative confidence interval, using the method from 2.5 above using $$[`r l`]$$ as the data points would yield confidence interval of [67,75].  No matter which method used, we would conclude that there is not enough evidence to support the person's claim.  
+
+##3.16 
+
+```{r, fig.height=4}
+x <- c(21,18,42,29,81,12,94,117,88,210,44,39,11,83,42,94,2,11,33,91,
+       141,48,12,50,61,35,111,73,5,44,6,11,35,91,147,83,91,48,22,17)
+par(mfrow=c(1,2))
+hist(x,main="", col="green", xlab="", ylab="")
+boxplot(x, col="lightblue")
+```
+
+Based on the histogram and boxplot above, there does appear to be some skewness to the right and/or outlier(s).  The assumption of symmetry is suspect making the wilcoxon test possibly bogus.  The sign test is OK though.  
+
+```{r}
+w <- wilcox.exact(x, mu=50, conf.int = T)
+wn <- wilcox.test(x, mu=50, conf.int = T) 
+eta <- ifelse(x >= 50, 1, 0)
+b <- binom.test(sum(eta), length(x))
+```
+
+Not assuming any population symmetry and running a sign test, there isn't evidence to suggest the true median is not 50, with a p-value = `r b$p.value`.  
+
+Assuming population symmetry and running the wilcoxon test the confidence interval for $\eta$ is [`r w$conf`] with a p-value of `r w$p.value`.  
+
+I do not consider the assumption of population symmetry valid.  
+## 3.17 
+
+```{r}
+x <- c(10,42,29,11,63,145,11,8,23,17,5,20,15,36,32,15)
+# there are ties
+w <- wilcox.exact(x,conf.int = T)
+```
+
+First, we need to take a look at some plots of the data.  
+
+```{r, fig.height=4}
+par(mfrow=c(1,2))
+hist(x,main="", col="green", xlab="", ylab="")
+boxplot(x, col="lightblue")
+```
+
+There appears to be at least one outlier way to the right of the observed median.  This potentially could make using the wilcoxon test problematic.  Additionaly, there are a few ties among the data.  We could compute an exact 95% confidence interval using wilcoxon test but I think it might be more appropriate to compute one using the method mentioned in 2.5 above:  
+
+```{r}
+p <- 1 - pbinom(0:5, length(x), 0.5) * 2
+# 3 in from left and right gives us a 95% confidence interval.
+```
+
+$$1 - 2 \sum_{i=0}^{3} \binom{16}{i}(0.5)^{16} = `r p[4]`$$  and since n = 3, we exclude 3 from the left and 3 from the right of $$`r sort(x)`$$ giving us a confidence interval of $$[11, 36]$$  Interestingly, we are not too far off from a 95% confidence interval using wilcoxon test, [`r w$conf.int`].  The assumptions made for the former confidence interval are the assumptions of the sign test: independent, identically distributed, and continuous.
+
+## 3.21 
+
+```{r}
+# number of words in randomly selected sentances
+# snpar provides a one-sample van waerden test
+library(snpar)
+x <- c(12,18,24,26,37,40,42,47,49,49,78,108)
+van <- ns.test(x, q=30, alternative = "greater")
+r <- rank(abs(x - 30)); s <- sign(x-30); d <- x-30
+scores <- qnorm((1 + r/(12+1))/2) * s
+stat <- sum(scores)/sqrt(sum(scores^2))
+df <- data.frame(Rank = r, X = x, diff = d, N.scores = scores)
+df <- df[order(df$Rank),]
+rownames(df) <- NULL
+```
+
+For this problem $$H_0: \theta = 30 ~ vs ~ H_1: \theta > 30$$ and here I display a table with the observed data, difference from 30, rank, and normal scores computed using the van Waerden test: `r knitr::kable(df)`  To compute the test statistic for this test (Z) we would take the above N.scores and 
+$$Z = \frac{\sum_{i=1}^{12} N.scores }{\sqrt{\sum_{i=1}^{12} N.scores^2}} = `r stat`$$ 
+and the p-value for Z is $`r pnorm(stat, lower.tail=F)`$.  We would reject the null hypothesis that the median is equal to 30 at $\alpha = 0.05$ and conclude that there is evidence to suggest the true median is greater than 30.  

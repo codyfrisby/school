@@ -1,0 +1,73 @@
+---
+title: "STAT 4600 Final"
+author: "Cody Frisby"
+date: "12/7/2016"
+output: pdf_document
+---
+
+## 10.16  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+library(qcc)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+## Final ##
+# 10.16 parts a, b, and c
+```
+
+### a)  
+
+```{r}
+library(tseries)
+# data for our problem:
+df <- read.csv("~/Documents/STAT4600/hw/1610.csv")
+z <- ts(df[,2])
+```
+
+First, looking at a plot of the auto-correlation function
+
+```{r, fig.height=4}
+auto.z <- acf(z, plot = T, main = "")
+a <- data.frame(lag = 0:18, acf = auto.z$acf)
+```
+
+it can be seen that the auto-correlation is `r auto.z[1]$acf` at lag 1.  There is some strong positive correlation at lag 1.  Here I display auto correlation function for lags 0 to 8.  `r knitr::kable(a[1:9,])`
+
+### b)  
+
+The control chart is displayed below
+
+```{r}
+# let's construct a control chart for the observed data:  
+qc.x <- qcc(z, type = "xbar.one", add.stats = F, 
+    title = "", xlab = "", ylab = "Molecular Weight", plot = T)
+```
+
+where $\hat \sigma = `r qc.x$std.dev`$.  There appears to be many out of control points on this chart.  If this were online and we were taking reactionary measures to OOC points we might be making the process worse by reacting to false fails.  
+
+### c)  
+
+```{r}
+# this data is nearly already stationary, maybe one or two lags
+fit1 <- ar(z, order.max = 1, method = "ols")
+b01 <- fit1$x.intercept; b11 <- as.numeric(fit1$ar)
+fit2 <- ar.ols(z, order=1, demean=F, intercept=T)
+b0 <- fit2$x.intercept; b1 <- as.numeric(fit2$ar)
+```
+
+We can fit a model using $$x_t = \xi + \phi x_{t-1} + \epsilon_t$$ and using `R`'s `ar.ols` function we can estimate $\xi$ and $\phi$
+$$\hat x_t =  `r b0` + `r b1`x_{t-1}$$ 
+Fitting this model and then control charting the residuals ($e_t = x_t - \hat x_t$) we can see that only one points is above and/or below the control limits.  The process appears much more stable. 
+
+```{r}
+qc.ar1 <- qcc(fit2$resid[-1], type = "xbar.one", add.stats = F, title = "", 
+              xlab = "", ylab = "Molecular Weight (ar 1)")
+```
+
+
+```{r}
+qcc.options(old)
+```
+

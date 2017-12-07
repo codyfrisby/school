@@ -1,0 +1,37 @@
+---
+title: "WLS Life Expectancy"
+author: "Cody Frisby"
+date: "March 21, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+### Life Expectancy Data Weighted Least Squares Example  
+
+```{r, warning=F, message=F}
+# read in the data from the excel file
+life <- xlsx::read.xlsx("~/Documents/MATH3710/ProblemSets/problem6/LifeExpectancy.xlsx", sheetIndex = 1)
+life$africa <- 0
+life$oecd <- 0
+life[life$Group == "africa", "africa"] <- 1
+life[life$Group == "oecd", "oecd"] <- 1
+# here we will add the weights using R.
+life$w <- 0 #create a new column
+# create logical index based on our 3 groups
+a <- life$Group == "africa"
+b <- life$Group == "oecd"
+c <- life$Group == "other"
+# now fill our new column with the calculated weight
+life[life$Group == "africa", "w"] <- 1/var(life$LifeExp[a])
+life[life$Group == "oecd", "w"] <- 1/var(life$LifeExp[b])
+life[life$Group == "other", "w"] <- 1/var(life$LifeExp[c])
+# and we now have a weights column in our data frame
+head(life)
+
+# succint way to calculate each value in R
+for (g in c("africa", "oecd", "other")) 
+  print(1/var(life[life$Group == g,4]))
+```
+
+

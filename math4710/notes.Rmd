@@ -1,0 +1,477 @@
+---
+title: "Class Notes from 4710"
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dpi=200, fig.align = 'center')
+```
+
+## Birthday problem from class 
+
+```{r}
+birthday <- function(n){(choose(365,n) * factorial(n)/(365^n))}
+birthday(30)
+```
+
+
+```{r}
+# coffee example from page 54.
+library(gtools)
+S <- permutations(3, 3, letters[24:26])
+A <- S[S %in% "xyz" | S %in% "xzy" | S %in% "zxy"]
+B <- S[S %in% "xyz" | S %in% "xzy"]
+C <- S[S %in% "yxz" | S %in% "zxy"]
+D <- S[S %in% "yzx" | S %in% "zyx"]
+p.A <- length(A)/length(S); p.B <- length(B)/length(S)
+p.C <- length(C)/length(S); p.D <- length(D)/length(S)
+```
+
+## Chapter.Section 3.2,  example 3.1
+
+```{r Example 3.1}
+# y can take on values of 0, 1, or 2 ONLY
+p.y <- function(y){
+  choose(3, y) * choose(3, 2 - y) * (1/choose(6,2))
+}
+p.y(0:2)
+
+# Number 3.6, page 90
+A <- combn(1:5, 2) # lists all the possible draws from the urn
+A
+# part A
+for(i in 2:5){
+  l <- length(which(A[2,] == i))
+  print(l/10) #probs for 2, 3, 4, 5 respectively
+}
+# part B
+s <- apply(A, 2, sum) # all possible sums
+s
+for(i in 3:9){
+  l <- length(which(s == i))
+  names(l) <- paste0("P(Y=",i,")")
+  print(l/10)
+}
+```
+
+
+```{r Exercise 3.7}
+# 3.7, 3 balls & 3 bowls, probability of one empty bowl
+library(gtools)
+s <- permutations(3, 3,v=0:2, repeats.allowed = F) 
+s # possibilities where there is one empty bowl
+```
+
+
+```{r 3.9}
+# 3.9, accounting error and auditor
+library(gtools)
+s <- permutations(2, 3, letters[c(5,14)], repeats.allowed = TRUE)
+s # possible sample space where "e"=error and "n"=no error
+# 3.10, we can write a function for this one
+# we start right after a rental happened.  So the probability
+# of renting on the first day after a rental occured is 0.2
+p.y <- function(y){
+  0.2*0.8^y
+}
+p.y(0:10)
+plot(0:10, p.y(0:10), type = "h", col="blue", lwd=3)
+```
+
+## 3.3 The Expected Value of a Random Variable or a Function of a Random Variable  
+
+### Definition 3.4:
+
+Let Y be a **discrete** random variable... 
+
+$$E(Y) = \sum_{y}yp(y)$$
+
+### Theorem 3.2:  
+
+$$E[g(Y)] = \sum_{all y}g(y)p(y)$$  
+
+### Definition 3.5: 
+
+$$V(Y) = E[(Y - \mu^2)] = E[Y^2] - 2 \mu E[Y] + \mu^2 = E[Y^2] - \mu^2$$  
+
+```{r}
+E <- function(y,p.y){sum(y*p.y)} #E[Y]
+V <- function(y,p.y){sum(y^2*p.y) - sum(y*p.y)^2} #E[V]
+# Example 3.2, page 94
+y <- 0:3
+p.y <- c(1/8, 1/4, 3/8, 1/4)
+mu <- sum(y*p.y)
+mu
+variance <- sum((y-mu)^2*p.y)
+variance
+sig <- sqrt(variance)
+sig
+# a plot of the data
+plot(y, p.y, type="h", ylim=c(0,0.5), xlim = c(-0.5, 4), lwd=10, col="blue")
+```
+
+```{r Example 3.3}
+# using Theorem 3.6 to find the variance of Y from example 3.2
+sum(y^2*p.y) - mu^2 
+identical(sum(y^2*p.y) - mu^2, variance) #same result as variance
+```
+
+### Example 3.4 
+
+```{r Example 3.4}
+Ca <- function(t){13*t + .3*t^2}
+Cb <- function(t){11.6*t + .432*t^2}
+Ca(c(10, 20))
+Cb(c(10, 20))
+```
+
+```{r 3.12}
+# 3.12
+y <- 1:4 #values for Y
+p.y <- seq(0.4, 0.1, by=-0.1) #p(Y)
+sum(y * p.y) #E[Y]
+sum(y^2*p.y) - 1 #E[Y^2 - 1]
+sum((1/y)*p.y) #E[1/Y]
+sum(y^2 * p.y) - sum(y * p.y)^2 #E[V]
+```
+
+
+```{r 3.13}
+# 3.13
+y <- c(1,2,-1)
+p.y <- c(0.25, 0.25, 0.5)
+sum(y * p.y) #E[Y]
+sum(y^2*p.y) - sum(y*p.y)^2 #E[V]
+```
+
+```{r 3.14}
+# 3.14
+y <- 3:13
+p.y <- c(.03,.05,.07,.1,.14,.2,.18,.12,.07,.03,.01)
+sum(y * p.y) #E[Y]
+sqrt(sum(y^2*p.y) - sum(y*p.y)^2) #E[sqrt(Y)]
+sum(p.y) - (p.y[1] + p.y[11]) #p(2sd < Y < 2sd)
+```
+
+```{r 3.17}
+# 3.17
+y <- 0:2
+p.y <- c(6/27, 18/27, 3/27)
+E(y, p.y); sqrt(V(y,p.y)) #E[Y] & sqrt(E[V])
+E(y,p.y) + 1.133115
+```
+
+```{r 3.21}
+# 3.21
+y <- 21:26
+p.y <- c(.05,.2,.3,.25,.15,.05)
+E(y,p.y)
+V(y,p.y)
+8*pi*E(y^2, p.y)
+```
+
+```{r 3.23}
+# 3.23
+y <- c(15,5,-4)
+p.y <- c(8/52, 8/52,36/52)
+E(y,p.y)
+```
+
+```{r 3.25}
+# 3.25
+permutations(3, 2, repeats.allowed = T) #sample space
+```
+
+## 3.4  Binomial Distribution
+```{r 3.38}
+# 3.38
+y <- 3:4
+sum(dbinom(y, 4, 1/3))
+# or
+sum(choose(4,y) * (1/3)^y * (2/3)^(4-y)) # same result
+```
+
+```{r 3.39}
+# 3.39
+y <- 0:2
+sum(dbinom(y, 4, .2))
+# or
+sum(choose(4,y) * (.2)^y * (.8)^(4-y)) # same result
+```
+
+```{r 3.41}
+# 3.41
+y <- 10:15
+sum(dbinom(y, 15, 1/5))
+# or
+sum(choose(15,y) * (1/5)^y * (4/5)^(15-y)) # same result
+```
+
+
+```{r 3.42}
+# 3.42 part A
+y <- 10:15
+sum(dbinom(y, 15, 1/4))
+# or
+sum(choose(15,y) * (1/4)^y * (3/4)^(15-y)) # same result
+# part B
+sum(dbinom(y, 15, 1/3))
+# or
+sum(choose(15,y) * (1/3)^y * (2/3)^(15-y)) # same result
+```
+
+```{r 3.46, fig.height=3, fig.width=7}
+# 3.46
+x <- 0:5
+par(mfrow=c(1,3))
+plot(x,dbinom(0:5, 5, .1), lwd=2, col="blue", type = "h", main = "p=0.1")
+plot(x,dbinom(0:5, 5, .5), lwd=2, col="blue", type = "h", main = "p=0.5")
+plot(x,dbinom(0:5, 5, .9), lwd=2, col="blue", type = "h", main = "p=0.9")
+```
+
+```{r 3.47}
+# 3.47
+plot(0:20, dbinom(0:20, 20, 0.5), col="blue", lwd=3, type="h", 
+     main = "p=0.5, n=20")
+```
+
+
+```{r 3.7}
+# writing a hypergeometric function
+h <- function(y,r,n,N){
+  (choose(r,y) * choose(N-r, n-y)) / choose(N,n) 
+}
+```
+
+## Chapter 4  
+
+
+```{r}
+## Exercise 4.18  
+# f is the pdf, g is the cdf
+f <- function(x){ # this is the probability density function
+return(ifelse(x <= -1, 0, 
+        ifelse((x > -1) & (x <=0), 0.2, 
+              ifelse((x > 0) & (x <= 1), 0.2 + 1.2 * x, 0))))
+  }
+g <- function(x){ # this is the CDF
+return(ifelse(x <= -1, 0, 
+       ifelse((x > -1) & (x <=0), 0.2*(1 + x), 
+              ifelse((x > 0) & (x <= 1), 0.2 * (1 + x + 3 * x^2), 1))))
+} 
+curve(f(x), -1, 1, lty=3, col="red", ylab="") # plot the pdf
+curve(g(x), -1, 1, col="blue", add=TRUE) # plot the cdf
+legend("topleft", legend = c("f(x)", "F(x)"), lty=c(3,1), # add a legend
+       col=c("red", "blue"), bty="n")
+```
+
+
+## 5.2  
+
+```{r, fig.height=5}
+# Figure 5.1
+library(plotly)
+df <- data.frame(x = rep(1:6, 6), y = c(rep(1,6), rep(2,6), rep(3,6), 
+                                        rep(4,6), rep(5,6), rep(6,6)))
+df$z <- rep(1/36, 36)
+plot_ly(df, x = ~x, y = ~y, z = ~z)
+# the dots are at a height of 1/36
+
+```
+
+
+```{r}
+# Example 5.1  
+library(gtools)
+a <- permutations(3, 2, 0:2, repeats.allowed = T)
+b <- permutations(3, 2, 1:3, repeats.allowed = T)
+```
+
+```{r}
+# normal distribution function: 
+f <- function(x, mu=0, s=1){
+  (1/(s*sqrt(2*pi))) * exp(-(1/(2*s^2))*(x - mu)^2)
+}
+integrate(f, -1, 1)$value # probability that x is between -1 and 1
+1 - (pnorm(-1) + 1 - pnorm(1)) # same as above
+```
+
+## 4.6 Gamma Distribution  
+
+```{r}
+# exercise 4.84  
+curve(dgamma(x, shape=4, scale=1/1), 0, 200, n=1000, ylab="f(x)",
+      main = "Gamma Density Distributions")
+curve(dgamma(x, shape=40, scale=1/1), add=TRUE, col="red", n=1000)
+curve(dgamma(x, shape=80, scale=1/1),add=TRUE, col="blue", n=1000)
+```
+
+### Chi-square Distribution
+
+```{r}
+curve(dchisq(x, 1), ylab = "f(x)", main = "Chi-Square Density Distributions",
+      xlim=c(0, 25))
+curve(dchisq(x, 5), add = TRUE, col = "blue")
+curve(dchisq(x, 15), add = TRUE, col = "red")
+```
+
+### Exponential Distribution  
+
+```{r}
+curve(dexp(x,1), 0, 10, col = "blue", ylab = "f(x)",
+      main = "Exponential Density Functions")
+curve(dexp(x,1/2), add=TRUE, col="red")
+curve(dexp(x,1/15), add=TRUE, col="green")
+```
+
+
+## 4.7 Beta Distribution  
+
+```{r}
+curve(dbeta(x,2,2), 0, 1, col = "blue", ylim=c(0, 2.5), ylab = "f(x)",
+      main = "Beta Density Functions")
+curve(dbeta(x,3,3), 0, 1, col = "red", add=TRUE)
+curve(dbeta(x,5,3), 0, 1, col = "green", add=TRUE)
+```
+
+
+## 4.11  Mixed Distributions  
+
+```{r}
+f <- function(x){
+  x * (1/100) * exp(-x/100)
+}
+# here is the answer to 4.157 
+integrate(f, 0, 200)$value + (1 - pexp(200, 1/100)) * 200
+```
+
+## Independece of two random variables
+
+```{r}
+# exercise 
+f <- function(x,y){
+  (choose(4,x) * choose(3,y) * choose(2, 3 - x - y))/choose(9,3)
+}
+# use this function to generate all the probabilities for the problem.
+```
+
+
+## Example 6.5  
+
+```{r}
+n <- 15
+u <- runif(n)
+G <- function(u, beta){
+  -beta * log(1 - u)
+}
+G(u, 1)
+```
+
+## CH 7, Central Limit Theorem:  
+
+```{r}
+# Poisson n = 5
+data <- replicate(10000,rpois(5,3))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+length(which(means > 3.6))
+
+# Poisson n = 50
+data <- replicate(10000,rpois(50,3))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+length(which(means > 3.6))
+
+# exponential n = 5
+data <- replicate(10000,rexp(5,.333))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+length(which(means > 3.6))
+
+# exponential n = 50
+data <- replicate(10000,rexp(50,.333))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+length(which(means > 3.6))
+```
+
+## Sampling Distributions  
+
+```{r}
+# sample mean - exponential n = 5
+data <- replicate(10000,rexp(5,.333))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+
+# sample mean - exponential n = 50
+data <- replicate(10000,rexp(50,.333))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,1.0))
+curve(dnorm(x,mean=3, sd = 3/sqrt(50)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+
+# sample mean - normal n = 5 mean = 100 sd = 10
+data <- replicate(10000,rnorm(5, 100, 10))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,.1))
+curve(dnorm(x,mean=100, sd = 10/sqrt(5)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+count <- length(which(means > 100+1.96*10/sqrt(5)))
+prob <- count/10000
+prob
+
+# sample mean curve on original data
+hist(data, freq = FALSE, ylim=c(0,.1))
+quantile(data,c(0.025,0.975))
+curve(dnorm(x,mean=100, sd = 10/sqrt(5)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+
+# sample variance - normal n = 5 mean = 100 sd = 10
+data <- replicate(10000,rnorm(5,100,10))
+vars <- apply(data,2,var)
+chi <- vars*(5-1)/100
+hist(chi, freq = FALSE, ylim=c(0,.20))
+curve(dchisq(x,4),0,25,add=T, col = "red")
+mean(chi)
+sd(chi)
+quantile(chi,c(0.025,0.975))
+
+# sample variance - exponential with mean 3
+data <- replicate(10000,rexp(5,1/3))
+vars <- apply(data,2,var)
+chi <- vars*(5-1)/9
+hist(chi, freq = FALSE, ylim=c(0,.20))
+curve(dchisq(x,4),0,25,add=T, col = "red")
+mean(chi)
+sd(chi)
+quantile(chi,c(0.025,0.975))
+
+# sample variance - poisson mean 3
+data <- replicate(10000,rpois(5,3))
+vars <- apply(data,2,var)
+chi <- vars*(5-1)/3
+hist(chi, freq = FALSE, ylim=c(0,.20))
+curve(dchisq(x,4),0,25,add=T, col = "red")
+mean(chi)
+sd(chi)
+quantile(chi,c(0.025,0.975))
+```
+

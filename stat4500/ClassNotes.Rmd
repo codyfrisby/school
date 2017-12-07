@@ -1,0 +1,842 @@
+---
+title: "STAT 4500 Class Notes"
+output:
+  pdf_document: 
+    toc: yes
+  html_document:
+    keep_md: yes
+---
+## About  
+
+This document is an R markdown file of the class notes from STAT 4500, Non Parametric Statistics for Fall 2016 at UVU.  Textbook used was "Applied Nonparametric Statistical Methods" Fourth Edition by Peter Sprent and Nigel C. Smeeton  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, dpi = 200, fig.align = 'center',
+                      warning = F, message = F)
+```
+
+## 8/24/16 Notes: 
+-Defined Random variable  
+-PMF  
+-PDF  
+-Ranks  
+
+## Binomial Distribution Discussion 8/26/16:  
+
+```{r}
+# 8/26/16 Non Parametric class notes:
+x <- 0:10
+dbinom(x, 10, 0.5) #dbinom is the PMF of binomial
+pbinom(x,10,0.5, lower.tail = FALSE) # this is for cummulative
+```
+
+### There is a special type of test called "Randomized Test"  
+read about it on page 27-28 in text book
+
+```{r}
+# what is the probability that x = 8 under the null
+pbinom(8,10,0.5)
+0.0393/pbinom(8,10,0.5)
+```
+
+Reject with probability 1 is sum(x_i) > 8  
+Reject with probability 0.0397 if sum(x_i) = 8  
+Reject with probability 0 if sum(x_i) < 8  
+
+## 8/31/16 Power Curve Example  
+
+```{r}
+# power example from class
+power <- function(x){pnorm(3 - x, lower.tail = F)}
+beta <- function(x){1-pnorm(3 - x, lower.tail = F)}
+curve(power, 0, 6, col="blue", lwd=2, ylim=c(-0.1,1.1), lty=1)
+curve(beta, 0, 6, add=T, col="red", lwd=2, lty=2)
+legend(5, 0.5, legend = c("Power", "Beta"),lty=c(1,2), 
+       col =c("blue", "red") , bty = "n", text.col=c("blue", "red"))
+```
+
+## Power Plot Example:  
+
+```{r}
+curve(dnorm(x, 108, 4), 90, 120, col="blue", main="Power Example")
+curve(dnorm(x, 100, 4), 80, 112, lty=3, add=T, col="red")
+cord.x <- c(106.58, seq(106.58, 120, 0.01), 120)
+cord.y <- c(0, dnorm(seq(106.58, 120, 0.01), 108, 4),0)
+#abline(v=106.58, lty=2, col = "skyblue")
+polygon(cord.x, cord.y,col="lightblue", border = NA)
+curve(dnorm(x, 100, 4), 80, 112, lty=3, add=T, col="red")
+legend("top", legend = "Power", text.col = "lightblue", bty = "n")
+```
+
+Another way of understanding Power of a test.  The shaded area is equal to power if the true mean were 108 when the hypothesized mean was 100, when n = 16 and $\sigma$ = 16.  The area is equal to the value at $\alpha = 0.05$ under the null hypothesis which is $$Z_{\alpha} = \frac{x - \mu}{\frac{\sigma}{\sqrt{n}}}$$  and plugging in when $\alpha = 0.05$ 
+$$`r qnorm(0.95)` = \frac{x - 100}{\frac{16}{\sqrt{16}}}$$
+and solving for x we get $`r qnorm(0.95) * 4 + 100`$.  
+
+```{r, echo=F}
+cv <- qnorm(0.95) * 4 + 100
+```
+
+We now can compute power by finding the area under the normal curve for the "true" mean, 108.  This can be done by plugging into the pnorm function in R, pnorm(cv, 108, 16/sqrt(16), lower.tail = F) = $`r pnorm(cv, 108, 16/sqrt(16), lower.tail = F)`$.  
+
+## Sign Test  
+Assumption: f is continuous.  $\theta$ is the median.  
+$H_0: \theta = \theta_0$ vs. $H_1: \theta > \theta_0$.  
+
+Example 2.2 (page 27) from the text: $H_0: \theta = 200$ vs. 
+$H_1: \theta \neq 200$
+
+```{r}
+# data from the example
+y <- c(49,58,75,110,112,132,151,276,281,362)
+# binomial with n = 10, p = 0.5
+pbinom(0:10, 10, 0.5)
+1 - pbinom(0:10, 10, 0.5)
+plot(dbinom(0:10, 10, 0.5), type="h", lwd=2)
+```
+
+## 9/2/16  
+
+```{r}
+# example from class where H0 = 0.5, H1 < 0.5
+p0 <- 0.5
+p1 <- 0.25
+n <- 20
+prob <- pbinom(0:n, n, p0)
+prob # critical value is n=1
+cv <- max(which(prob <= 0.05) - 1) # gives us critical value of x
+cv
+# what's the power of this test?
+pow <- pbinom(cv, n, p1)
+pow
+# let's create a function called power
+power <- function(n, p0=0.5, p1){
+  prob <- pbinom(0:n, n, p0)
+  cv <- max(which(prob <= 0.05)-1)
+  pow <- pbinom(cv,n,p1)
+  return(pow)
+} # this function needs an n, which needs to be a scalar not a vector, and p0, p1
+# try to plot this
+x <- vector()
+for(i in 10:100){
+  x[i] <- power(i, p0=0.5, p1=0.25)
+}
+x <- x[-(1:9)] # get rid of NAs
+plot(10:100, x, main="Power for p1 = 0.25", xlab="n", ylab="Power", pch=16)
+```
+
+
+### Relative Efficiency  
+
+T1 and T2.  At some fixed level $\alpha$   
+
+For T1, let n1 be the sample size required to achieve a type II error $\beta$.  
+For T2, let n2 be the sample size required to achieve the same type II error
+$\beta$.
+Relative efficiency of T2 with respect to T1 is $\frac{n_1}{n_2}$.  
+
+Sign test with respect to t test  $$\frac{2}{\pi} < 1$$  
+
+```{r}
+# data from page 48
+x <- c(73,82,87,68,106,60,97)
+# let's sort
+y <- x[order(x)]
+# Empical distribution from class
+n <- length(x)
+Fn <- NULL
+for(i in 1:n){
+  Fn[i] <- i/n
+}
+plot(y, Fn, type="s")
+# another example
+# generate data from the uniform distribution
+x <- runif(50,2,7)
+y <- x[order(x)]
+# Empical CDF
+n <- length(x)
+Fn <- 1:n/n
+plot(y, Fn, type="s") # Empiracle distribution
+curve((x-2)/5,2,7,add=T) # actual distribution
+curve(1 - exp(-x),2,7,add = TRUE, col="blue") # not sure what this one is
+# These are all aspects of exploratory data analysis
+```
+
+## Tests for Median 9/7/16  
+
+(i) Sign test
+(ii) Wilcoxon signed rank test
+  - Data is continuous
+  - Data is symmetric about the median
+Difference between these two tests is that Wilcoxon test takes into account BOTH the sign AND the rank.  Sign test considers only the sign. 
+
+Hypotheses for Wilcoxon test:
+$$H_0: \theta = \theta_0 ~ vs ~ H_1 \theta \neq \theta_0$$
+$$H_0: \theta = \theta_0 ~ vs ~ H_1 \theta > \theta_0$$
+$$H_0: \theta = \theta_0 ~ vs ~ H_1 \theta < \theta_0$$  
+We have data ordered, from smallest to largest:
+
+$$X_1, X_2, X_3, ..., X_n$$
+
+Calculate $d_i$ which is equal to $|X_i - \theta_0|$
+
+### Heart rate example again:
+
+```{r}
+x <- c(73,82,87,68,106,60,97)
+# how many are less than or equal to 69?
+length(which(x <= 69))
+# p of x
+length(which(x <= 69))/length(x)
+```
+
+## Using R to assign ranks and signs to a vector:  
+
+```{r}
+# using the vector x from above:
+x <- c(73,82,87,68,106,60,97)
+sign <- ifelse(x > 70, 1, -1) # if H0 was 70
+d <- rank(abs(x - 70))
+rs <- sign*d
+cbind(x, sign, d, rs)
+sum(ifelse(rs>0, rs, 0))
+```
+
+
+## Notes on page 47-48, developing the sign/rank test
+
+```{r 3.3}
+library(gtools)
+sum(1:7) # sum of 1 to 7
+2^7 # possible assignents of -1 or 1 to seven samples
+A <- permutations(2, 7, v=c(-1,1), repeats.allowed = T) # all possible combos
+head(A) # look at what A is now
+A <- t( t(A) * 1:7) # better than a loop :)
+head(A) # now what does A look like
+# If our hypothesis involved the positives...
+A <- ifelse(A > 0, A, 0) # make all negatives = 0
+S <- prop.table(table(apply(A,1,sum))) # probability of each sum
+S # same as table 3.1 on pg 48 in textbook
+# pg 47 - Pr(S+ <= 3)
+sum(S[1:4]) # same as 5/128
+plot(S, ylim = c(0,0.07), ylab="")
+```
+
+## Writing a function for the sign/rank test:  
+
+```{r}
+# writing a function that replicates the book example:
+# from page 48 Example 3.1
+# note: this result is a one sided test.  If you want a two sided
+# p value then multiply your result by two.
+test <- function(x, theta){
+  if(length(x) >= 20){stop("n is too large for this function")}
+  sign <- ifelse(x > theta, 1, -1)
+  d <- rank(abs(x - theta))
+  rs <- sign*d
+  t <- sum(ifelse(rs>0, rs, 0))
+  A <- gtools::permutations(2, length(x), v=c(-1,1), repeats.allowed = T)
+  A <- t( t(A) * 1:length(x))
+  A <- ifelse(A > 0, A, 0)
+  S <- table(apply(A,1,sum))
+  if(t < S[(length(S)/2) + 1]){
+    sum(S[1:(t+1)])/2^length(x)
+  } else{
+    sum(S[(t+1):length(S)])/2^length(x)
+  }
+}
+wilcox.test(x, mu=70, alternative = "greater")$p.value
+test(x,70) # same result :)
+```
+
+```{r}
+#page 51 example
+x1 <- c(-2,4,8,25,-5,16,3,1,12,17,20,9)
+# using the function above:
+test(x1, 15) * 2 # test median is 15, 2x for two sided
+```
+
+And we get the same result as the book.  
+
+By way of reproducing the plot on page 51 in the text book:  
+
+```{r, comment=""}
+x <- x1; theta <- 15
+sign <- ifelse(x > theta, 1, -1)
+d <- rank(abs(x - theta))
+rs <- sign*d
+t <- sum(ifelse(rs>0, rs, 0))
+A <- gtools::permutations(2, length(x), v=c(-1,1), repeats.allowed = T)
+A <- t( t(A) * 1:length(x))
+A <- ifelse(A > 0, A, 0)
+S <- table(apply(A,1,sum))
+plot(S)
+Sp <- prop.table(S)[1:40] # same as page 50 table 3.2
+Sp
+```
+
+```{r 3.2}
+library(exactRankTests)
+# Example 3.2
+x <- c(-2,4,8,25,-5,16,3,1,12,17,20,9)
+d <- x -15
+si <- sign(d)
+r <- rank(abs(d))
+sum(r[si > 0]); sum(r[si < 0]) # S+ and S-
+p <- wilcox.test(x, mu=15)$p.value
+p
+psignrank(14, 12) * 2 # same p value, two-sided
+```
+
+## Programming the Walsh averages:  
+
+```{r}
+x <- c(-2,4,8,25,-5,16,3,1,12,17,20,9)
+y <- sort(x)
+# creating Table 3.3 on page 54:
+w <- outer(y,y,"+")/2
+row.names(w) <- y; colnames(w) <- y
+w
+```
+
+
+```{r, eval=F}
+# ?SignRank, ?dsignrank
+par(mfrow = c(2,2))
+for(n in c(4,5,10,40)) {
+  x <- seq(0, n*(n+1)/2, length = 501)
+  plot(x, dsignrank(x, n = n), type = "l",
+       main = paste0("dsignrank(x, n = ", n, ")"))
+}
+```
+
+
+```{r, eval=F}
+# running the van Waerden test in R with one-sample
+install.packages("snpar")
+library(snpar)
+ns.test(x, q=theta, alternative = "greater")
+```
+
+
+## 9/16/16
+
+```{r}
+before <- c(51.2,46.5,24.1,10.2,65.3,92.1,30.3,49.2)
+after <- c(45.8,41.3,15.8,11.1,58.5,70.3,31.6,35.4)
+d <- after - before
+wilcox.test(d, conf.int = T, alternative = "less")
+r <- rank(abs(d)); s <- sign(d)
+sum(r[s>0])
+psignrank(sum(r[s>0]), length(r), lower.tail = T) # same p value
+wilcox.test(d, conf.int = T, alternative = "less")$p.value
+```
+
+
+# Chapter 4  
+
+## Cumulative Distribution Function  (CDF)  
+
+```{r}
+par(mfrow=c(1,2))
+# uniform CDF for a=0 and b=6
+curve(pnorm(x), lty=3, col = "red", lwd=2, from = -4,to=4, 
+      xlim=c(-4,4), ylim=c(0,1.1), main="Normal CDF")
+abline(v=0, h=0.5, lty=3)
+curve((x/6), 0, 6, col="blue", lty=2, lwd=2, main="Uniform CDF") #Uniform curve
+```
+
+## Example 4.1 on page 86 of the textbook  
+
+```{r}
+x <- c(0.6,0.8,1.1,1.2,1.4,1.7,1.8,1.9,2.2,2.4,2.5,2.9,3.1,3.4,3.4,
+       3.9,4.4,4.9,5.2,5.9)
+# plot the empircal CDF of our observed data
+plot(ecdf(x), verticals = T, pch="") 
+# overlay theoretical cdf of uniform dist
+C <- curve((x/6), 0, 6, col="red", lty=3, add=T) 
+```
+
+Is the uniform distribution a good "fit" for the data?  
+
+## Example 4.2  
+
+```{r}
+f <- function(x){
+  i <- 1:length(x)
+  return(i/length(x))
+}
+x <- sort(x)
+Fx <- punif(x, 0, 6)
+Sx <- (1:length(x))/length(x)
+df <- data.frame(x, Fx = punif(x, 0, 6), Sx, Diff = Fx-f(x), 
+                 Diff.1 = Fx - lag(Sx) + Sx[1])
+knitr::kable(df) #knit the table to appear "nice"
+max(abs(f(x) - Fx)) # max diff
+```
+
+## In Class 9/21/16  
+
+```{r}
+# Exercise 4.2
+x <- c(10,42,29,11,63,145,11,8,23,17,5,20,15,36,32,15)
+plot(ecdf(x), pch = "", verticals = TRUE)
+curve((1 - exp(-(x/20))), lty=3, col="red", add=T) #exponential
+```
+
+Reproducing figure 4.6 on page 91:
+
+```{r}
+f <- function(x){
+  if(x>0 & x<=3){
+    y <- x/5}
+  y <- 0.2 + 4*x/30
+  return(x)
+}
+plot(c(0,df$Diff), type="l", col="red", lty=3, xlim=c(1, length(x)+1), 
+     ylim=c(-.2, .2), xlab = "", ylab = "")
+lines(c(0,df$Diff.1), lty = 3, col = "blue")
+abline(h=0)
+
+```
+
+
+## Relation between CDF and Uniform Distribution  
+
+```{r}
+# generate data from standard normal, this is z
+z <- rnorm(1000)
+# plot the histogram and the CDF: 
+par(mfrow=c(1,2))
+hist(z, freq = F, col="green")
+plot(ecdf(z))
+curve(pnorm(x), -3, 3, add=T, col = "blue")
+```
+
+Notice how closely the empirical CDF of our random normal data follows that of the theoretical CDF of the standard normal.  
+
+Now to look at $\Phi(z) = u$  
+
+```{r}
+u <- pnorm(z) # using R's built in functions to compute u
+hist(u, col="green")
+```
+
+who's historgram appears to have the same shape as that of a uniform distribution from 0 to 1.  Now to plot the CDF of u with the theoretical CDF of the uniform distribution from 0 to 1.  
+
+```{r, fig.width=5}
+plot(ecdf(u))
+curve(punif(x), 0, 1, add=T, col = "blue")
+```
+
+And we can see how closely u follows a uniform distribution from 0 to 1 $\bullet$  
+
+## Example 4.4 (page 94)  
+
+```{r}
+x <- c(11,13,14,22,29,30,41,41,52,55,56,59,65,65,66,74,74,75,77,
+       81,82,82,82,82,83,85,85,87,87,88)
+# are these data from a normal distribution?  
+# is age at death normally distributed?
+v <- ecdf(x)
+Sx <- v(x)
+z <- (x - mean(x))/sd(x)
+plot(ecdf(z), pch="", verticals = TRUE)
+curve(pnorm(x), add=TRUE, col="red", lty=3)
+Pz <- pnorm(z)
+df <- data.frame(x, z, Pz, Sx, Diff = Pz - Sx, 
+                 Diff.1 = Pz - c(0,Sx[-length(Sx)]))
+test <- shapiro.test(x)
+knitr::kable(df)
+```
+
+
+```{r}
+# removing repeated values like the books table:
+knitr::kable(df[!duplicated(df$x), ])
+```
+
+```{r}
+# the test statistic:
+max(c(df$Diff, df$Diff.1)) #lillies test statistic
+```
+
+```{r}
+library(nortest)
+lillie.test(x) # using a function for lillies test found on CRAN
+```
+
+As can be seen above, at least our test statistics match.  Since the book doesn't go into great detail about p-values for this test I do not know where to begin in computing the significance of our statistic.  lillie.test() from the nortest package computes this value for us.  How "correct" it is I do not know.  However, it does reject normality for our sample, which agrees with shapiro-wilk and intuition.  
+
+I'm not sure what to think of the textbook at this point.  It provides very little detail about how to perform tests, except to say "Stat Exact provides.....".  Since we do not have accesss to "Stat Exact" we cannot verify the same results.  Having said that, for the values above, I do not get the same p-value when running the Shapiro-Wilk test as the book does.  Perhaps it's a typo?  The p-value it gives for the liilie test is also not very small and would not lead to rejection of the null hypothesis that the data is from the normal distribution.  
+
+```{r}
+shapiro.test(x)
+```
+
+## Monte Carlo approximations:  
+
+Random points from 0 to 1 with the function $y = x^2$ represented by the white curve.  Here, we are approximating the integral of $y = x^2$ by computing the probability of a point falling under the white curve.  All points have equal probability in the box pictured below.  
+
+```{r}
+n <- 10000
+f <- function(x) x^2
+plot(runif(n), runif(n), col='blue', pch=20)
+curve(f, 0,1, n=100, col='white', add=TRUE)
+```
+
+The points under the curve are the ones's we care about:  
+
+```{r}
+ps <- matrix(runif(2*n), ncol=2) #2x1 matrix with random uniforms
+g <- function(x,y) y <= x^2 # logical function
+z <- g(ps[,1], ps[,2]) # logical vector
+plot(ps[!z,1], ps[!z,2], col='blue', pch=20) # plot above curve
+points(ps[z,1], ps[z,2], col='green', pch=20) # plot below curve
+curve(f, 0,1, n=100, col='white', add=TRUE) # white curve
+```
+
+How many green dots are there as a proportion of total dots?  
+
+```{r}
+length(z[z])/n
+```
+
+
+This is an estimation of $\int_{0}^{1}x^2 dx$ that gets more and more exact to n places as we increase n in the monte carlo simulation.  
+
+```{r}
+# actual integral of y = x^2
+integrate(f = function(x){x^2}, 0, 1)
+```
+
+This is pretty cool.  However, I have not yet figured out how to do this for a sample, or a small-ish data set where I don't have some continuous funtion of x.  All I can estimate is x's CDF and I have not yet figured out how to do this same estimate for a p-value from a CDF.  
+
+
+## Tests for Randomness  
+
+```{r}
+library(randtests)
+# H = 1, T = 0
+x <- c(rep(1, 5), rep(0, 10), rep(1, 5))
+runs.test(x)
+y <- rep(c(1,0), 10)
+runs.test(y)
+z <- c(1,1,0,1,0,0,0,1,0,1,1,0,1,0,1,1,1,0,0,1)
+runs.test(z)
+# example 4.15 on page 113
+x <- c("A","A","A","A","B","A","C","A","A","A","A","A","D","D","A","A")
+x <- c(1,1,1,1,2,1,3,1,1,1,1,1,4,4,1,1)
+k <- 4; N <- 17; n1 <- 12; n2 <- 1; n3 <- 2; n4 <- 2; R <-7
+p <- c(n1,n2,n3,n4)/N
+eR <- N*(1 - sum(p^2)) + 1
+vR <- N*(sum(p^2 - 2*p^3) + sum(p^2)^2)
+z <- (R - eR)/sqrt(vR)
+pnorm(z) #Asymptotic normal p value
+```
+
+# Chapter 6  
+
+## 10/5/16  
+
+Wilcoxon-Mann-Whitney Test  (WMW)
+
+$$H_0: F_x(x) = F_y(x) ~~ vs ~~ F_x(x) \neq F_y(x)$$  
+
+```{r}
+before <- c(12.6,11.4,13.2,11.2,9.4,12)
+after <- c(16.4,14.1,13.4,15.4,14,11.3)
+xi <- c(before, after)
+ix <- 1:length(before)
+r <- rank(xi)
+sum(r[ix])
+sum(r[-ix])
+wilcox.test(before, after, alternative = "less") 
+
+```
+
+## 10/7/16 Wilcoxon Summed Rank Test  
+
+```{r}
+a <- c(156,183,120,113,138,145,142); n <- length(a)
+b <- c(130,148,117,133,140); m <- length(b)
+df <- data.frame(x = c(a,b), diet = c(rep("a", n), rep("b", m)))
+df$rank <- rank(df$x)
+wa <- sum(df$rank[df$diet == "a"])
+wb <- sum(df$rank[df$diet == "b"])
+W <- wb - (m*(m+1))/2
+plot(ecdf(a), verticals = TRUE, pch="", xlim=c(min(c(a,b)), max(c(a,b))), 
+     col="blue", main="")
+lines(ecdf(b), verticals=TRUE, pch="", col="red")
+```
+
+
+```{r}
+x <- c(1,6,7); m <- length(x)
+y <- c(2,4,9,10,12); n <- length(y)
+df <- data.frame(x = c(x,y), diet = c(rep("x", m), rep("y", n)))
+df$rank <- rank(df$x)
+wx <- sum(df$rank[df$diet == "x"])
+wy <- sum(df$rank[df$diet == "y"])
+W <- wx - (m*(m+1))/2
+pwilcox(W,m,n)*2 # for two sided
+wilcox.test(x,y, conf.int = TRUE, conf.level = 0.9) # they agree
+```
+
+
+$$E(W) = \frac{n(m+n+1)}{2}$$  $$V(W) = \frac{mn(m+n+1)}{12}$$
+
+Normal approximation:  $$Z = \frac{W_{mn} - E(W)}{\sqrt{V(W)}}$$
+
+## Example from page 154  
+
+```{r}
+x <- c(17,18,19,22,23,25,26,29,31,33)
+y <- c(21,24,27,28,30,32,34,35,36,39,41)
+m <- length(x); n <- length(y)
+Mx <- outer(x, y, "<")
+Ux <- sum(apply(Mx, 1, sum))
+My <- outer(y, x, "<")
+Uy <- sum(apply(My, 1, sum))
+min(c(Ux,Uy)) # test statistic
+pwilcox(min(c(Uy,Ux)), m, n)*2 # same p-value as in the book
+test <- wilcox.test(x,y, conf.int = TRUE)
+test # same result
+```
+
+## Setting up the walsh table to create a confidence interval (page 155-156)  
+
+```{r}
+# data from example 6.1, which we already have from the above examle  
+M <- t(outer(sort(x), sort(y), "-"))
+row.names(M) <- sort(y); colnames(M) <- sort(x)
+M
+# note:  We could also get our test stat from this matrix...
+s <- (sign(M))
+sum(s < 0)
+sum(s > 0)
+# values for our confidence interval.  Note, 27 = 26 + 1. 26 is the determined 
+# critical value for alpha at least equal to 0.05
+cv <- sort(as.vector(M))
+cv[27]; sort(cv, decreasing = T)[27] 
+# comparison to the t test confidence interval: 
+t.test(x,y)$conf.int
+
+```
+
+## 6.4.1  
+
+```{r}
+x <- c(177,200,227,230,232,268,272,297)
+y <- c(47,105,126,142,158,172,197,220,225,230,262,270)
+x <- x - (median(x) - median(y)) #shift x
+data <- data.frame(c(x, y), rep(c(0, 1), c(length(x), length(y))))
+names(data) = c("x", "y")
+sort.x <- sort(data$x)
+sort.id <- data$y[order(data$x)]
+x <- data$x
+y <- data$y
+data.matrix <- data.frame(sort.x, sort.id)
+base1 <- c(1, 4)
+iterator1 <- matrix(seq(from = 1, to = length(x), by = 4)) - 1
+rank1 <- apply(iterator1, 1, function(x) x + base1)
+iterator2 <- matrix(seq(from = 2, to = length(x), by = 4))
+base2 <- c(0, 1)
+rank2 <- apply(iterator2, 1, function(x) x + base2)
+if (length(rank1) == length(rank2)) {
+    rank <- c(rank1[1:floor(length(x)/2)],
+              rev(rank2[1:ceiling(length(x)/2)]))
+  } else {
+    rank <- c(rank1[1:ceiling(length(x)/2)],
+              rev(rank2[1:floor(length(x)/2)]))
+  }
+
+unique.ranks <- tapply(rank, sort.x, mean)
+unique.ranks # same as table 6.3 on page 173
+```
+
+
+## 6.5  
+
+Test for a common distribution:  
+
+```{r}
+female <- c(.45,.6,.8,.85,.95,1,1.75)
+male <- c(.4,.5,.55,.65,.7,.75,.9,1.05,1.15,1.25,1.3,1.35,1.45,1.5,
+          1.85,1.9,2.3,2.55,2.7,2.85,3.85)
+test <- ks.test(female, male)
+test
+x <- ecdf(female)
+y <- ecdf(male)
+m <- outer(female, male, "<")
+plot(ecdf(female), verticals = TRUE, pch="",
+     xlim=c(min(c(female,male)), max(c(female,male))), 
+     col="blue", main="", xlab = "")
+lines(ecdf(male), verticals=TRUE, pch="", col="red")
+```
+
+
+## 10-14-16  
+
+Test on 10/16/16 in class will be on: 
+
+- Tests of randomness  
+
+This is a Runs test.  What are some of the alternative hypothesis?  One could be clustering, reject if $R < c$.  Another could be too much mixing, reject if $R > c$.  Another is a trend.  Is there a trend among the data, increasing or decreasing?  Does a small value always follow a large value? and vice versa.  If we have n observations and n-1 plus or minus signs then we would reject the null.  Under the null we expect an equal number of plus and minus signs, thus becoming a sign test.  Another is runs up and down.  
+
+- Test for distribution  
+K-S test.  
+
+- Two sample median  
+- Two sample variance  
+
+## 10/19/16  
+
+Rest of the semester we will cover chapters 7, 10, 11, 12, and 13.  
+And maybe a little bit of chapter 14.  
+
+## 10/26/16  
+
+### Jonckheere-Terpstra Test
+
+```{r}
+one <- c(74,58,68,60,69)
+two <- c(70,72,75,80,71)
+three <- c(73,78,88,85,76)
+x <- c(one,two,three) 
+g <- ordered(factor(c(rep(1,5), rep(2,5),rep(3,5))))
+#install.packages("DescTools")
+library(DescTools)
+JonckheereTerpstraTest(x, g)
+library(clinfun)
+jonckheere.test(x,g) # same result
+# another problem:
+x <- c(48,33,59,48,56,60,101,67,85,107)
+g <- ordered(c(rep(20,1), rep(25,4), rep(30,3), rep(35, 2)))
+JonckheereTerpstraTest(x,g)
+jonckheere.test(x,g)
+```
+
+
+## 10/28/16  
+
+```{r}
+x <- c(13,27,26,22,26,43,35,47,32,31,37,33,37,33,26,44,33,54)
+g <- factor(c(rep("A", 5), rep("B",6), rep("C", 7)))
+test <- kruskal.test(x,g)
+test
+```
+
+Now, nonparametric blocking design....
+
+The model is:
+$$y_{ij} = \mu + \theta_i + \beta_j + \epsilon_{ij}$$  and the null hypothesis is That the $\theta_i$s are all equal, meaning there is no difference between treatments.  
+
+## 7.2  
+
+### Example 7.1  
+
+```{r}
+x <- c(139,145,171,151,163,188,197,199,250,360)
+g <- factor(c(rep("A", 3), rep("B", 4), rep("C", 3)))
+kruskal.test(x,g)
+# another approach.....almost exact :)
+library(coin)
+kruskal_test(x ~ g, distribution = approximate(B = 10000))
+# note, this is using monte carlo simulation...the p-value will
+# change each time this is run...but only slightly.  
+```
+
+## 7.3  The Friedman, Quade and Page Tests  
+
+### Example 7.6  
+
+```{r}
+y <- c(72,120,76,96,120,95,88,132,104,92,120,96,74,101,84,76,96,
+       72,82,112,76)
+time <- factor(rep(1:3, 7)) # blocking factor
+student <- gl(7, 3)
+df <- data.frame(y, student, time)
+f <- function(y, group, block){
+  t <- length(unique(group))
+  b <- length(unique(block))
+  r <- aggregate(y ~ block, df, rank)
+  s <- apply(r[-1], 2, sum)
+  STAT <- ((12 * sum(s^2))/(b*t*(t+1))) - 3*b*(t+1)
+  names(STAT) <- "Friedman Test Statistic"
+  return(STAT)
+}
+# does my function return the correct test statistic?
+f(y, time, student)
+fit <- aov(y ~ time + Error(student), df)
+fit.f <- friedman_test(y ~ time | student, data = df, 
+                       distribution = approximate(B = 100000))
+fit.f2 <- friedman.test(y, time, student)
+# compare the monte carlo approximation with the chi-squared
+fit.f # monte carlo approximation
+fit.f3 # chi-squared
+summary(fit) # parametric with student blocked with Error(student)
+```
+
+
+## Chapter 10  
+
+### Spearman's Correlation Coefficient  11/4/16  
+
+
+### 11-11-16  Notes  
+
+Large Sample Distribution from page 301  
+
+Non-parametric regression will not be on the exam.  
+
+Lecture on section 10.3,  **Agreement** 
+
+
+```{r}
+x <- c(14,19,17,17,16,15,18,16,23,24,22,21,24,23,25,22,26,25,29,28,28,27,
+       27,30,30,33,28,27,32,36,26,32)
+day <- factor(rep(1:8, 4))
+g <- factor(c(rep(24, 8), rep(12, 8), rep(6, 8), rep(4, 8)))
+
+df <- data.frame(x, day, g)
+ranks <- aggregate(x ~ day, df, rank)
+ranks <- ranks[-1]
+Ri <- apply(ranks, 2, sum)
+# friedman test stat with ties:
+St <- sum(Ri^2)/8
+b <- 8; t <- 4
+C <- (b*t*(t+1)^2)/4
+Sr <- sum(ranks$x^2)
+stat <- (b*(t-1)*(St-C))/(Sr - C)
+friedman.test(x, g, day)
+```
+
+
+### Chapter 11  
+
+```{r}
+# Example 11.1 
+x <- 0:6
+y <- c(2.5,3.1,3.4,4,4.6,5.1,11.1)
+# estimate the Betas  
+lm(y ~ x)$coef
+```
+```{r}
+d <- y - x
+cor(x,d, method = "pearson")
+cor.test(x,d, method = "pearson")$p.value
+```
+```{r}
+confint(lm(y ~ x))
+```
+
+
+```{r}
+#example 11.3, same data as 11.1
+
+
+```
+
+
+
+

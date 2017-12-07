@@ -1,0 +1,187 @@
+---
+title: "Lab 5"
+author: "Cody Frisby & Francisco Robles"
+date: "9/30/2017"
+output:
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = F, warning = F)
+source("~/Documents/school/phys2210/physics.R")
+library(ggplot2)
+```
+
+## Activity 1  
+
+###  Drag = 0.01, $\theta = 45$, $v_0 = 30$  
+
+```{r}
+temp <- lab05(drag = 0.01, theta0 = 45, v0 = 30, plot = TRUE)
+```
+
+
+```{r}
+knitr::kable(temp)
+```
+
+
+### Terminal Velocity  
+
+```{r}
+temp <- lab05(drag = 0.1, theta0 = 70, v0 = 80, 
+              dt = 0.03)
+```
+
+```{r}
+gd <- ggplot(data = temp, aes(x = x, y = y)) + 
+      geom_line(color = "dodgerblue") + ylab("Height") +
+  xlab("Displacement")
+df <- reshape::melt(temp[, c("vy", "vx")])
+df$time <- temp$time
+gv <- ggplot(data = df, aes(x = time, y = value, 
+            color = variable)) + ylab("Velocity") +
+  xlab("Time (s)") + theme(legend.title = element_blank()) +
+  geom_line()
+cowplot::plot_grid(gd, gv)
+```
+
+$v_y$ appears to reach $-9.9 \frac{m}{s}$ around 4 seconds.  
+
+```{r, eval = FALSE}
+# terminal velocity and what time? 
+temp <- lab05(drag = 0.1, theta0 = 70, v0 = 80, 
+              dt = 0.03, converge = F, n = 500)
+df <- reshape::melt(temp[, c("vy", "vx")])
+df$time <- temp$time
+gv <- ggplot(data = df, aes(x = time, y = value, 
+            color = variable)) + ylab("Velocity") +
+  xlab("Time (s)") + theme(legend.title = element_blank()) +
+  geom_line()
+gv
+```
+
+
+
+## Activity 2  
+
+```{r}
+RESULT <- lab05.2(km = 200, bm = 3, x0 = 0.001, m = 2, dt = 0.01, 
+                  n = 1000)
+df <- reshape::melt(RESULT[, c("vx", "x")])
+df$time <- RESULT$time
+gx <- ggplot(data = df, aes(x = time, y = value, color = variable)) + 
+      geom_line() + ylab("") + xlab("Time (s)") + 
+      theme(legend.title = element_blank())
+print(gx)
+```
+
+The first 20 values are in the table below.  
+
+```{r}
+knitr::kable(RESULT[1:20, ])
+```
+
+
+## Activity 3  
+
+
+```{r, eval = F}
+df <- lab05.3(n = 3000)
+me <- 5.972 * 10^24
+G <- 6.67408 * 10^-11
+m <- 7.34767309 * 10^22
+df$mx <- -G * me * m / sqrt((df$x^2 + df$y^2))
+df$my <- G * me * m / sqrt((df$x^2 + df$y^2))
+
+plot(df$time, df$my, type = "l", xlab = "", 
+     ylab = "", ylim = c(min(df$my), max(df$my)))
+lines(df$time, df$my)
+grid()
+abline(h = 0, lty = 3)
+abline(v = 0, lty =3)
+```
+
+
+```{r}
+theta <- seq(0,2*pi,len=100)
+e <- 1
+r <- 0.7
+x <- 0.4 + e * r * cos(theta)
+y <- r * sin(theta)
+plot(x, y, type = "l", col = 'dodgerblue', 
+     xlab = "", ylab = "", main = "Satellite Orbit",
+     ylim = c(-1, 1), xlim = c(-0.5, 1.5))
+grid()
+abline(h = 0, lty = 3)
+abline(v = 0, lty =3)
+#rotate with:
+#phi=pi/4
+#xr=x*sin(phi)+y*cos(phi)
+#yr=-x*cos(phi)+y*sin(phi)
+#lot(xr,yr,asp=1)
+```
+
+```{r}
+df <- lab05.3(n = 15)
+knitr::kable(df)
+```
+
+###  Earth's Orbit Around the Sun.  
+
+
+```{r}
+# found this code.  It's a similar example:
+# Earth in circular orbit around Sun
+# Euler method
+G = 3600^2*6.673e-20
+Msun = 1.989e30
+GM = G*Msun
+
+x0 = 149.6e6; vx0 = 0
+y0 = 0; vy0 = 29.786*3600
+tmin = 0; tmax = 8800; dt = 1
+hrs = seq(tmin, tmax, dt)
+n = (tmax - tmin)/dt + 1
+x = x0; vx = vx0; y = y0; vy = vy0
+for(i in 2:n) {
+  dx = vx[i-1]*dt
+  dvx = -GM*x[i-1]/(x[i-1]^2 + y[i-1]^2)^1.5*dt
+  dy = vy[i-1]*dt
+  dvy = -GM*y[i-1]/(x[i-1]^2 + y[i-1]^2)^1.5*dt
+  x[i] = x[i-1] + dx
+  vx[i] = vx[i-1] + dvx
+  y[i] = y[i-1] + dy
+  vy[i] = vy[i-1] + dvy
+}
+r = round(sqrt(x^2 + y^2)*1e-8,3)
+v = round(sqrt(vx^2 + vy^2)/3600,3)
+x = round(x*1e-8,3)
+y = round(y*1e-8,3)
+
+show = seq(1,n,400)
+
+hrsdisp = hrs[show]
+xdisp = x[show]
+ydisp = y[show]
+rdisp = r[show]
+vdisp = v[show]
+
+options(digits=5)
+mat = cbind(hrsdisp,xdisp,ydisp,rdisp,vdisp)
+colnames(mat) = c("hrs", "x/1e8 km", "y/1e8 km", 
+                  "r/1e8 km", "v km/ s")
+#plot(mat[, c(2, 3)], type = "b", col = "red")
+#grid()
+#abline(v = 0, lty = 3)
+#abline(h = 0, lty = 3)
+df <- as.data.frame(mat)
+ggplot(data = df, aes(x = df$`x/1e8 km`, y = df$`y/1e8 km`)) +
+  xlab("") + ylab("") + stat_ellipse(color = "dodgerblue", level = 0.62)
+```
+
+
+
+```{r}
+knitr::kable(mat[1:15, ])
+```

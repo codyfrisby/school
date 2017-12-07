@@ -1,0 +1,294 @@
+---
+title: "Homework 3"
+author: "Cody Frisby"
+date: "10/26/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200,warning=F,message=F)
+library(coin)
+library(nortest)
+library(randtests)
+library(clinfun)
+library(DescTools)
+library(Kendall)
+library(SuppDists) # probability distributions for Kendall and Spearman..
+```
+
+## 7.1  
+
+```{r}
+# data from example 7.2, page 199
+x <- c(13,27,26,22,26,43,35,47,32,31,37,33,37,33,26,44,33,54)
+# C.E. Vulliamy = 1, Ellery Queen = 2, Helen McCloy = 3
+group <- factor(c(rep(1,5), rep(2,6), rep(3,7)))
+fit <- aov(x ~ group)
+fit.np <- kruskal.test(x,group)
+fit.np2 <- kruskal_test(x ~ group, distribution = approximate(B = 10000))
+```
+
+First, I display the ANOVA table from our model. `r knitr::kable(anova(fit))`
+And it can be seen that there is evidence to reject the null hypothesis that all group means are the same, $p = `r anova(fit)[[5]][1]`$. 
+
+This compares reasonably with the non parametric method used in the textbook for example 7.2, where $p = `r fit.np$p.value`$ when the chi-squared approximation is used in R.  Running `kruskal_test` from the `coin` package we can approximate the exact p value by using the argument `distribution = approximate(B = 100000)` or whatever value for B you would like for the number of simulations.  When this is ran on the above data over and over we get p-values very close to 0.0047, the exact p-value mentioned in the text.  **It's also worth mentioning that some the assumptions of the parametric model fit above are not valid**.   
+
+## 7.3  
+
+```{r}
+x <- c(48,33,59,48,56,60,101,67,85,107)
+g <- ordered(c(20, rep(25,4), rep(30,3), rep(35,2)))
+test <- JonckheereTerpstraTest(x,g)
+test2 <- jonckheere.test(x,g)
+U <- test$statistic; names(U) <- NULL
+N <- length(x)
+n <- summary(g); names(n) <- NULL
+E.U <- (N^2 - sum(n^2))/4
+V.U <- (N^2 * (2*N + 3) - sum(n^2 * (2*n + 3)))/72
+z <- (U - E.U)/sqrt(V.U)
+pz <- pnorm(z, lower.tail = FALSE)
+```
+
+First, the test statistic is needed for the asymptotic Jonckheere-Terpstra test and we find that it is `r U`.  $$Z = \frac{U - E(U)}{\sqrt{Var(U)}} = \frac{`r U` - `r E.U`}{\sqrt{`r V.U`}} = `r z`$$  The probability of Z under the standard normal distribution is $`r pz`$.   
+
+## 7.5  
+
+```{r}
+# conduct a Friedman test and an ANOVA on the given data.
+y <- c(3,1,2,4,3,1,3,3,2,4,2,1,3,3,2,0,2,2,2,3,0,0,1,2,2,0,4,1,0,2)
+student <- factor(rep(1:10, 3)) # blocking factor
+group <- factor(c(rep("A", 10), rep("B", 10), rep("C", 10)))
+df <- data.frame(y, student, group)
+fit <- aov(y ~ ., df)
+fit.f <- friedman_test(y ~ group | student, data = df, 
+                       distribution = approximate(B = 100000))
+fit.f3 <- friedman.test(y, group, student)
+# a function to compute the test statistic
+f <- function(y, group, block){
+  t <- length(unique(group))
+  b <- length(unique(block))
+  r <- aggregate(y ~ block, df, rank)
+  s <- apply(r[-1], 2, sum)
+  STAT <- ((12 * sum(s^2))/(b*t*(t+1))) - 3*b*(t+1)
+  names(STAT) <- "Friedman Test Statistic"
+  return(STAT)
+}
+# yo, this function doesn't calculate correctly if there's ties
+```
+
+Running an Approximate (Monte Carlo) Friedman test we get $p = 0.00279$ and running a Friedman test using the chi-squared approximation we get $p = `r fit.f3$p.value`$.  The ANOVA method displayed here `r knitr::kable(anova(fit))`  and the use of either test would lead to the same conclusion.  We would conclude that there is evidence of a difference in recall rates between the three groups.  
+
+## 7.10  
+
+```{r}
+y <- c(170,19,187,10,216,49,7,474,0.4,1.4,27,29,7,1.4,205,0.3,0.2,
+       33,37,9,0.6,63,145,0,0,6,18,1,22,30,3,5,0,36,26,0)
+drug <- gl(3, 12)
+patient <- factor(rep(1:12, 3))
+test <- friedman.test(y, drug, patient)
+test.approx <- friedman_test(y ~ drug | patient, 
+                             distribution = approximate(B = 100000))
+fit <- aov(y ~ drug + patient)
+```
+
+At $\alpha = 0.05$ we would reject the null hypothesis of no difference between groups with blocking by patient, $T = `r test$statistic`$ and $p = `r test$p.value`$ (the chi-squared approximation is used here).  There appears to be a violation of some of the assumptions of the parametric model (see below).  
+
+```{r, fig.width=5}
+plot(fit, which = 1)
+```
+
+Here the assumption of equality of variance appears to be violated.  The p-value for the parametric method is also below the same threshold for $\alpha$.  
+
+## 7.12  
+
+```{r}
+y <- c(3.93,3.78,3.88,3.93,3.84,3.75,3.98,3.84,3.99,3.96,3.96,4.03,4.1,
+       4.02,4.06,3.92,4.08,3.94,4.02,4.06,3.94,4.09,4.17,4.12)
+dose <- gl(3,8)
+block <- factor(rep(1:8, 3))
+test <- friedman.test(y, dose, block)
+test2 <- friedman_test(y ~ dose | block, 
+                       distribution = approximate(B = 100000))
+dose <- ordered(dose)
+test.page <- PageTest(y ~ dose | block)
+```
+
+The result from running The Friedman test is $T = `r test$statistic`$ and $p = `r test$p.value`$.  The result from running a Page test is $L = `r test.page$statistic`$ and $p = `r test.page$p.value`$.  The p-value is much smaller when using the Page method.  
+
+## 7.15  
+
+First, a look at a box plot of the observations.  
+
+```{r, fig.width=5}
+y <- c(156,181,220,238,295,334,342,359,365,374,391,395,481,65,105,121,150,
+       158,170,214,235,238,255,265,390,33,70,87,109,114,132,150,17,184,
+       241,323,79,84,94,259)
+size <- factor(c(rep(0, 13), rep(1, 12), rep(2, 11), rep(3, 4)))
+boxplot(y ~ size, col = "lightblue")
+```
+
+And we can see that there appears to be a relationship between x and y from this plot.  
+
+```{r}
+# the appropriate test could be the jonckheere-terpstra
+g <- ordered(size)
+test <- JonckheereTerpstraTest(y, g, nperm = 10000)
+```
+
+Using the Jonckheere-Terpstra Test we conclude there is an association between spleen size and platelet counts, $JT = `r test$statistic`$ and $p = `r test$p.value`$. 
+
+## 10.2  
+
+Here are the probabilities for $n = 4$ for Spearman's Rank Correlation Coefficient.  
+
+```{r}
+# compute the probabilities when n=4 for spearman's
+n <- 4
+y <- permut(1:4, 4)
+x <- 1:4 # the x ranks
+T0 <- numeric(24)
+for(i in 1:24) {
+  T0[i] <- sum((x - y[i, ])^2)
+}
+r <- 1 - (6 * T0)/(n * (n^2 - 1))
+STAT <- as.matrix(prop.table(table(r)))
+d <- as.matrix(table(r))
+STAT <- cbind(d, STAT)
+colnames(STAT) <- c("number","p-value")
+knitr::kable(STAT)
+```
+
+
+## 10.6  
+
+```{r}
+# Spearman and Kendall correlation coeffs
+x <- 1:7 # US ranks
+y <- c(3,1,4,2,7,6,5)
+design <- factor(letters[1:7]) # UK ranks
+# is there evidence of a positive association between order of preference?
+corr <- cor(x,y)
+T0 <- sum((x-y)^2)
+# writing a function to calculate spearman's rho:
+f <- function(x,y){
+  if(length(x) != length(y)){
+    stop("x and y need to be the same length")
+  }
+  T0 <- sum((x-y)^2)
+  n <- length(x)
+  r <- 1 - ((6 * T0)/(n * (n^2 - 1)))
+  return(c(T0, r))
+}
+test <- cor.test(x,y, method = "spearman", exact = TRUE)
+```
+
+Using $$r_s = \frac{6T}{n(n^2 - 1)}$$ where $T = `r T0`$ and $n = `r length(x)`$ we get `r corr` for the value for Spearman's correlation coefficient.  Testing the significance of this value using `cor.test` in R we get $p = `r test$p.value`$.  
+
+```{r}
+# Kendells Tau
+test <- cor.test(x,y, method = "kendall", exact = TRUE)
+ncnd <- ConDisPairs(rbind(x,y))
+tau <- (15-6)/(7*(7-1)/2)
+```
+
+For Kendall's tau we can find the estimate using $$t_k = \frac{n_c - n_d}{n(n - 1)/2}$$ where $n_c = 15$ and $n_d = 6$, and the estimate on correlation is $`r  test$estimate`$ and $p = `r test$p.value`$.  
+
+## 10.14  
+
+```{r}
+a <- matrix(c(7,2,1,4,96,18,1,10,11), nrow = 3, ncol = 3, byrow = TRUE)
+colnames(a) <- c("DL", "S", "R")
+row.names(a) <- c("DL", "S", "R")
+n <- sum(a)
+p0 <- sum(diag(a))/n
+x <- colSums(a)/n
+y <- rowSums(a)/n
+pe <- sum(x * y)
+k <- (p0-pe)/(1-pe)
+se.k <- sqrt(pe + pe^2 - sum(x*y*(x+y)))/((1-pe)*sqrt(n))
+p <- pnorm(k/se.k, lower.tail = FALSE)
+```
+
+Using $$\kappa = \frac{p_o - p_e}{1 - p_e} =  \frac{`r p0` - `r pe`}{1 - `r pe`} = `r k`$$ indicating moderate agreement between the two experts.  Using the books asymptotic formula for the standard error of $\kappa$ and then plugging in for $Z = \frac{\kappa}{se(\kappa)}$ we get $p = `r p`$, where $z = `r k/se.k`$.  
+
+
+## 12.8  
+
+```{r}
+a <- matrix(c(14,31,34,41), ncol = 2)
+rownames(a) <- c("Pass", "Fail"); colnames(a) <- c("Introvert", "Extrovert")
+rows <- margin.table(a, 1) 
+cols <- margin.table(a, 2)
+b <- cbind(a, rows); colnames(b) <- c("Introvert", "Extrovert", "total")
+b <- rbind(b, c(cols, sum(cols)))
+rownames(b) <- c("Pass", "Fail", "total")
+d <- b/120
+N <- 120
+# here we are checking for independence among the rows and columns. 
+# prop.test(a) will test for this using the chisquare statistic
+m <- outer(rows, cols, "*")/N
+stat <- sum(((m - a)^2)/m)
+stat.c <- sum(((abs(m - a) - 0.5)^2)/m)
+# trying to write a function for the fisher exact p value:
+h <- function(x, a, b, c, d){
+  n <- a+b+c+d
+  (choose(a+c, x) * choose(b+d, a+b - x))/choose(n, a+b)
+}
+# this function returns the individual probabilities
+# from fisher's exact test.  Sum these probabilities
+# to get P(X <= x).  the argument x can be a scalar or vector
+# this result is very close the the below
+p <- sum(h(0:14, 14, 34, 31, 41)) 
+fish <- fisher.test(a, alternative = "less")
+```
+
+`r knitr::kable(b)`
+
+The probability that $X \leq 14$ is $`r p * 2`$ using fisher's exact test.
+There is not evidence to suggest a difference between introvert and extrovert and whether or not one is more or less inclined to pass or fail the test.  Using the chi-squared test $$p = `r chisq.test(a, correct = TRUE)$p.value`$$
+
+
+```{r}
+# 12.9, was unassigned.
+a <- matrix(c(42,20,19,26,18,31,30,41,29,22,31,42,28,19,12,12,21,7),
+              ncol = 3)
+colnames(a) <- c("Excellent", "Reasonable", "Poor")
+rownames(a) <- c("UK", "USA", "France", "Germany", "Portugal", "Brazil")
+# we want to test if there is any indications of difference in views
+rows <- apply(a, 1, sum)
+cols <- apply(a, 2, sum)
+N <- sum(a)
+m <- outer(rows, cols, "*")/N
+stat <- sum((m - a)^2/m)
+test <- chisq.test(a, correct = FALSE)
+```
+
+
+## 12.12  
+
+```{r}
+a <- matrix(c(55,25,38,37,26,19), ncol = 3)
+colnames(a) <- c("English", "Scottish", "Welsh")
+rownames(a) <- c("English Win", "Scottish Win")
+rows <- margin.table(a, 1) 
+cols <- margin.table(a, 2)
+N <- sum(a)
+m <- outer(rows, cols, "*")/N
+stat <- sum(((m - a)^2)/m) # test stat withough correction
+test <- chisq.test(a, correct = FALSE)
+```
+
+The test statistic is `r stat` with $df = 2$, $p = `r pchisq(stat, 2, lower.tail = F)`$.  There is weak evidence of nationality having an influence on preference.  
+
+## 12.21  
+
+```{r}
+a <- matrix(c(523, 345, 230, 554), ncol = 2)
+colnames(a) <- c("True", "False")
+rownames(a) <- c("True", "False")
+stat <- (230-345)^2/(230+345)
+
+```
+
+`r knitr::kable(a)`  We can see from this table that 345 is greater than 230 (the lower corner and the upper corner).  Running the off-diagonal test described in the book we have $$\chi^2 = \sum \frac{(n_{ij} - n_{ji})^2}{n_{ij} + n_{ji}} = `r stat`$$ and the degrees of freedom are $n(n-1)/2 = 1$, where $n = 2$, and $p =  `r pchisq(stat, 1, lower.tail = F)`$.  There is evidence that there is a change in attitude among the respondents.  
+

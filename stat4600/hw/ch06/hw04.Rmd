@@ -1,0 +1,134 @@
+---
+title: "Chapter 6 Homework"
+author: "Cody Frisby"
+date: "10/18/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200)
+```
+
+# Chapter 6 exercises:  1-5  
+
+## 6.1  
+
+
+```{r}
+#sample size
+n <- 5
+# data for xbar chart
+x <- c(34.5,34.2,31.6,31.5,35,34.1,32.6,33.8,34.8,33.6,31.9,38.6,
+       35.4,34,37.1,34.9,33.5,31.7,34,35.1,33.7,32.8,33.5,34.2)
+R <- c(3,4,4,4,5,6,4,3,7,8,3,9,8,6,5,7,4,3,8,4,2,1,3,2)
+m <- length(x)
+
+ucl <- mean(x) + .577*mean(R) # .577 is a table value
+lcl <- mean(x) - .577*mean(R)
+ucl2 <- mean(x) + 3 * sd(x)/sqrt(n) 
+lcl2 <- mean(x) - 3 * sd(x)/sqrt(n) 
+
+# data for Range chart
+R <- c(3,4,4,4,5,6,4,3,7,8,3,9,8,6,5,7,4,3,8,4,2,1,3,2)
+plot(x, type = "b", xlab = "Sample", ylab="xbar", 
+     main="xbar chart", ylim = c(lcl-1,
+                                 max(c(ucl+1,max(x)+1))))
+abline(h=ucl, lty=3, col = "red")
+abline(h=lcl, lty=3, col = "red")
+abline(h=mean(x), lty=3)
+plot(R, type = "b", xlab = "Sample", ylab="Range", 
+     main="Range chart", ylim = c(0*mean(R)-1,
+                                  2.114*mean(R)+1))
+abline(h=2.114*mean(R), col="red", lty=3) # 2.114 is a table value
+abline(h=mean(R), lty=3)
+abline(h=0*mean(R), lty=3, col="red")
+abline(h=mean(R), lty=3, col="black")
+d2 <- 2.326; target <- 30; f <- 10
+sig <- mean(R)/d2
+cv <- pnorm((20-mean(x))/sig) + 1 - pnorm((40-mean(x))/sig)
+```
+
+The process appears to be in statistical control, with only two samples exceeding the control limits.  
+
+We'd like to know the percentage non-conforming if the specification is $30 \pm 10$.  
+The proportion non conforming is approx 0.001528.  We can calculate this value by $$p = P(x < 30-10) + P(x > 30+10) = 
+\Phi(\frac{20 - `r mean(x)`}{`r sig`}) + 1 - \Phi(\frac{40 - `r mean(x)`}{`r sig`}) = `r cv`$$ where `r sig` is equal to $\frac{\bar R}{d_2}$ and $d_2$ is a table value equal to `r d2`.  And so the percentage non-conforming is $100p = `r 100 * cv`$.  We expect less than 1 percent fallout with this process.  
+
+## 6.2  
+
+```{r}
+xdat <- matrix(c(6,10,7,8,9,12,16,7,9,15,8,6,16,7,11,15,9,15,8,13,
+              9,4,8,9,10,11,10,5,7,16,12,13,9,13,7,10,8,7,6,14,
+              10,6,10,6,7,10,8,10,8,10,14,9,13,10,10,11,12,10,9,11,
+              15,11,5,13,13,10,9,4,12,13,16,11,15,12,16,14,10,11,12,15),
+            ncol=4)
+n <- 4
+x <- apply(xdat,1,mean)
+R <- apply(xdat, 1, function(x){max(x)-min(x)})
+
+tv <- .729 #table value
+ucl <- mean(x) + tv*mean(R)
+lcl <- mean(x) - tv*mean(R)
+plot(x, type = "b", xlab = "Sample", ylab="xbar", 
+     main="xbar chart", ylim = c(lcl-1,
+                                 max(c(ucl+1,max(x)+1))))
+abline(h=ucl, lty=3, col = "red")
+abline(h=lcl, lty=3, col = "red")
+abline(h=mean(x), lty=3)
+tvr <- 2.282 #table value
+plot(R, type = "b", xlab = "Sample", ylab="Range", 
+     main="Range chart", ylim = c(0*mean(R)-1,
+                                  tvr*mean(R)+1))
+abline(h=tvr*mean(R), col="red", lty=3) # 2.114 is a table value
+abline(h=mean(R), lty=3)
+abline(h=0*mean(R), lty=3, col="red")
+abline(h=mean(R), lty=3, col="black")
+
+# process capability...:
+# converting data: 
+ydat <- t(apply(xdat, 1, function(x) (x/10) + 350))
+y <- apply(ydat, 1, mean)
+R <- apply(ydat, 1, function(x){max(x)-min(x)})
+d2 <- 2.059; target <- 350; f <- 5
+sig <- mean(R)/d2
+cv <- pnorm((target-f - mean(y))/sig) + (1 - pnorm((target+f -
+                                                     mean(y))/sig))
+```
+
+Looking at the $\bar x$ chart and the R chart it appears that the process is in statistical control although there could be a pattern on the xbar chart that might be of concern.   
+The percent nonconfomring would be $`r 100 * cv`$.    
+
+Running the shapiro-wilk test on the data there doesn't appear to be evidence to reject that the data is normally distributed.  
+
+## 6.3  
+
+```{r}
+obs <- c(-30,0,-50,-10,20,0,0,70,0,10,40,30,30,30,10,0,20,10,50,50,
+         50,50,10,-10,-40,0,0,-30,0,20,0,20,-30,-10,-10,0,20,-20,-10,0,
+         -20,-60,20,30,50,40,20,30,20,30,20,30,0,50,50,30,30,50,40,0,
+         10,-20,30,-20,20,-40,-20,-10,-20,10,0,10,10,-10,40,-10,30,30,20,30,
+         30,30,20,50,10,20,-10,0,10,50,20,40,10,-30,0,0,-20,10,0,10)
+xdat <- matrix(obs, ncol=5)
+x <- apply(xdat,1,mean)
+R <- apply(xdat, 1, function(x){max(x)-min(x)})
+tv <- .577 #table value
+ucl <- mean(x) + tv*mean(R)
+lcl <- mean(x) - tv*mean(R)
+plot(x, type = "b", xlab = "Sample", ylab="xbar", 
+     main="xbar chart", ylim = c(lcl-1,
+                                 max(c(ucl+1,max(x)+1))))
+abline(h=ucl, lty=3, col = "red")
+abline(h=lcl, lty=3, col = "red")
+abline(h=mean(x), lty=3)
+tvr <- 2.004 #table value
+plot(R, type = "b", xlab = "Sample", ylab="Range", 
+     main="Range chart", ylim = c(0*mean(R)-1,
+                                  tvr*mean(R)+1))
+abline(h=tvr*mean(R), col="red", lty=3)
+abline(h=mean(R), lty=3)
+abline(h=0*mean(R), lty=3, col="red")
+abline(h=mean(R), lty=3, col="black")
+d2 <- 2.326
+sig <- mean(R)/d2
+```
+

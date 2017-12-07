@@ -1,0 +1,370 @@
+---
+title: "Chapter 4 Homework"
+author: "Cody Frisby"
+date: "September 28, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi=200, fig.align = 'center',
+                      warning = F, message = F)
+```
+
+
+## 4.5  
+
+$$H_0: \mu = 13.4 \times 1000~\AA ~vs~ H_A:\mu \neq 13.4 \times 1000~\AA$$  
+
+```{r}
+x <- c(13.3987, 13.3957, 13.3902, 13.4015, 13.4001, 13.3918, 13.3965,
+       13.3925, 13.3946,13.4002)
+y <- x*1000
+# an appropriate test might be a t test:
+test <- t.test(y, mu=13400, conf.level = 0.99)
+```
+
+Assuming the data follows a normal distrubution, running a t test for the above stated hypothesis, produces $t = `r test$statistic`$ with $p = `r test$p.value`$, thus rejecting the null hypothesis at $\alpha = 0.05$.  A 99% percent confidence interval would be $$[`r test$conf.int`]$$ noticing that $13.4 \times 10^3$ is contained within this interval.  
+
+The normality assumption appears to be reasonable here.  The Shapiro-Wilk test for normailty shows $p = `r shapiro.test(x)$p.value`$, thus we DO NOT reject the null hypothesis that the data is from the normal distribution.  Additionally the normal quantile probability plot below indicates that the data does not stray too far from the line:  
+
+```{r, fig.width=5}
+qqnorm(y, pch=16)
+qqline(y, lty=3, col="red")
+```
+
+## 4.6  
+
+```{r}
+x <- c(12.03, 12.01, 12.04, 12.02, 12.05, 11.98, 11.96, 12.02, 12.05, 11.99)
+test <- t.test(x, conf.level = 0.99, mu=12)
+```
+
+At $\alpha = 0.01$ it appears we cannot conclude that the mean does not equal 12, $p = `r test$p.value/2`$.  
+
+Two-sided 95% confidence interval is [`r test$conf.int`].  And as can be seen, 12 is contained in this interval, confirming our conclusions above where we cannot reject the null hypothesis.   
+
+Assumption of normality does NOT appear to be violated:  
+
+```{r, fig.width=5}
+qqnorm(x)
+qqline(x, lty=3, col="red")
+```
+
+
+## 4.9  
+
+
+```{r}
+x<- c(10.35, 9.30,10.00, 9.96, 11.65, 12.00, 11.25, 9.58, 11.54, 9.95,
+      10.28, 8.37, 10.44, 9.25, 9.38, 10.85)
+# test the mean: 
+test <- t.test(x, mu=12)
+## Create function to perform chi-square test.
+var.interval <- function(x,sigma0,conf.level = 0.95) {
+  df <- length(x) - 1
+  chilower <- qchisq((1 - conf.level)/2, df)
+  chiupper <- qchisq((1 - conf.level)/2, df, lower.tail = FALSE)
+  v <- var(x)
+  testchi <- df*v/(sigma0^2)
+  alpha <- 1-conf.level
+
+  print(paste("Standard deviation = ", round(sqrt(v),4)),quote=FALSE)
+  print(paste("Test statistic = ", round(testchi,4)),quote=FALSE)
+  print(paste("Degrees of freedom = ", round(df,0)),quote=FALSE)
+  print(" ",quote=FALSE)
+  print("Two-tailed test critical values, alpha=0.05",quote=FALSE)
+  print(paste("Lower = ", round(qchisq(alpha/2,df),4)),quote=FALSE)
+  print(paste("Upper = ", round(qchisq(1-alpha/2,df),4)),quote=FALSE)
+  print(" ",quote=FALSE)
+  print("95% Confidence Interval for Standard Deviation",quote=FALSE)
+  print(c(round(sqrt(df * v/chiupper),4), 
+         round(sqrt(df * v/chilower),4)),quote=FALSE)
+}
+## Perform chi-square test.
+# var.interval(x, 1)
+N <- length(x)
+stat <- (N-1)*(sd(x)/1)^2
+cv <- sqrt(((N-1)*var(x))/qchisq(c(0.975, 0.025), 15))
+```
+
+The test statistic for $H_0: \mu = 12$,  `r test$statistic`, and the confidence interval for the mean is [$`r test$conf.int`$]  
+
+The hypothesis for the variance part of the problem can be stated by $$H_0: \sigma^2 = 1~ vs ~ H_A: \sigma^2 \neq 1$$  
+
+And the test statistic can be computed as $$T = (N-1)\frac{s^2}{\sigma_0^2} = (`r N` -  1)\frac{`r var(x)`}{1^2} = `r stat`$$  
+
+Computing a 95% confidence interval for the standard deviation of our sample, assuming normality, is $$\sqrt{\frac{(n-1)s^2}{\chi^2_{\alpha/2, n-1}}} \leq \sqrt{\sigma^2} \leq \sqrt{\frac{(n-1)s^2}{\chi^2_{1-\alpha/2, n-1}}}$$  $$[`r cv`]$$
+
+```{r}
+u <- sqrt(((N-1)*var(x))/qchisq(.95, N-1, lower.tail = F))
+```
+
+
+An upper 95% confidence interval is equal to `r u`.    
+
+Assumption of normality does NOT appear to be violated:  
+
+```{r, fig.width=5}
+qqnorm(x)
+qqline(x, lty=3, col="red")
+```
+
+## 4.11 
+
+```{r}
+tech1 <- c(1.45,1.37,1.21,1.54,1.48,1.29,1.34)
+tech2 <- c(1.54,1.41,1.56,1.37,1.2,1.31,1.27,1.35)
+test <- t.test(tech1, tech2, var.equal = T)
+test2 <- var.test(tech1, tech2, var.equal = F)
+```
+
+Assuming normality, and testing that the mean measurements of the two technicians are equal, we get a p value of `r test$p.value`.  There is NOT eveidence to reject the null hypothesis that the means are equal.   
+
+If the means were equal here, we might conclude (or at the very least be suspicious) that the two technicians do not measure the surface finish the same.  
+
+A 95% confidence interval from our test is [`r test$conf.int`].  
+
+Looking at the two samples side by side might indicate that there is not a big difference between the two techs  
+
+```{r, fig.width=5, fig.height=4}
+boxplot(tech1, tech2, col = "lightblue")
+```
+
+Visually, looking at the boxplot above, it does not appear that the variances are different.  To be sure, running a variance test comparing the two samples we get a test statistic and p-value of `r test2$statistic` and `r test2$p.value` respectivley and we **DO NOT** reject.  
+The 95% confidence interal is [`r test2$conf.int`] and seeing as 1 is included in this interval, it confirms our conclusions.  
+
+```{r}
+N <- length(tech2)
+stat <- (N-1)*(sd(tech2)/1)^2
+cv <- ((N-1)*var(tech2))/qchisq(c(0.975, 0.025), 15)
+```
+
+And, like 4.9 above, a 95% confidence interval for $\sigma^2$ is [`r cv`].
+
+Assumption of normality does NOT appear to be violated:  
+
+```{r}
+q1 <- qqnorm(tech1, plot.it = F)
+q2 <- qqnorm(tech2, plot.it = F)
+plot(range(q1$x, q2$x), range(q1$y, q2$y), type = "n", 
+     xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", 
+     main = "Normal Q-Q Plot")
+points(q1, pch=1); points(q2, col="red",pch=2)
+qqline(tech1, lty=3); qqline(tech2, col="red", lty=3)
+legend("topleft", legend = c("Tech 1", "Tech 2"), pch = c(1,2),
+       col=c("black", "red"), bty="n")
+```
+
+This plot can also be useful is acessing whether or not the variances are equal.  The two lines are parallell and are approximately the same slope, demonstrating that the variances can be assumed equal.  
+
+
+## 4.12  
+
+First, we define the pooled variance for $n_1$ and $n_2$ $$S_p^2 = \frac{(n_1 - 1)s_1^2 + (n_2 - 1)s_2^2}{n_1 + n_2 - 2}$$ and using this values as an estimate for the pooled variance we develop the CI for $\mu_1 - \mu_2$ $$\bar x_1 - \bar x_2 - t_{\frac{\alpha}{2}, n_1+n_2-2} S_p\sqrt{\frac{1}{n_1}+\frac{1}{n_2}} \leq \mu_1 - \mu_2 \leq \bar x_1 + \bar x_2 - t_{\frac{\alpha}{2}, n_1+n_2-2} S_p\sqrt{\frac{1}{n_1}+\frac{1}{n_2}}$$ But here we have the formual for the CI if we are assuming **EQUAL** variances.  Damn, unequal variances is a little more complex, we have to define another variable, $v$ 
+$$v = \frac{(\frac{s_1^2}{n_1} + \frac{s_2^2}{n_2})^2 } {\frac{(\frac{s_1^2}{n_1})^2}{n_1-1} + \frac{(\frac{s_2^2}{n_2})^2}{n_2-1}} - 2$$  Now using this calculation in the above formula in place of $S_p$ we get $$\bar x_1 - \bar x_2 - t_{\frac{\alpha}{2}, n_1+n_2-2} v\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}} \leq \mu_1 - \mu_2 \leq \bar x_1 - \bar x_2 - t_{\frac{\alpha}{2}, n_1+n_2-2} v\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}$$
+
+## 4.13  
+
+$$H_0: \mu_{salt} = \mu_{oil} ~ vs ~ H_A: \mu_{salt} \neq \mu_{oil}$$
+
+```{r}
+salt <- c(145,150,153,148,141,152,146,154,139,148)
+oil <- c(152,150,147,155,140,146,158,152,151,143)
+test <- t.test(salt, oil, var.equal = TRUE)
+t2 <- var.test(salt, oil)
+```
+
+Testing this hypothesis we get $t = `r test$statistic`$ the probability of this t statistic is $`r test$p.value`$. We **DO NOT** reject the null hypothesis.  
+
+A 95% confidence interval is [`r test$conf.int`].  Confirming the above conclusions, 0 is in this interval.  
+
+We cannot conclude that the variances are **NOT** equal.  The confidence interval for this test is [`r t2$conf.int`].  **1** is contained in this interval, thus we conclude there's isn't any evidence that the two variances are not equal.  
+
+The assumption of equal variances and normality are valid.  
+
+```{r}
+q1 <- qqnorm(salt, plot.it = F)
+q2 <- qqnorm(oil, plot.it = F)
+plot(range(q1$x, q2$x), range(q1$y, q2$y), type = "n", 
+     xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", 
+     main = "Normal Q-Q Plot")
+points(q1, pch=1); points(q2, col="red",pch=2)
+qqline(salt, lty=3); qqline(oil, col="red", lty=3)
+legend("topleft", legend = c("Salt Water", "Oil"), pch = c(1,2),
+       col=c("black", "red"), bty="n")
+```
+
+
+## 4.14  
+
+```{r}
+x <- 18; n <- 200; p <- 0.1; phat <- x/n
+stat <- (x - 0.5 - n*p)/sqrt(n*p*(1-p))
+conf.int <- phat + c(-1,1)*qnorm(.95)*sqrt((phat*(1-phat))/n)
+```
+
+Here, our hypothesis is $$H_0: p = 0.1 ~~ vs ~~ H_A: p \neq 0.1$$  
+
+Computing the estimate for p, $\hat p$, is simply $\frac{18}{200} = `r 18/200`$.  
+Using the normal approximate to the binomial $$Z_0 = \frac{x - 0.5 - np_0}{\sqrt{np_0(1-p_0)}} = \frac{18 - 0.5 - 200*0.1}{\sqrt{200*0.1*0.9}} = `r stat`$$ which is a well inside the critical value of 1.96.  
+
+\vspace{3mm}
+
+Constructing a confidence interval we use the formula $$\hat p \pm Z_{\alpha/2} \sqrt{\frac{\hat p (1 - \hat p)}{n}}$$  and we can see that 0.1 is inside the interval [`r conf.int`]. 
+
+## 4.15  
+
+```{r}
+x <- 65; n <- 500; p <- 0.08; phat <- x/n
+stat <- (x - 0.5 - n*p)/sqrt(n*p*(1-p))
+conf.int <- phat + qnorm(.95)*sqrt((phat*(1-phat))/n)
+```
+
+Here our hypothesis is $$H_0: p = 0.08 ~~ vs ~~ H_A: p \neq 0.08$$  
+
+Computing the estimate for p, $\hat p$, is simply $\frac{65}{500} = `r phat`$.  
+Using the normal approximate to the binomial $$Z_0 = \frac{x - 0.5 - np_0}{\sqrt{np_0(1-p_0)}} = \frac{65 - 0.5 - 500*0.08}{\sqrt{500*0.08*0.92}} = `r stat`$$ which is a well outside the critical value of 1.96.  
+
+Computing the pvalue for our statistic, `r stat`, we get $`r pnorm(stat, lower.tail = F)`$.  We reject the null hypothesis.  A 95% upper confidence interval is `r conf.int`.  
+
+
+## 4.17  
+
+```{r}
+x1 <- 9.85; s1 <- 6.79; n1 <- 10
+x2 <- 8.08; s2 <- 6.18; n2 <- 8
+f0 <- pf(s1/s2, n1, n2)
+t0 <- (x1 - x2)/sqrt((s1/n1)+(s2/n2))
+```
+
+In this example we have paired data.  If we can still assume normality, we can run a paired t test to test our hypothesis $$H_0: \mu_1 - \mu_2 = 0$$  
+
+Computing a test statistic for test if the variances are equal can be accomplished with $$F_0 = \frac{`r s1`}{`r s2`} = `r s1/s2`$$ and computing the probability of this value we get `r f0` and so we cannot reject the null hypothesis that the variances are equal.  
+
+Can we conclude that the new purification device has reduced the mean percentage of impurity?  $$t_0 = \frac{`r x1` - `r x2`}{\sqrt{\frac{`r s1`}{`r n1`}+ \frac{`r s2`}{`r n2`}}} = `r t0`$$  This does not appear to be a very large test statistic, but checking against the critical value under the t distribution with 16 degrees of freedom is `r qt(0.975, n1+n2-2)` which is greater than `r t0` so we **DO NOT** reject the null.  
+
+## 4.19  
+
+```{r}
+mcal <- c(.15,.151,.151,.152,.151,.150,.151,.153,.152,.151,.151,
+          .151)
+vcal <- c(.151,.150,.151,.150,.151,.151,.153,.155,.154,.151,.150,
+          .152)
+test <- t.test(mcal, vcal)
+boxplot(mcal, vcal, col="lightblue")
+```
+
+NO, there doesn't appear to be evidence that there's a difference between the *mean* measurements of the calipers.  Although, there may be evidence to suggest their variances are NOT equal.  From a quality control viewpoint, we may want to investigate the vernier calipers, or perhaps not use them at all.  
+
+## 4.26  
+
+```{r}
+x <- 11; n <- 100; p <- 0.15; phat <- x/n; y <- x/n
+stat <- (x - 0.5 - n*p)/sqrt(n*p*(1-p))
+conf.int <- phat + c(-1,1)*qnorm(.995)*sqrt((phat*(1-phat))/n)
+```
+
+If X ~ Poi($\lambda$) the E[X] = $\lambda$.  And for large values of $\lambda$ X ~ N($\mu = \lambda$, $\sigma^2 = \lambda$).  Let Y = mean no. of defects per glass bottle, $\frac{X}{n}$.  We now have a test that is similar to the test from 4.14.  
+
+Using this we test the hypothesis at $\alpha = 0.05$ $$H_0: y = 0.15$$  
+
+$$Z_0 = \frac{x - 0.5 - y}{\sqrt{y(1-y)}} = \frac{11 - 0.5 - 100 \times `r p`}{\sqrt{100(`r p`)(1 - `r p`)}} = `r stat`$$ which is well within the critical value of `r qnorm(.005)`.  
+
+Computing the pvalue for our statistic, `r stat`, we get $`r pnorm(stat, lower.tail = T)`$.  We **DO NOT** reject the null hypothesis.  A 95% confidence interval is `r conf.int`.  
+
+
+## 4.29  
+
+```{r}
+df <- data.frame(f125 = c(2.7,2.6,4.6,3.2,3,3.8), f160 = 
+                   c(4.6,4.9,5,4.2,3.6,4.2),f200 = c(4.6,2.9,3.4,3.5,4.1,5.1))
+df <- stack(df)
+names(df) <- c("etch", "rate")
+df$rate <- gl(3, 6, labels = c(125, 160, 200))
+fit <- aov(etch ~ rate, df)
+```
+
+Flow rate appears to have a small effect etch uniformity  
+```{r}
+knitr::kable(anova(fit))
+```
+
+although we would not reject at $\alpha = 0.05$.  Having a "small" p-value and by visual inspection of the box plot, we might suspect that there is an effect and perhaps design some follow up experiments.  Setting flow rate to 125 does appear to affect etch uniformity for the best (smaller values being better).  
+
+```{r}
+boxplot(etch ~ rate, df, col="lightblue", xlab = "Flow Rate", ylab = 
+          "Etch Uniformity ")
+```
+
+
+Taking a look at the models residuals here  
+
+```{r}
+plot(fit, which=1)
+```
+
+we see that the assumption of equal variances is probably OK.  And the normality assumption can be assesed by visual inspection of the plot below.  
+
+```{r}
+plot(fit, which=2)
+```
+
+Normality assumption is OK.  
+
+## 4.33  
+
+```{r}
+df <- data.frame(density = c(41.8,41.9,41.7,41.6,41.5,41.7,
+                             41.4,41.3,41.7,41.6,41.7,41.8,
+                             41.2,41.0,41.6,41.9,41.7,41.3,
+                             41.0,40.6,41.8,41.2,41.9,41.5), 
+                 temp = gl(4, 6, labels = c(500,525,550,575)))
+fit <- aov(density ~ temp, df)
+
+```
+
+Firing temperature does not appear to have a large effect on density of the anode. `r knitr::kable(anova(fit))`  
+
+```{r}
+par(mfrow=c(1,2))
+plot(fit, which=c(1,2))
+```
+
+The equality of variances assumption (left plot) appears to be an issue here.  Normality assumption appears to be OK (right plot).  
+
+My suspicion is that the lower the baking temperature the better the anode life.
+
+```{r}
+boxplot(density ~ temp, df, col="lightblue", xlab="Temp", ylab="Density")
+```
+
+My suspicion seems valid after examing the box plots.  Additionally, there may be less variability with the lower temps as well, which is a plus for quality.  
+
+## 4.34  
+
+Taking a look at the residuals plotted by firing temp from the previous example
+
+```{r}
+plot(fit$residuals ~ df$temp, col="lightblue", xlab = "Temp", 
+     ylab = "Residuals")
+```
+
+there does appear to be a trend in variability as the temp increases.  We definitely would reccomend using 500.  
+
+## 4.35  
+
+First taking a look at a plot of the data:  
+
+```{r, fig.height=5}
+df <- data.frame(radon = c(80,83,83,85,75,75,79,79,74,73,76,77,67,72,74,74,
+                           62,62,67,69,60,61,64,66), 
+                 diam = gl(6, 4, labels = c(.37,.51,.71,1.02,1.4,1.99)))
+fit <- aov(radon ~ diam, df)
+boxplot(radon ~ diam, df, col="lightblue", xlab="Diameter", 
+        ylab="Radon Released (%)")
+```
+
+We can immediately see a trend.  Fitting an ANOVA model (assuming equal variance and normality) we get `r knitr::kable(anova(fit))`  The size of the orifice appears to have a strong affect on mean percentage of radon released.  
+
+The wider the opening the less radon is released.  If we wish to minimize the release of radon then we would want the orifice opening to be at least 1.4 if not 1.99.  
+

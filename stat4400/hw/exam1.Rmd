@@ -1,0 +1,289 @@
+---
+title: "Take Home Exam 1"
+author: "Cody Frisby"
+date: "3/3/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, warning=F, message=F, cache = TRUE)
+library(MVA) # library for the textbook.
+library(factoextra)
+```
+
+# 1. The ABC Baseball Team  
+
+```{r}
+# data for problem number 1.
+df <- read.csv("~/Documents/STAT4400/data/baseball.csv")
+id <- df$Player
+df <- df[-1]
+oldnames <- names(df)
+newnames <- c("salary", "average", "onbase", "runs", "hits",
+              "doubles", "homeruns", "walks", "strikeouts", 
+              "errors")
+colnames(df) <- newnames
+row.names(df) <- id
+```
+
+```{r, eval = FALSE}
+#exploratory only, not being included in my report
+combos <- t(combn(1:length(names(df)), 2))
+par(mfrow = c(1,2))
+outliers <- list()
+# plot all 21 plots and store the outliers in a list
+par(mfrow = c(3,3))
+for (i in 1:21) { outliers[[i]] <- bvbox(df[, combos[i,]], 
+    xlab = names(df)[combos[i, ]][1], 
+    ylab = names(df)[combos[i, ]][2], labels = id) 
+} 
+freq <- table(names((unlist(outliers))))
+freq <- as.data.frame(freq)
+freq <- freq[order(freq$Freq, decreasing = TRUE), ]
+names(freq) <- c("Player", "frequency")
+knitr::kable(freq)
+```
+
+## a) Unusual Players  
+
+Bret Barberie is definitely a player who stands out in the two measures of batting average (`r max(df$average)`) and on-base percentage (`r max(df$onbase)`). Barry Bonds and Bobby Bonilla are two players that are notable for salary (6100 and 5150 respectively). Howard Johnson is notable for hitting the most home runs (38) but also for the most errors (31).
+
+## b) Notable Relationships  
+
+Number of hits and number of runs have a strong, positive relationship with $corr = 0.925697$.  Other notable variable associations that have large, positive correlations (above 0.8) include on-base percentage with batting average (0.81), number of doubles with number of runs (0.832), number of doubles with number of hits (0.88), and the number of walks with number of runs (0.839).
+
+## c)  Plot of the Data  
+
+A scatter-plot matrix can succinctly, graphically summarize the data and guide us in drawing some conclusions as to what variables might be highly correlated with one-another and in aiding us with identifying some of the players mentioned in part *a*.
+
+```{r, fig.height=6, cache=T}
+GGally::ggpairs(df[-1], diag = list(continuous = "barDiag"), 
+                mapping = ggplot2::aes(alpha = 0.5))
+```
+
+This plot can be hard to read with this many variables.  It can be helpful to zoom in by looking at all the scatter-plots separately or on a smaller matrix where we remove variables that appear independent from each other.  
+
+## d) Principal Components  
+
+We can describe approximately 90% of the variation in the data with 4 principal components.  Here is a plot showing the relative variance of the principal components and the cumulative variance.  
+
+```{r}
+pc <- prcomp(df[-1], scale. = TRUE)
+# Scree Diagram
+par(mfrow = c(1,2))
+plot(pc$sdev^2, type = "b", xlab = "Component Number", 
+     ylab = "Eigenvalue")
+# plotting the cummulative variance of the principal components
+plot(cumsum(pc$sdev^2)/sum(pc$sdev^2), ylim = c(0, 1.1), 
+     type = "h", lty = 3, xlim = c(0.7, length(pc$sdev) + 0.1), lwd = 2,
+     xlab = "Component Number", ylab = "Cummulative Variance (%)")
+text(1:length(pc$sdev), cumsum(pc$sdev^2)/sum(pc$sdev^2), pos = 3, 
+     paste(round(cumsum(pc$sdev^2)/sum(pc$sdev^2), 3)*100, 
+           sep = ""), cex = 0.5)
+lines(1:length(pc$sdev), cumsum(pc$sdev^2)/sum(pc$sdev^2), lty = 3)
+```
+
+## e) Principal Component Meanings  
+
+Those components, which describe 91.2% of the variance, are displayed here:
+
+`r knitr::kable(pc$rotation[, 1:4])` 
+
+$PC_1$ can be thought of as the scoring ability of a player.  We have the coefficients for *runs*, *hits*, *doubles*, and *homeruns* that are larger (for the most part) than for the other principal components.  $PC_2$ could be thought of as the batting ability of a player, or the ability of getting on base.  This is indicated by the larger values for batting average and on base percentage.  $PC_3$ overwhelmingly appears to be associated with *errors*.  This component could be thought of as a player's **defense** ability.  With $PC_4$ there appears to have one variable (like $PC_3$) that is strongest, *walks*.  This component can be thought of as a players proneness to be walked by the opposing pitcher.  There are, however, other variables that have an interesting, intuitive relationship with *walks*.  As *walks* increase, *average* and *homeruns* decrease.  This makes sense since a player isn't hitting the ball if they are being walked.  
+
+## f) Player Level Analysis  
+
+Brent Barberie is considerably different from the other players in $PC_2$ respects but average for $PC_1$ which are the components we associated with getting on base and scoring ability respectively.  Delino DeShields is a player who stands out for large value for $PC_3$, the "defense" component.  Opposite of him, Andre Dawson, is a player who has low $PC_3$ and $PC_4$ scores.  He isn't walked very often, nor does he make many *errors* which may indicate that he is an excellent defensive player.  
+
+```{r, eval = FALSE}
+# explorator only, not including in my report
+pairs(pc$x[,1:4], xlim = c(-5, 5), ylim = c(-5, 5), 
+      panel = function(x, y, ...){ bvbox(cbind(x, y), add = TRUE,
+                                         labels = id)})
+combos <- t(combn(1:4, 2))
+#par(mfrow = c(1,2))
+outliers <- list()
+# plot all 21 plots and store the outliers in a list
+#par(mfrow = c(1,2))
+for (i in 1:6) { outliers[[i]] <- bvbox(pc$x[, combos[i,]], 
+    xlab = colnames(pc$x[, 1:4])[combos[i, ]][1], 
+    ylab = colnames(pc$x[, 1:4])[combos[i, ]][2], 
+  labels = id) 
+} 
+freq <- table(names((unlist(outliers))))
+freq <- as.data.frame(freq)
+freq <- freq[order(freq$Freq, decreasing = TRUE), ]
+names(freq) <- c("Player", "frequency")
+knitr::kable(freq)
+
+# or we could try:
+spm.cody(pc$x[, 1:4], diagonal = "boxplot", smoother = NULL, 
+         reg.line = NULL, labels = id, id.method = "mahal", 
+         id.n = 2, id.cex = 0.7, cex.labels = 1, ellipse = T)
+library(car)
+Boxplot(pc$x[, 1:4], col = "lightblue", id.method = "y")#, par(cex = 0.5))
+```
+
+## g) Predictors of Player Salary  
+
+Fitting a linear model of the form $$\hat {salary}_i = \hat \beta_0 + \hat \beta_1X_{1i} + \hat \beta_2X_{2i} + \hat \beta_3X_{3i} + \hat \beta_4X_{4i} + \epsilon_i$$ 
+
+where the $X_i$s, for $i = 1, 2, 3, 4$, are the first 4 principal components, we can see clearly that the first principal component is the most predictive of `salary`.  Interestingly, $PC_2$ doesn't appear to predict *salary* very well but $PC_3$, the **defense** component, does.  
+
+```{r}
+X <- pc$x[, 1:4]
+m <- lm(df$salary ~ X)
+temp <- summary(m)
+knitr::kable(temp$coefficients)
+```
+
+
+```{r, eval = FALSE}
+# checking to see if excluding the two highest paid players ...
+# ... changes anything.
+df1 <- df[!(id %in% c("Bobby Bonilla", "Barry Bonds")), ]
+pc2 <- prcomp(df1[-1], scale. = TRUE)
+x <- pc2$x[, 1:4] # using the first 4 components
+m2 <- lm(df1$salary ~ x)
+# looks like our coefficients don't change too much.
+# what about a model without principal components?
+fit <- lm(salary ~ ., df)
+```
+
+
+# 2. Mammals  
+
+```{r}
+# look at the data
+df <- read.csv("~/Documents/STAT4400/data/mammals.csv")
+id <- df$species
+df <- df[-1]
+df$logbody <- log(df$bodyweight)
+df$logbrain <- log(df$brainweight)
+df <- df[-(1:2)]
+```
+
+## 1) Notable Relationships  
+
+There are notable relationships between the variables.  Looking at the correlation matririx there are large values between *logbrain* and *logbody* (0.96), *logbrain* and *gestation* (0.779), as well as *logbrain* and *gestation* (0.77).  `r knitr::kable(cor(df))`
+
+
+```{r}
+# we are to do cannonical corr 
+x <- cbind(df$logbody, df$logbrain)
+colnames(x) <- names(df)[4:5]
+y <- cbind(df$sleeptime, df$lifespan, df$gestation)
+colnames(y) <- names(df)[1:3]
+# first we should test to see if any are significant:
+source("~/Documents/STAT4400/R/cc.bartlett.R")
+#cc.wilks(x, y) # for this set of data, produces NAN, dividing by zero
+cc1 <- CCA::cc(x, y)
+test <- cc.bartlett(x, y)
+```
+
+## 2a)  Test for Independence  
+
+If we can conclude that the correlation between the two sets of variables is zero then they are independent.  The hypothesis for this is
+
+$$H_0: \rho_1 = \rho_2 = 0$$ $$H_A: \rho_i \neq 0$$
+
+for at lease one $\rho_i$.
+
+Using Bartlett's test as outlined in Everitt and Hothorn (2011, pg. 103) where the test statistic $$\phi_0^2 = - \{n - \frac{1}{2}(q_1 + q_2 + 1)\} \sum_{i = 1}^s log(1 - \lambda_i)$$ has a $\chi^2$ distribution with $q_1 \times q_2$ degrees of freedom.  We would reject the null hypothesis, $p < 0.00001$.  There is evidence of correlation between the two sets.
+
+## 2b) Significant Canonical Pairs 
+
+There are 2 cannonical dimensions, so I can run Bartlett's test twice, knocking off $(q_1 - 1)(q_2 - 1)$ degrees of freedom for the second test.  The results are displayed here with p rounded to six places. 
+
+```{r}
+source("~/Documents/STAT4400/R/cc.bartlett.R") # location of function
+bart <- cc.bartlett(x, y) # bartlett function I wrote
+knitr::kable(bart)
+```
+
+We conclude that the first cannonical dimension is significant.  The second dimension may be as well with a small value for p, less than 0.1.  We get a similar result using Wilks Lambda test.
+
+```{r}
+#CCP::p.asym(cc1$cor, 52, 2, 3)
+source("~/Documents/STAT4400/R/cc.wilks.R")
+wilks <- cc.wilks(x, y) # wilks lambda function I modified
+knitr::kable(wilks)
+```
+
+So, depending on our rejection value, I would conclude that there is at least one significant dimension, perhaps two but there is weak evidence of correlation for the second pair.  
+
+## 2c) Correlation  
+
+```{r, eval = FALSE}
+# checking my work
+R <- cor(df)
+r11 <- R[1:3, 1:3]
+r22 <- R[-(1:3), -(1:3)]
+r12 <- R[1:3, -(1:3)]
+r21 <- R[-(1:3), 1:3]
+E1 <- solve(r11) %*% r12 %*% solve(r22) %*% r21
+E2 <- solve(r22) %*% r21 %*% solve(r11) %*% r12
+e1 <- eigen(E1)
+e2 <- eigen(E2)
+```
+
+The correlation between canonical variate pairs, displayed above, are $`r cc1$cor`$ for dimensions 1 and 2 respectively.  
+
+## 2d) Canonical Variates 
+
+I define **weight** as the variate associated with *logbrain* and *logbody* and I define **character** as the variate associated with *sleeptime*, *lifespan*, and *gestation*.  
+
+Here are the raw cannonical variate coefficients for the **weight** variate.
+
+```{r}
+weight <- cc1$scores$corr.X.xscores
+colnames(weight) <- paste("weight", 1:2, sep = "")
+knitr::kable(weight)
+```
+
+And here are those for the **character** variate.
+
+```{r}
+character <- cc1$scores$corr.Y.yscores
+colnames(character) <- paste("character", 1:2, sep = "")
+knitr::kable(character)
+```
+
+## 2e) Interpret Canonical Variates  
+
+Considering **weight**, there is stong correlation between each member variable and $weight_1$.  This can be thought of as the overall mass of each mammal.  There is a much weaker association between the member variables and $weight_2$ (0.32 and 0.04) so it does not yield us much information about the member variables.  These strong linear relationships can be illustraed with a plot.
+
+```{r}
+u <- cc1$scores$xscores
+# plot of member variables with weight1
+par(mfrow = c(1, 2))
+plot(x[,1], u[, 1], xlab = "body weight ln(kg)", ylab = "weight1")
+text(-2.75, 1.5, paste("cor =", round(cor(x[,1], u[, 1]), 4)), cex = 0.75)
+plot(x[,2], u[, 1], xlab = "brain weight ln(kg)", ylab = "weight1")
+text(0, 1.5, paste("cor =", round(cor(x[,2], u[, 1]), 4)), cex = 0.75)
+```
+
+For **character** it can be seen from the above table that there is large correlations between the member variables and $character_1$.  There is a positive relationship for *lifespan* and *gestation* while there is a negative relationship with *sleeptime*.  These linear relationships can also be illustrated with a scatter plot.
+
+```{r, fig.height=3}
+v <- cc1$scores$yscores
+# plot of member variables with weight1
+par(mfrow = c(1, 3))
+plot(y[,1], u[, 1], xlab = "sleep time (hrs/day)", ylab = "character1")
+text(17.3, 2, paste("cor =", round(cor(y[,1], v[,1]), 4)), cex = 0.75)
+plot(y[,2], u[, 1], xlab = "max life span (years)", ylab = "character1")
+text(70, -1.5, paste("cor =", round(cor(y[,2], v[, 1]), 4)), cex = 0.75)
+plot(y[,3], u[, 1], xlab = "gestation time (days)", ylab = "character1")
+text(500, -1.5, paste("cor =", round(cor(y[,3], v[, 1]), 4)), cex = 0.75)
+```
+
+And, finally, a scatter plot of $weight_1$ vs. $character_1$.
+
+```{r}
+plot(u[,1], v[,1], xlab = "weight1", ylab = "character1")
+abline(lm(v[,1] ~ u[,1]), lty = 3, col = "blue")
+text(-1.5, 3, paste("cor =", round(cor(u[,1], v[, 1]), 4)), cex = 0.75)
+```
+
+**NOTE: I only considered the first pair of connical variates since there is only weak evidence of correlation for the second.**  
+

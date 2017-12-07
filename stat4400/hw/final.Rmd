@@ -1,0 +1,466 @@
+---
+title: "Final Exam"
+author: "Cody Frisby"
+date: "5/02/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, warning=F, message=F)
+library(MVA) # library for the textbook but with my modifications.
+```
+
+## 77 Countries  
+
+### Part A  
+
+A first look at the data, using the univariate box plot, we can see that quite a few of the measured characteristics contain countries that could be considered outliers, or very unusual.  
+
+
+```{r 77 countries}
+df <- read.csv("~/Documents/STAT4400/data/77countries.csv")
+# Code and Country are the same thing
+row.names(df) <- df$Country
+df <- df[-1]
+id <- df$Code
+df <- df[-1]
+df$country <- rownames(df)
+## Summary of variables:
+###################
+# Land (in square km), Population (in millions of people), Energy (energy usage), Rural (percent of people living in rural areas), Military (spending on the military as a percentage of budget), Health (health care spending as a percentage of GDP), HIV (percent of adults who are HIV positive), Internet (percent of people with Internet access), Birth Rate, Elderly Pop (percent of population that is elderly), Life Expectancy (in years), GDP (gross domestic product) (per capita???), Electricity (a measure of consumption of electricity, (per capita??))
+######################
+```
+
+
+```{r Boxplot, fig.height=6}
+# packages used for boxplot
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(reshape)
+## function to identify univariate outliers
+is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+}
+# code to prepare data for univariate boxplots
+df_melt <- reshape::melt(df)
+df_melt <- df_melt %>%
+  group_by(variable) %>%
+  mutate(is_outlier = ifelse(is_outlier(value), value, as.numeric(NA)))
+df_melt$country[which(is.na(df_melt$is_outlier))] <- as.numeric(NA)
+## code for univariate boxplots
+gg <- ggplot(df_melt, aes(x = variable, y = value)) + 
+  geom_boxplot(outlier.size = 1, outlier.alpha = 0.35, 
+               outlier.colour = "red")
+gg <- gg + facet_wrap(~variable, scales = "free", nrow = 3) + 
+  theme_bw() + theme(strip.text.x = element_text(size = 7),
+                     axis.title.x = element_blank(),
+                     axis.text.x = element_blank(),
+                     axis.ticks.x = element_blank())
+gg <- gg + geom_text_repel(aes(label = country), na.rm = TRUE, 
+                           size = 2, segment.alpha = 0.5, 
+                           segment.size = 0.5)
+gg <- gg + xlab("") + ylab("Measured Value")
+gg
+```
+
+As can be seen from the above plot, there are many countries among the measured characteristics that are unusual.  Beginning with the top left box plot, *Land*, **Russia** is far beyond the other countries with **Canada** and the **United States** also beyond the bulk of the other countries, among others.  
+
+**India** is highly unusual for the variable *Population* with other outliers **United States** and **Indonesia**, among others.  
+
+For the variable *Energy* the **United States** is far beyond the rest of the countries with **Russia** and **India**, among others, being unusual as well.  
+
+**Sri Lanka** appears to be the most unusual country in terms of the percent of the population living in rural areas.  
+
+**Georgia**, **Singapore**, **Azerbajan**, and the **Kyrgyz Republic** are all unusual for *Military* spending per GDP.  
+
+The percent of the population with *HIV*, African countries appear to be the only one's that are highly unusual with **South Africa** far away from the rest.  
+
+African countries are those that are unusual with *BirthRate* and *LifeExpectancy* variables: **Nigeria**, **Benin**, and **Kenya** (*BirthRate*) and **Nigeria**, **Cameroon**, and **South Africa** being the furthest away from the bulk of the countries in terms of *LifeExpectancy*.  
+
+**Norway** appears to be unusual for both *GDP* (per capita) and *Electricity* (also per capita).  **Iceland** appears to be way beyond the others for **Electricity** per capita.  
+
+
+Regarding relationships among the variables that are notable the following is simply a summary.  I forgo displaying the correlation matrix as it is rather large.  
+
+- *Energy* consumption and *Land* are correlated (0.65).
+- *Rural* is negatively correlated with *Internet*, *LifeExpectancy*, and *GDP* with values of -0.65, -0.61, and -0.58.
+- *LifeExpectancy* has  a correlation coefficient of 0.6 with *Health* and a negative correlation of -0.61 with *HIV*.
+- *Internet* is correlated with *BirthRate*, *ElderlyPop*, *LifeExpectancy*, *GDP*, and *Electricity* with values of -0.7, 0.74, 0.73, 0.82, and 0.63 respectively. 
+- *BirthRate* and *ElderlyPop* are negatively correlated, -0.85, which intuitively makes sense, as well as -0.77 with *LifeExpectancy* and *BirthRate*.
+
+With 13 variables, it is difficult to graphically represent them all and draw conclusions.  Usually the scatter plot matrix is the best in showing the bivariate relationships among all variables but with 13 that plot is difficult to interpret and show in a small space.  I like the above univariate box plot and then the subsequent correlations of all the variables to begin exploring the data when there are this many variables.  
+
+### Part B & C  
+
+Using the principal component analysis procedure we may be able to describe a majority of the variation in the data using indices far less in number than 13.  Using the correlations of the variables, since the variances of the variables are definitely NOT different, I plot the variances of the principal components and also the cumulative sum of the PC variances to guide us in the reduction of dimensions.  
+
+```{r}
+# can we decrease the number of dimenstions?
+pc <- prcomp(df[-14], scale. = TRUE)
+v <- cumsum(pc$sdev^2)/sum(pc$sdev^2) # number of PCs to keep
+par(mfrow = c(1,2))
+plot(pc$sdev^2, type = "b", xlab = "Component Number", 
+     ylab = "Variance")
+# plotting the cummulative variance of the principal components
+plot(v, ylim = c(0, 1.1), type = "h", lty = 3, xlim = c(0.7, 13.1), 
+     lwd = 2, xlab = "Component Number", 
+     ylab = "Cummulative Variance (%)")
+text(1:13, v, pos = 3, 
+     paste(round(v, 3)*100, 
+           sep = ""), cex = 0.4)
+lines(1:13, v, lty = 3)
+```
+
+Components 1-4 explain around 75% of the variation in the data.  We would gain another 10% if we include components 5 and 6.  Looking at the plot on the left it begins to flatten out after the 4th component.  Considering the amount of variation explained by the first 4 components AND the scree diagram showing a leveling out after the 4th one (and for the sake of brevity), I consider an interpretation of the first 4 components.  
+
+
+```{r}
+temp <- pc$rotation[, 1:4]
+knitr::kable(temp)
+```
+
+Table: First 4 principal components from 77 countries dataset
+
+Table 1 shows the coefficients for the first 4 principal components. The interpretation of them will be illustrated with accompanying plots.  
+
+
+```{r, fig.height=3.5, fig.width=7}
+source("~/Documents/STAT4400/R/chapter6.R")
+p2 <- plot.components(pc$x[,1], pc$x[,2], df$country, "PC1", "PC2")
+p3 <- plot.components(pc$x[,1], pc$x[,3], df$country, "PC1", "PC3")
+rect1 <- data.frame(xmin=2.75, xmax=5, ymin=-0, ymax=Inf)
+rect2 <- data.frame(xmin=0.7, xmax=2, ymin=-0.05, ymax=1)
+rect3 <- data.frame(xmin=-Inf, xmax=-2.5, ymin=0, ymax=3)
+p3 <- p3 + geom_rect(data=rect1, aes(xmin=xmin, xmax=xmax, ymin=ymin,
+                             ymax=ymax), color="white",
+              alpha=0.15,inherit.aes = FALSE) + 
+  geom_rect(data=rect2, aes(xmin=xmin, xmax=xmax, ymin=ymin,
+                  ymax=ymax), alpha=0.15,inherit.aes = FALSE) +
+  geom_rect(data=rect3, aes(xmin=xmin, xmax=xmax, ymin=ymin,
+                  ymax=ymax), alpha=0.15,inherit.aes = FALSE)
+p4 <- plot.components(pc$x[,1], pc$x[,4], df$country, "PC1", "PC4")
+library(gridExtra)
+grid.arrange(p2, p4, ncol=2)
+```
+
+*PC1* (as can be seen on the plot above) has a lot of spread from around -3 to 5 on the *PC1* axis.  This is due to loadings on the the original variables (negative values) *Health*, *Internet*, *ElderlyPop*, *LifeExpectancy*, *GDP*, *Electricity*, and positive values *Rural* and *BirthRate*.  This component might be thought of as the overall "quality of life" index.  With extreme negative scores being a high "quality of life" and large positive scores indicating a lower overall "quality of life".  We can see some grouping among countries on the African continent, Central America, and Western Europe/North America, among others (see below *PC1* by *PC3* plot).  
+
+Component 2 (*PC2*) heavily loads on *Population*, *Land*, and *Energy*.  This is illustrated with a bi-variate plot of *PC1* by *PC2* (shown above left) with extreme positive *PC2* values among countries with large *Land*, *Energey*, and/or *Population*.  
+
+*PC3* loads heavily on *HIV* (positive scores correspond to high occurrences of HIV) and *Military* (larger negative scores correspond to higher spending per GDP on military).  There seems to be some clustering of countries that are in western Europe or Scandinavia as can be seen on the *PC1* by *PC3* scatter-plot above.  We can even begin to see some clustering of the countries geographically!  I've drawn some rectangles over those countries that are geographically close as well as close on the plot.  
+
+*PC4* shows much spread from negative to positive scores much like *PC1* (see above *PC1* by *PC4* plot).  *Population* is a dominant variable of this component with large positive values corresponding to large populations (e.g. **India**) and *Military* with large negative scores corresponding to greater spending on the military per GDP.    
+
+```{r}
+p3
+```
+
+
+```{r, eval=FALSE}
+p2 <- plot.components(pc$x[,3], pc$x[,4], df$country, "PC3", "PC4")
+#grid.arrange(p4, p2, ncol=2)
+p3 <- plot.components(pc$x[,2], pc$x[,4], df$country, "PC2", "PC4")
+rect <- data.frame(xmin=2.75, xmax=5, ymin=-0, ymax=Inf)
+p3 <- p3 + geom_rect(data=rect, aes(xmin=xmin, xmax=xmax, ymin=ymin,
+                             ymax=ymax), color="white",
+              alpha=0.15,inherit.aes = FALSE)
+p5 <- plot.components(pc$x[,2], pc$x[,3], df$country, "PC2", "PC3")
+#grid.arrange(p3, p5, ncol=2)
+```
+
+### Part D  
+
+There does appear to be countries that are similar and dissimilar using the first 4 principal components.  As illustrated above with the *PC1* by *PC3* plot, we appear to have some groupings of similar countries that at times even appears to correlate with their geographical locations.  Those countries that have large negative scores for *PC1* would be the "best" to live in since they would tend to correspond to better overall health, longer life expectancy, higher GDP, and perhaps even less crowded.  I'm surprised that the US doesn't appear to have higher scores regarding military spending.    
+
+
+
+## 50 Countries  
+
+It is readily apparent that the variances of the variables are not the same.  Prior to any clustering, we first need to standardize the variances of the variables.  I first chose divide the elements of each variable by their respective standard deviations.  I then tried using the `diff` of each variables' range.  This standardization technique produces a dendogram that has a much clearer structure.  Additionally, **Canada**, **India**, and **Indonesia** are outliers (among others) and will heavily influence any clustering methods so they will be removed (see box-plot below).  
+
+
+```{r}
+df50 <- read.csv("~/Documents/STAT4400/data/50countries.csv")
+rownames(df50) <- df50$Country
+df50$Country <- NULL; df50$Code <- NULL
+df50$country <- rownames(df50)
+```
+
+
+```{r 50 countries, fig.height=6}
+# packages used for boxplot
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+library(reshape)
+## function to identify univariate outliers
+is_outlier <- function(x) {
+  return(x < quantile(x, 0.25) - 1.5 * IQR(x) | x > quantile(x, 0.75) + 1.5 * IQR(x))
+}
+# code to prepare data for univariate boxplots
+df_melt <- reshape::melt(df50)
+df_melt <- df_melt %>%
+  group_by(variable) %>%
+  mutate(is_outlier = ifelse(is_outlier(value), value, as.numeric(NA)))
+df_melt$country[which(is.na(df_melt$is_outlier))] <- as.numeric(NA)
+## code for univariate boxplots
+gg <- ggplot(df_melt, aes(x = variable, y = value)) + 
+  geom_boxplot(outlier.size = 1, outlier.alpha = 0.35, 
+               outlier.colour = "red")
+gg <- gg + facet_wrap(~variable, scales = "free", nrow = 3) + 
+  theme_bw() + theme(strip.text.x = element_text(size = 7),
+                     axis.title.x = element_blank(),
+                     axis.text.x = element_blank(),
+                     axis.ticks.x = element_blank())
+gg <- gg + geom_text_repel(aes(label = country), na.rm = TRUE, 
+                           size = 2, segment.alpha = 0.5, 
+                           segment.size = 0.5)
+gg <- gg + xlab("") + ylab("Measured Value")
+gg
+```
+
+
+After removing the above mentioned 3 countries I use **complete linkage** and draw the dendogram below using both standardization methods mentioned above.  (The labels are not shown due to over-crowding).
+
+
+```{r, fig.width=7.5}
+df50 <- df50[rownames(df50) != "Canada" & rownames(df50) != "India"
+             & rownames(df50) != "Indonesia", ]
+v <- apply(df50[-12], 2, sd) # vector of scalars
+df_range <- apply(df50[-12], 2, function(x) x / diff(range(x)))
+df_sd <- apply(df50[-12], 2, function(x) x / sd(x))
+d <- dist(df_sd)
+hc <- hclust(d)
+library(dendextend)
+# cut dendrogram in 4 clusters
+k <- 2
+clusMember <- cutree(hc, k)
+t_complete <- table(clusMember)
+# using dendrapply
+hcd <- as.dendrogram(hc)
+colLab <- function(n) {
+  if (is.leaf(n)) {
+    a <- attributes(n)
+    labCol <- labelColors[clusMember[which(names(clusMember) == a$label)]]
+    attr(n, "nodePar") <- c(a$nodePar, lab.col = labCol)
+  }
+  n
+}
+labelColors <- 1:k
+clusDendro <- dendrapply(hcd, colLab)
+# make plot
+par(mfrow = c(1,2))
+plot(clusDendro, main = "SD Method", leaflab = "none")
+d <- dist(df_range)
+hc <- hclust(d)
+# cut dendrogram in 4 clusters
+clusMember <- cutree(hc, k)
+t_complete <- table(clusMember)
+# using dendrapply
+hcd <- as.dendrogram(hc)
+clusDendro <- dendrapply(hcd, colLab)
+# make plot
+plot(clusDendro, main = "Range Method", leaflab = "none")
+```
+
+The dendogram on the left doesn't strongly suggest an ideal number of groups to cut the data into but the one on the right suggests the presence of two distinct groups.  I use the range method hereafter.  
+
+The below plot, k vs. within groups sum of squares shows the within group sum of squares for 1 to 7 values for k to try to get an indication for the value for k.  
+
+```{r, fig.height=4.5, fig.width=6}
+n <- 7
+wss <- rep(0, n)
+for (i in 1:n){
+  wss[i] <- sum(kmeans(df_range, centers = i)$withinss)
+}
+plot(wss, type = "b", xlab = "k", ylab = "Within groups SS", 
+     xlim = c(0.9, n + 0.5), ylim = c(min(wss) - 1, max(wss) + 1))
+text(1:n, wss, pos = 4, round(wss,3), cex = 0.65)
+```
+
+It looks like $k=3$ is adequate.
+When $k=3$ the $\frac{between_{SS}}{total_{SS}} = 47\%$.  Below I plot the two methods in a two-dimensional PCA space cutting the members into 3 groups.    
+
+```{r, fig.height=4, fig.width=7.5}
+clusMember <- cutree(hc, 3)
+km <- kmeans(df_range, centers = 3)
+# create the two-dimensional space with prcomp to visualze clusters
+pc <- prcomp(df_range, scale. = TRUE)
+## complete linkage plot
+dt <- data.frame(pc$x[,1], pc$x[,2], z = rownames(df50))
+dt$Group <- as.factor(clusMember)
+names(dt) <- c("x", "y", "z", "Group")
+p1 <- ggplot(data = dt, aes(x = x, y = y)) + theme_bw()
+p1 <- p1 + geom_text_repel(aes(label = z), size = 1.5,
+                             segment.alpha = 0.5,
+                             segment.size = 0.25)
+p1 <- p1 + geom_point(aes(shape = Group, colour = Group), 
+                      size = 3)
+p1 <- p1 + xlab("PC1") + ylab("PC2") + ggtitle("Complete Linkage, cuts=3")
+### k means clustering plot
+dt$Group <- as.factor(km$cluster)
+names(dt) <- c("x", "y", "z", "Cluster")
+p2 <- ggplot(data = dt, aes(x = x, y = y)) + theme_bw()
+p2 <- p2 + geom_text_repel(aes(label = z), size = 1.5,
+                             segment.alpha = 0.5,
+                             segment.size = 0.25)
+p2 <- p2 + geom_point(aes(shape = Cluster, colour = Cluster), 
+                      size = 3)
+p2 <- p2 + xlab("PC1") + ylab("PC2") + ggtitle("Kmeans Clustering, k=3")
+grid.arrange(p1, p2, ncol=2)
+```
+
+For $k=3$ the two methods are fairly similar when visualizing the clusters in a two-dimensional space with k-means doing, perhaps, a better job.  When $k=2$ the two methods' clusters are nearly identical, with disagreement on **Israel** and **Chile** but the $\frac{between_{SS}}{total_{SS}} = 40.2\%$.  Partitioning, for the most part, appears to be on the line $PC1 = 0$.  
+
+```{r, fig.height=4, fig.width=7.5}
+clusMember <- cutree(hc, 2)
+# create the two-dimensional space with prcomp to visualze clusters
+pc <- prcomp(df_range, scale. = TRUE)
+## complete linkage plot
+dt <- data.frame(pc$x[,1], pc$x[,2], z = rownames(df50))
+dt$Group <- as.factor(clusMember)
+names(dt) <- c("x", "y", "z", "Group")
+p1 <- ggplot(data = dt, aes(x = x, y = y)) + theme_bw()
+p1 <- p1 + geom_text_repel(aes(label = z), size = 1.5,
+                             segment.alpha = 0.5,
+                             segment.size = 0.25)
+p1 <- p1 + geom_point(aes(shape = Group, colour = Group), 
+                      size = 3)
+p1 <- p1 + xlab("PC1") + ylab("PC2") + ggtitle("Complete Linkage, cuts=2")
+### k means clustering plot
+km <- kmeans(df_range, centers = 2)
+dt <- data.frame(pc$x[,1], pc$x[,2], z = rownames(df50))
+dt$Group <- as.factor(km$cluster)
+names(dt) <- c("x", "y", "z", "Cluster")
+p2 <- ggplot(data = dt, aes(x = x, y = y)) + theme_bw()
+p2 <- p2 + geom_text_repel(aes(label = z), size = 1.5,
+                             segment.alpha = 0.5,
+                             segment.size = 0.25)
+p2 <- p2 + geom_point(aes(shape = Cluster, colour = Cluster), 
+                      size = 3)
+p2 <- p2 + xlab("PC1") + ylab("PC2") + ggtitle("Kmeans Clustering, k=2")
+grid.arrange(p1, p2, ncol=2)
+```
+
+
+## Road Distances  
+
+```{r}
+x <- c(0,130,98,102,103,100,149,315,91,196,257,186,0,33,50,185,
+       73,33,377,186,94,304,97,0,36,164,54,58,359,166,119,287,113,
+       0,138,77,47,330,139,95,258,146,0,184,170,219,45,186,161,276,
+       0,107,394,181,168,322,93,0,362,186,61,289,130,0,223,351,162,
+       467,0,215,175,275,0,274,184,0,395,0)
+m <- matrix(ncol = 12, nrow = 12)
+m[lower.tri(m, diag = T)] <- x
+cities <- c("Appleton", "Beloit", "Atkinson", "Madison", "Marshfield",
+            "Milwauke", "Monroe", "Superior", "Wausau", "Dubuque",
+            "St.Paul", "Chicago")
+colnames(m) <- cities; rownames(m) <- cities
+d <- as.dist(m)
+cmd1 <- cmdscale(d, k = 1, eig = T)
+cmd2 <- cmdscale(d, k = 2, eig = T)
+cmd3 <- cmdscale(d, k = 3, eig = T)
+f <- function(x){ 
+  e <-cumsum(abs(x$eig)) / sum(abs(x$eig))
+  e2 <- cumsum(x$eig ^ 2) / sum(x$eig ^ 2)
+  df <- data.frame(dim = 1:length(e), abs_eig = e, eig2 = e2)
+  return(df)
+}
+```
+
+The 1, 2, and 3 dimension coordinates are located in table 2.  Dimension 1 is comparable for all three.  Dimension 2 is similar for the 2 and 3 dimension solutions.  
+
+```{r}
+temp <- cbind(cmd1$points, cmd2$points, cmd3$points)
+colnames(temp) <- c("d1", "d21", "d22", "d31", "d32", "d33")
+knitr::kable(temp, row.names = T)
+```
+
+Table: MDS solution for k = 1, 2, 3 dimensions  
+
+Using Google maps I located all the cities and dropped a marker on them.  The two-dimensional solution is shown to the right of it.  Additionally, to get Chicago on the right-hand side of the plot I multiply dimension 1, of the two-dimension solution, by -1.  
+
+
+```{r, fig.height=3.5, fig.width=7}
+library(png)
+library(grid)
+img <- readPNG("~/Documents/STAT4400/hw/map.png")
+g <- rasterGrob(img, interpolate=TRUE)
+p1 <- qplot(1:10, 1:10, geom="blank") + theme_bw() + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(), axis.title.y=element_blank(),
+        axis.ticks.y=element_blank(), axis.text.y=element_blank(),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor =element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_blank()) +
+  annotation_custom(g, xmin=-Inf, xmax=Inf, ymin=-Inf, ymax=Inf)
+p2 <- plot.components(cmd2$points[,1] * -1, cmd2$points[,2], cities)
+grid.arrange(p1, p2, ncol = 2)
+```
+
+The two-dimensional solution appears to match fairly well with the actual map.  It appears to be rotated slightly when compared to the actual map, e.g. **Dubuque** is west of **Chicago** but on the plot it is below it.  
+
+
+## Track Records  
+
+**Note**:  *The longer distance races appear to be in minutes while the shorter races appear to be in seconds.  We can convert the minutes to seconds or leave them, it will not change our solution since we will be operating on the correlation matrix.*  
+
+First I take a look at the eigen values from the correlation matrix of the variables (of which we have 6) and the cumulative variance that they explain in the data.  
+
+```{r}
+df <- read.table("~/Documents/STAT4400/data/track.txt", header = T)
+source("~/Documents/MVA/R/factoranalysis.R")
+df[, 5:7] <- df[, 5:7] * 60 # convert minutes to seconds
+a <- cor(df[-1])
+# k = 2
+temp <- kval(a)
+knitr::kable(temp$data)
+```
+
+We can see that the vast majority of the variance is captured in the first factor.  If we use $k = 2$ we capture approximately $94.6\%$.  This is an acceptably large amount and k is still much less than the number of original variables.    
+
+```{r}
+fit1 <- fls(a, k = 2)
+n <- dim(df)[1]
+fit2 <- factanal(~m100+m200+m400+m800+m1500+m3000, factors = 2, 
+                 data = df[-1], rotation = "varimax", 
+                 scores = "regression")
+mod2 <- cbind(fit2$loadings, fit2$uniquenesses)
+colnames(mod2) <- c("factor1", "factor2", "communality")
+knitr::kable(fit1$model)
+```
+
+Table: Principal component factor analysis solution for k = 2
+
+Table 4 shows the $k=2$ principal component solution.  *Factor1* has large negative values for all the loadings.  *Factor2* appears to be partitioning the variables by sign based on shorter and longer distances.   
+Using $k=2$ and the maximum likelihood method we get a p-value slightly bigger than 0.01, which with $\alpha=0.01$ we would not reject the null hypothesis that 2 factors is sufficient.  Considering this, and that most of the factor loadings are essentially 0 if we allow $k=3$, I also fit the model using maximum likelihood and $k=2$.  Table 5 contains the rotated solutions.  
+
+```{r}
+knitr::kable(mod2)
+```
+
+Table: Maximum likelihood solution for k = 2
+
+I tend to like the loadings produced using the maximum likelihood method as they appear a little easier to interpret.  Most premier runners don't run all distance races.  The sprinters tend to just run the 100-400 meter races while the medium distance runners tend to run 800 meter and above races.  The two-factor solution using maximum likelihood loads heavily on the first three distances (*factor1*) and then on the next three distances (*factor2*).  
+
+As the plot below shows, both methods appear to group the 6 variables into two groups by shorter and longer distances.  The maximum likelihood includes a rotation while the principal component does not.  
+
+```{r, fig.height=3.5, fig.width=6.5}
+p1 <- plot.loadings(fit1$model[,1], fit1$model[,2], colnames(a))
+p1 <- p1 + ggtitle("Principal Component")
+p2 <- plot.loadings(fit2$loadings[,1], fit2$loadings[,2], colnames(a))
+p2 <- p2 + ggtitle("Maximum Likelihood")
+p3 <- plot.loadings(fit2$scores[,1], fit2$scores[,2], df$Country)
+grid.arrange(p1, p2, ncol = 2)
+```
+
+By way of illustration, below is a plot of the two-factor solution, using maximum likelihood, with the points labeled by their respective country.  Most of the countries are grouped around (0, 0) with a few outliers, **USA** with a large negative score for *factor1* (the USA usually has fast female sprinters), **COK** and **KOR_N** with larger positive *factor1* scores.  **SAM** has a large *factor2* score with a *factor1* score around 0.  Perhaps Samoa is exceptionally slow in the longer distance races but about average for the shorter ones.  
+
+```{r, fig.height=4, fig.width=5.5}
+p3
+```
+

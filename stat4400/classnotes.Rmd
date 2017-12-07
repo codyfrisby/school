@@ -1,0 +1,670 @@
+---
+title: "Stat 4400 Class Notes"
+author: "Cody Frisby"
+date: "1/11/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 01-11-17
+
+```{r}
+hypo <- read.csv("~/Documents/STAT4400/dat/hypo.csv")
+# replacing missing values...
+hypo.update <- hypo
+hypo.update$age <- ifelse(is.na(hypo$age), 
+                          mean(hypo$age, na.rm = TRUE), hypo$age)
+hypo.update$IQ <- ifelse(is.na(hypo$IQ), 
+                          mean(hypo$IQ, na.rm = TRUE), hypo$IQ)
+hypo.update
+```
+
+
+```{r}
+# book example:
+measure <- read.csv("~/Documents/STAT4400/dat/measure.csv")
+dist(scale(measure[, c("chest", "waist", "hips")], center = FALSE))
+```
+
+
+## 01-20-17  
+
+Today we used the pottery data for illustration puposes during lecture.
+
+```{r}
+df <- read.csv("~/Documents/STAT4400/dat/pottery.csv")
+x <- df[-1]
+dist(x[1:2, 2:4]) # only euclidean distance, no standardizing.
+# now we standardize the data and calculate the euclidean distance:
+dist(scale(x[1:2, 2:4], center = FALSE), method = "euclidean")
+# now find the city block distance:
+# abs(xi - xj) + abs(yi - yj)
+dist(scale(x[1:2, 2:4], center = FALSE), method = "manhattan")
+```
+
+
+## Chapter 2  
+
+```{r}
+# just re-creating the examples from the book
+df <- read.csv("~/Documents/STAT4400/dat/USairpollution.csv")
+mlab <- "Manufacturing enterprises with 20 or more workers"
+plab <- "Population size (1970 census) in thousands"
+plot(popul ~ manu, data = df, xlab = mlab, ylab = plab)
+```
+
+### Bivariate scatterplot with `rug` 
+```{r}
+# plot with added marginal distribution of the variables
+plot(popul ~ manu, data = df, xlab = mlab, ylab = plab)
+rug(df$manu, side = 1, col = "red")
+rug(df$popul, side = 2, col = "blue")
+```
+
+### Bivariate scatterplot with distributions  
+
+```{r}
+# we can use layout() or par() with mfrow, mfcol as arguments
+# here I use layout(), seems easier for a more complex plot matrix
+layout(matrix(c(2, 0, 1, 3), nrow = 2, byrow = T), widths = c(2,1), 
+       heights = c(1,2), respect = TRUE)
+plot(popul ~ manu, df, xlab = mlab, ylab = plab)
+hist(df$manu, xlab = "", main = "", col = "green")
+boxplot(df$popul, xlab = "", col = "lightblue")
+```
+
+### Bivariate Boxplot  
+
+```{r}
+# bivariate boxplot
+city <- match(lab <- c("Chicago", "Detroit", "Cleveland",
+                       "Philadelphia"), df$X)
+x <- df[, c("manu", "popul")]
+library(MVA) # needed for the bivariate boxplot
+bvbox(x, mtitle = "", xlab = mlab, ylab = plab)
+text(x$manu[city], x$popul[city], labels = lab, cex = 0.6, 
+     pos = c(2,2,4,2))
+# the pos vector allows us to pick which position of each label.  Our choices are
+# 1, 2, 3, or 4.
+
+```
+
+### Correlation 
+
+```{r}
+# we already subsetted the data frame with the two vars of interest
+cor(x)[2,1]
+# or
+with(x, cor(manu, popul))
+```
+
+This is the correlation with the "outliers".  We can exclude the outliers and then re-calculate the correlation.
+
+```{r}
+# we already have a logical indexing vector for the outliers
+with(x[-city, ], cor(manu, popul))
+```
+
+### Convex hull with bivariate data  
+
+
+```{r}
+hull <- chull(x$manu, x$popul)
+with(df, plot(manu, popul, xlab = mlab, ylab = plab))
+with(df[hull, ], polygon(manu, popul, density = 3, angle = 30, lty = 3))
+# now calculate cor without the hull points:
+with(x[-hull, ], cor(manu, popul))
+```
+
+
+### The chi-plot  
+
+```{r}
+# note: the chiplot() function is from the MVA package.
+par(mfrow = c(1,2))
+plot(popul ~ manu, data = df, xlab = mlab, ylab = plab)
+with(df, chiplot(manu, popul))
+```
+
+This illustrates a clear deviation from independence.  
+
+## 01-27-17  
+
+- 1 Scatterplot
+- bivariate boxplot
+
+```{r}
+# chi plot example
+x <- rnorm(100, 50, 49)
+y <- rnorm(100, 30, 4)
+par(mfrow = c(1,2))
+plot(x,y)
+chiplot(x,y)
+```
+
+### Bubble Plot  
+
+```{r}
+library(MVA)
+ylim <- with(USairpollution, range(wind)) * c(0.95, 1)
+plot(wind ~ temp, data = USairpollution,
+     xlab = "Average annual temp (F)", 
+     ylab = "Average annual wind speed (MPH)", ylim = ylim)
+with(USairpollution, 
+     symbols(temp, wind, circles = SO2, inches = 0.5, add = T))
+
+### I like this plot better
+library(ggplot2)
+gg <- ggplot(data = USairpollution, aes(temp, wind, size = SO2))
+gg <- gg + geom_point(colour = "blue") +
+  xlab("Average annual temperature (Fahrenheit)") + 
+  ylab("Average annual wind speed (m.p.h)")
+gg
+
+```
+
+The `bvplot` function contains a function that I can not find on my machine....not sure how it's working behing the scenes.  I did, however, find a copy of this function, `biweight`.  We can source it by running `source("~/Documents/STAT4400/scripts/biweight.R")`.  This is the directory I've placed it in for now. 
+
+**UPDATE** I have changed the MVA package so that it shows the `biweight` function in its namespace now.  
+
+## 2-10-17  
+
+```{r}
+df <- read.csv("~/Documents/STAT4400/data/headsize.csv")
+# visualize the data
+library(MVA)
+a <- df[, c("head1", "head2")]
+bvbox(a)
+# we need some summary stats:
+summary(a)
+cov(a)
+eigen(cov(a))
+# the units are on the same scale so no need to standardize
+head.pca <- princomp(a)
+summary(head.pca)
+# use prcomp rather tahn princomp
+
+```
+
+
+## 2-17-17  
+
+```{r}
+# we are looking at the USairpollution data set
+df <- read.csv("~/Documents/STAT4400/data/USairpollution.csv")
+id <- df$X
+usair_pca <- princomp(df[-1], cor = TRUE)
+pairs(usair_pca$scores, ylim = c(-6, 4), xlim = c(-6, 4),
+      panel = function(x, y, ...){
+        MVA::bvbox(cbind(x,y), add = TRUE)
+      })
+# this matix is too hard to look at. Trying something else
+usPC <- prcomp(df[-1], scale. = TRUE)
+a <- usPC$x
+combos <- t(combn(1:length(colnames(a)), 2))
+for (i in 1:21) { outliers[[i]] <- bvbox(a[, combos[i,]], 
+    xlab = colnames(a)[combos[i, ]][1], 
+    ylab = colnames(a)[combos[i, ]][2], labels = id) 
+}
+```
+
+## `prcomp` vs. `eigen(cor(X))`  
+
+```{r}
+# use the US airpollution data
+library(MVA)
+pc <- prcomp(USairpollution[-1], scale. = TRUE)$rotation
+e <- eigen(cor(USairpollution[-1]))$vectors
+identical(round(abs(pc)[,1],2), round(abs(e)[,1],2))
+```
+
+This returns false, but they sure do look the same.  There must be some differences somewhere.  But take a look at the below line:
+
+```{r}
+round(abs(e[,1]) - abs(pc[,1]), 14)
+```
+
+They look equal to me, to 14 places.  Accurate enough?  I think so.
+
+## 2-22-17  
+
+```{r}
+df <- read.csv("~/Documents/STAT4400/data/headsize.csv")
+df.sd <- sweep(df, 2, apply(df, 2, sd), FUN = "/")
+# this is what sweep is doing:
+df[,1]/sd(df[,1]) # same thing, sweep just does it to all the columns
+# also
+apply(df, 2, function(x) x / sd(x)) #this makes more sense to me than sweep
+# compare computation times:
+system.time(sweep(df, 2, apply(df, 2, sd), FUN = "/"))
+system.time(apply(df, 2, function(x) x / sd(x)))
+# to check which is more efficient, we need a larger data frame.
+df <- data.frame(x = rnorm(1e6), y = rnorm(1e6), 
+                  z = rexp(1e6))
+system.time(sweep(df, 2, apply(df, 2, sd), FUN = "/"))
+system.time(apply(df, 2, function(x) x / sd(x))) 
+# the second one is much more efficient
+rm(df)
+
+# example from page 97
+(r <- cor(df))
+r11 <- r[1:2, 1:2]; r12 <- r[1:2, 3:4]
+r22 <- r[3:4, 3:4]; r21 <- r[3:4, 1:2]
+(E1 <- solve(r11) %*% r12 %*% solve(r22) %*% r21)
+(E2 <- solve(r22) %*% r21 %*% solve(r11) %*% r12)
+e1 <- eigen(E1); e2 <- eigen(E2)
+girth1 <- as.matrix(df.sd[,1:2]) %*% e1$vectors[,1]
+girth2 <- as.matrix(df.sd[,3:4]) %*% e2$vectors[,1]
+shape1 <- as.matrix(df.sd[,1:2]) %*% e1$vectors[,2]
+shape2 <- as.matrix(df.sd[,3:4]) %*% e1$vectors[,2]
+c(cor(girth1, girth2), cor(shape1, shape2))
+cancor(df.sd[,1:2], df.sd[,3:4])$cor # same answer
+cc.head <- CCA::cc(cbind(df$head1, df$breadth1), 
+                   cbind(df$head2, df$breadth2))
+cc.head$cor # same answer as stat package, close to the "by hand" result
+cc.stat <- cancor(df.sd[,1:2], df.sd[,3:4])
+cc.head$scores
+# are the scores the same?
+cbind(girth1, shape1)
+plot(girth1, girth2)
+cc.head$scores$xscores
+plot(cc.head$scores$xscores[,1], cc.head$scores$yscores[,1])
+cor(cc.head$scores$xscores[,1], cc.head$scores$yscores[,1])
+
+```
+
+I'm going to test R `cancor` against SAS `proc cancorr`.  My professor says the results are very different.  
+
+Comparison will be made to example at [this link](http://stats.idre.ucla.edu/sas/dae/canonical-correlation-analysis/).  
+
+```{r}
+df <- read.csv("http://www.ats.ucla.edu/stat/data/mmreg.csv")
+colnames(df) <- c("Control", "Concept", "Motivation", "Read", "Write",
+                  "Math", "Science", "Sex")
+psych <- as.matrix(df[, 1:3])
+acad <- as.matrix(df[, 4:8])
+# package CCA is needed
+CCA::matcor(psych, acad)
+cc.CCA <- CCA::cc(psych, acad)
+cc.stat <- cancor(psych, acad)
+
+# sas spits out cor this way:
+cor(psych, psych)
+cor(acad, acad)
+cor(psych, acad)
+
+```
+
+
+## This code should fulfill Ex. 3.4 when applied to the appropriate data sets.  
+
+```{r}
+# from:
+# http://stats.idre.ucla.edu/r/dae/canonical-correlation-analysis/
+cc1 <- cc(psych, acad)
+cc2 <- comput(psych, acad, cc1)
+# tests of canonical dimensions
+ev <- (1 - cc1$cor^2) # eigen values, or 1 - eigenvalues
+n <- dim(psych)[1]
+p <- length(psych)
+q <- length(acad)
+k <- min(p, q)
+m <- n - 3/2 - (p + q)/2
+w <- rev(cumprod(rev(ev)))
+# initialize
+d1 <- d2 <- f <- vector("numeric", k)
+for (i in 1:k) {
+    s <- sqrt((p^2 * q^2 - 4)/(p^2 + q^2 - 5))
+    si <- 1/s
+    d1[i] <- p * q
+    d2[i] <- m * s - p * q/2 + 1
+    r <- (1 - w[i]^si)/w[i]^si
+    f[i] <- r * d2[i]/d1[i]
+    p <- p - 1
+    q <- q - 1
+}
+pv <- pf(f, d1, d2, lower.tail = FALSE)
+(dmat <- cbind(WilksL = w, F = f, df1 = d1, df2 = d2, p = pv))
+```
+
+## 3-10-17  
+
+We are in chapter 4 now. Multidimensional Scaling.
+
+X -> S -> Eigen of S -> Principal Components -> x scores.
+OR
+X -> D -> Euclidean ...
+     |
+X <- B -> Gram = $X^TX$
+     |
+     Eigen(B)
+
+Compute the errors.  Whats the differnece between our new X and the original X.  
+
+We started example 3 but have not yet finished it.  Continue example 3.
+
+```{r}
+# example from class and book (pg. 110)
+x <- read.csv("~/Documents/STAT4400/data/scalingexample.csv", 
+              header = F)
+D <- as.matrix(dist(x))
+round(D, 4)
+# find B based on the D
+(d2ij <- D^2)
+(d2i. <- rowMeans(D^2))
+(d2.j <- colMeans(D^2))
+(d2.. <- mean(D^2))
+(bij <- d2ij - d2i. + d2..)
+(bij <- -.5 * apply(d2ij, 2, "-"))
+(e <- eigen(bij))
+#........
+  
+# she moved too qickly and I didn't get to copy her code.
+# from the book:
+loc <- cmdscale(dist(x), k = 9, eig = TRUE)
+loc$eig[1:5] # the other eigen values are tiny, basically zero.
+# new X is loc$points
+# checking dimensions
+dim(loc$points)
+dim(x)
+# checking if the five-dimensional solution achieves complete recovery...
+# ... of x
+round(max(abs(dist(x) - dist(loc$points[,1:5]))), 13)
+# cross reference to the principal components of x
+pc <- prcomp(x)
+round(abs(pc$x) - abs(loc$points[, 1:5]), 13) # same to 13 digits
+```
+
+Looking at the cummulative proportion of the eigen values/principal components of $\bf{X}$.
+
+```{r}
+# plotting the cummulative variance of the principal components
+plot(cumsum(pc$sdev^2)/sum(pc$sdev^2), ylim = c(0, 1.1), 
+     type = "h", lty = 3, xlim = c(0.7, length(pc$sdev) + 0.1), lwd = 2,
+     xlab = "Component Number", ylab = "Cummulative Variance (%)")
+text(1:length(pc$sdev), cumsum(pc$sdev^2)/sum(pc$sdev^2), pos = 3, 
+     paste(round(cumsum(pc$sdev^2)/sum(pc$sdev^2), 3)*100, 
+           sep = ""), cex = 0.5)
+lines(1:length(pc$sdev), cumsum(pc$sdev^2)/sum(pc$sdev^2), lty = 3)
+```
+
+What about the values from the `cmdscale` function?  
+
+```{r}
+y <- loc$eig
+plot(cumsum(y)/sum(y), ylim = c(0, 1.1), 
+     type = "h", lty = 3, xlim = c(0.7, length(y) + 0.1), lwd = 2,
+     xlab = "cmdscale eig Number", ylab = "Cummulative Variance (%)")
+text(1:length(y), cumsum(y)/sum(y), pos = 3, 
+     paste(round(cumsum(y)/sum(y), 3)*100, 
+           sep = ""), cex = 0.5)
+lines(1:length(y), cumsum(y)/sum(y), lty = 3)
+```
+
+Interesting.....looks like 5 is the correct number, which is what `pc` function delivers.  We achieve 81.8% variance explanation with 3 dimensions.  
+
+Looking at this same data, x, using *Manhattan distances*.  
+
+```{r}
+loc_m <- cmdscale(dist(x, method = "manhattan"), k = nrow(x) - 1, eig = T)
+# are any eigen values negative?
+loc_m$eig
+```
+
+There appears to be negative eigen values.  How many dimensions are a "good fit"?  
+
+```{r}
+cumsum(abs(loc_m$eig^2)) / sum(abs(loc_m$eig^2))
+```
+
+We reach 0.93 by dimension 3.  
+
+Visually:
+
+```{r}
+y <- abs(loc_m$eig)^2
+plot(cumsum(y)/sum(y), ylim = c(0, 1.1), 
+     type = "h", lty = 3, xlim = c(0.7, length(y) + 0.1), lwd = 2,
+     xlab = "cmdscale eig Number", ylab = "Cummulative Variance (%)")
+text(1:length(y), cumsum(y)/sum(y), pos = 3, 
+     paste(round(cumsum(y)/sum(y), 3)*100, 
+           sep = ""), cex = 0.5)
+lines(1:length(y), cumsum(y)/sum(y), lty = 3)
+```
+
+
+```{r}
+skulls <- read.csv("~/Documents/STAT4400/data/skulls.csv")
+head(skulls)
+s_var <- tapply(skulls[-1], 2, var)
+```
+
+## 3-17-17  
+
+$$\bf{B} = \bf{XX^T}$$ 
+
+The elements of $\bf{B}$ are given by 
+
+$$b_{ij} = \sum_{k = 1}^q x_{ik}x_{jk}$$
+
+In class:
+
+$$stress = $$
+
+```{r}
+# function used
+?MASS::isoMDS
+voting <- HSAUR2::voting
+d <- MASS::isoMDS(voting)
+x <- d$points[,1]
+y <- d$points[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+text (x, y, colnames(voting), cex = 0.6)
+# from ?voting
+sh <- MASS::Shepard(voting[lower.tri(voting)], d$points)
+str(sh)
+
+load(url("http://stat.ethz.ch/Teaching/Datasets/WBL/WWIIleaders.rda"))
+MASS::isoMDS(WWIIleaders)
+```
+
+
+## start chapter 5  
+
+
+```{r}
+# factor analysis
+x <- c(1,.02,.96,.42,.01,.02,1,.13,.71,.85,.96,.13,1,.5,.11,.42,
+       .71,.5,1,.79,.01,.85,.11,.79,1)
+a <- matrix(data = x, byrow = T, ncol = 5)
+fit <- factanal(covmat = a)
+```
+
+
+### working through the class power point:  
+
+```{r}
+m <- matrix(ncol = 4, nrow = 4)
+x <- c(19, 30, 2, 12, 57, 5, 23, 38, 47,68)
+m[lower.tri(m, diag = T)] <- x
+m[upper.tri(m)] <- t(m)[upper.tri(m)]
+lam <- matrix(c(4, 7, -1, 1, 1, 2, 6, 8), ncol = 2)
+psi <- diag(c(2, 4, 1, 3))
+identical(m, lam %*% t(lam) + psi)
+```
+
+Identity: 
+
+$$\Sigma = \Lambda \Lambda^T + \Psi$$
+
+What we desire in factor analysis:
+
+$$S \approx \hat \Lambda \hat \Lambda^T + \hat \Ps$$
+
+Example:
+
+```{r}
+r <- matrix(ncol = 3, nrow = 3)
+x <- c(1, .83, .78, 1, .67, 1)
+r[lower.tri(r, diag = T)] <- x
+r[upper.tri(r)] <- t(r)[upper.tri(r)]
+# I think we can use the psych package but I do not know which
+# function we can use.
+
+```
+
+
+First determine a value for k. 
+
+```{r}
+# determine K
+x <- matrix(c(1, .02, .96, .42, .01, .02, 1, .13, .71, .85, .96,
+                .13, 1, .5, .11, .42, .71, .5, 1, .79, .01, .85,
+                .11, .79, 1), nrow = 5, ncol = 5, byrow = T)
+# writing a function to do this for me :)
+## see MVA::kval for this function kval
+kval(x)
+```
+
+
+Now estimate the factor loadings.  
+
+```{r}
+# see MVA::fl for this function fl.
+fl(x)
+```
+
+Now we need to estimate the communalites
+
+```{r}
+## i wrote another function for this as well.  See fls
+fls(x)
+```
+
+
+### Stock Prices example  
+
+```{r}
+df <- read.table("~/Documents/STAT4400/data/stock-price.txt", 
+                 header = T)
+fit1 <- factanal(df, factors = 1)
+fit1
+fit2 <- factanal(df, factors = 2)
+fit2
+x <- cor(df)
+kval(x)
+fl(x)
+fls(x, k = 1)
+```
+
+Recreating the example from the SAS user guide:
+
+```{r}
+df <- psych::Harman.5
+x <- cor(df)
+source("~/Documents/MVA/R/factoranalysis.R")
+# the function I wrote can guide us to how many factors to retain
+kval(x)$k
+kval(x)$data
+# the SAS example retains 2 factors
+fls(x, k = 2)$model
+```
+
+
+## In class 4-7-17  
+
+
+```{r}
+df <- read.csv("~/Documents/STAT4400/data/life.csv")
+id <- df[1]
+df <- df[-1]
+fa3 <- factanal(df, factors = 3)
+fa2 <- factanal(df, factors = 2)
+```
+
+
+```{r}
+x <- source("~/Documents/STAT4400/data/druguse.R")$value
+library(lattice)
+levelplot(x)
+```
+
+
+```{r}
+# example from class/powerpoint.  pg 153 - 156
+nf <- 6
+fit <- factanal(covmat = x, factors = nf, method = "mle", n.obs = 1634)
+est <- tcrossprod(fit$loadings) + diag(fit$uniquenesses)
+ret <- round(x - est, 3)
+
+```
+
+
+## Start Chapter 6  
+
+The Single linkage algorithm, at each step, joins the clusters whose minimum distance.......
+
+Draw the Dendrogram. 
+
+
+```{r}
+# example of single linkage, which chooses mininum distance.
+df <- read.csv("~/Documents/STAT4400/data/example_cs.csv",
+               row.names = 1)
+?hclust
+plot(cs <- hclust(as.dist(df), method = "single"))
+
+```
+
+
+Complete Linkage example:
+
+```{r}
+plot(cc <- hclust(as.dist(df), method = "complete"))
+```
+
+
+Example from class.  Consider n = 8 points...
+
+```{r}
+x <- c(1,2,1,5,5,4,2,3)
+y <- c(3,4,5,5,7,9,8,10)
+d <- dist(cbind(x, y))
+plot(x, y, xlim = c(min(x) - .5, max(x) + .5), 
+     ylim = c(min(y) - .5, max(y) + .5))
+text(x, y, 1:8, pos = 2, cex = 0.7)
+plot(cs <- hclust(d, method = "single"))
+plot(cs <- hclust(d, method = "complete"))
+```
+
+Where do we "cut"?  We can use the `R` function `cutree`
+
+
+Measure data example: 
+
+```{r}
+df <- read.csv("~/Documents/STAT4400/data/measure.csv")
+d <- dist(df[, c("chest", "waist", "hips")])
+plot(cs <- hclust(d, method = "single"))
+abline(h = 3.7, lty = 3, col = "red")
+abline(h = 3.5, lty = 3, col = "blue")
+```
+
+Use principal components:
+
+```{r}
+pc <- princomp(d, cor = TRUE)
+plot(pc$scores[, 1:2], type = "n")
+lab <- cutree(cs, h = 3.5)
+text(pc$scores[, 1:2], labels = lab, cex = 0.6)
+```
+
+This looks like we have 3, well at least when h = 3.5.  
+
+
+
+

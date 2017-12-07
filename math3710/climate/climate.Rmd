@@ -1,0 +1,101 @@
+---
+title: "Climate Change"
+author: "ccf"
+date: "January 20, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+This is an R Markdwon (Rmd) file for the climate change data shared in class.  We will attempt to translate some of the SAS code into R.
+
+```{r}
+climate <- read.table("~/Documents/MATH3710/climate/Climate.txt", header = TRUE)
+climate$co2_cent <- climate$co2 - mean(climate$co2)
+```
+
+
+Above are simple summary statistics of the data.
+
+Now let's look at a scatter plot of the data.
+
+```{r, fig.align='center', dpi=200}
+x <- climate$co2
+y <- climate$globaltemp
+plot(globaltemp ~ co2, data = climate, bg = "lightblue", 
+     col = "black", cex = 1.5, pch = 21)
+text(x=380, y=-0.1, paste0("Cor = ",round(cor(x,y), 4)), cex = 0.7)
+```
+
+
+Now we fit a linear model in R using the lm function. We will store it in a variable for more use.
+
+```{r}
+fit <- lm(globaltemp ~ co2, data = climate)
+summary(fit) # displays a summary of the model.
+```
+
+Here we will plot the data with confidence intervals too.  This is quite involved in R so the code is quite long.
+
+```{r, fig.align='center', dpi=200}
+plot(y~x,type="n", xlab = "CO2", ylab = "Global Temp")
+m <- lm(y~x)
+wx <- par("usr")[1:2]
+new.x <- seq(wx[1],wx[2],len=100)
+pred <- predict(m, new=data.frame(x=new.x), interval="conf")
+lines(new.x,pred[,"fit"],lwd=2)
+lines(new.x,pred[,"lwr"],lty=3)
+lines(new.x,pred[,"upr"],lty=3)
+points(x,y,pch=16,col="steelblue")
+# now to add the prediction intervals
+predp <- predict(m, new=data.frame(x=new.x), interval = "pred")
+lines(new.x, predp[,"lwr"], lty=2)
+lines(new.x, predp[,"upr"], lty=2)
+title(main="Fit Plot for Temp")
+```
+
+
+Now we will use R to check the assumptions of the model. First we will store the standardized residuals from "fit" and store them in a variable.
+
+```{r, fig.align='center', dpi=200}
+e <- rstandard(fit)
+summary(e)
+# plot residuals by co2
+plot(climate$co2, e, bg = "lightblue", col = "black", pch = 21,
+     xlab = "Co2", ylab = "Residuals", main = "Residuals vs Co2")
+abline(h=0)
+```
+
+More diagnostic plots of our model residuals:
+```{r, fig.align='center', dpi=200, fig.width=6, fig.height=3.5}
+par(mfrow=c(1,2))
+qqnorm(e)
+qqline(e)
+hist(e, breaks = 25, col = "green", freq = FALSE, xlim = c(-3,3), 
+     main = "Hist of rstandard(fit)", xlab = "rstandard")
+```
+
+
+```{r}
+climate$index <- 1:length(climate$co2)
+# first lets create an simple random sample of numbers.  We will use this to sample
+# and subset the original car mpg data set.
+ind <- sample(1:length(climate$co2), 7)
+# now we can subset the carmpg data frame into 2 data frames using this index.
+test <- climate[climate$index %in% ind, ]
+#test <- read.csv("~/Documents/MATH3710/cars/test.csv")
+training <- climate[!(climate$index %in% ind), ]
+#training <- read.csv("~/Documents/MATH3710/cars/training.csv")
+# now to fit a new model with our subsetted training data.
+fit2 <- lm(globaltemp ~ co2, data = training)
+testing <- predict(fit2, newdata = test, interval = "confidence", se.fit = TRUE)
+anova(fit2)
+# SAS proc score is different from R predict() but essetially predict() is testing
+# your training model with your test data.
+# here is the predicted bias:
+predicted_bias <- mean(test$globaltemp - testing$fit[,1])
+mean_square_bias <- mean((test$globaltemp - testing$fit[,1])^2)
+rpmse <- sqrt(mean_square_bias)
+output <- as.data.frame(cbind(predicted_bias, mean_square_bias, rpmse))
+output
+```

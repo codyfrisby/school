@@ -1,0 +1,535 @@
+---
+title: "Class Notes from 4720"
+author: "Cody Frisby"
+date: "1/26/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## CH 7, Central Limit Theorem:  
+
+```{r}
+# Poisson n = 5
+data <- replicate(10000,rpois(5,3))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+length(which(means > 3.6))
+
+# Poisson n = 50
+data <- replicate(10000,rpois(50,3))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+length(which(means > 3.6))
+
+# exponential n = 5
+data <- replicate(10000,rexp(5,.333))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+length(which(means > 3.6))
+
+# exponential n = 50
+data <- replicate(10000,rexp(50,.333))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+length(which(means > 3.6))
+```
+
+## Sampling Distributions  
+
+```{r}
+# sample mean - exponential n = 5
+data <- replicate(10000,rexp(5,.333))
+means <- colMeans(data)
+hist(means)
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+
+# sample mean - exponential n = 50
+data <- replicate(10000,rexp(50,.333))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,1.0))
+curve(dnorm(x,mean=3, sd = 3/sqrt(50)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+
+# sample mean - normal n = 5 mean = 100 sd = 10
+data <- replicate(10000,rnorm(5, 100, 10))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,.1))
+curve(dnorm(x,mean=100, sd = 10/sqrt(5)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+count <- length(which(means > 100+1.96*10/sqrt(5)))
+prob <- count/10000
+prob
+
+# sample mean curve on original data
+hist(data, freq = FALSE, ylim=c(0,.1))
+quantile(data,c(0.025,0.975))
+curve(dnorm(x,mean=100, sd = 10/sqrt(5)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+
+# sample variance - normal n = 5 mean = 100 sd = 10
+data <- replicate(10000,rnorm(5,100,10))
+vars <- apply(data,2,var)
+chi <- vars*(5-1)/100
+hist(chi, freq = FALSE, ylim=c(0,.20))
+curve(dchisq(x,4),0,25,add=T, col = "red")
+mean(chi)
+sd(chi)
+quantile(chi,c(0.025,0.975))
+
+# sample variance - exponential with mean 3
+data <- replicate(10000,rexp(5,1/3))
+vars <- apply(data,2,var)
+chi <- vars*(5-1)/9
+hist(chi, freq = FALSE, ylim=c(0,.20))
+curve(dchisq(x,4),0,25,add=T, col = "red")
+mean(chi)
+sd(chi)
+quantile(chi,c(0.025,0.975))
+
+# sample variance - poisson mean 3
+data <- replicate(10000,rpois(5,3))
+vars <- apply(data,2,var)
+chi <- vars*(5-1)/3
+hist(chi, freq = FALSE, ylim=c(0,.20))
+curve(dchisq(x,4),0,25,add=T, col = "red")
+mean(chi)
+sd(chi)
+quantile(chi,c(0.025,0.975))
+```
+
+## 8.3  
+
+```{r}
+# sample mean - exponential n = 50
+data <- replicate(10000,rexp(50,.333))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,1.0))
+curve(dnorm(x,mean=3, sd = 3/sqrt(50)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+
+# sample mean curve on original exponential data
+hist(data, freq = FALSE, ylim=c(0,1.0))
+quantile(data,c(0.025,0.975))
+curve(dnorm(x,mean=3, sd = 3/sqrt(50)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+# sample mean - Poisson n = 50
+data <- replicate(10000,rpois(50,3))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,2.0))
+curve(dnorm(x,mean=3, sd = sqrt(3)/sqrt(50)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+length(which(means > 3.6))
+
+# sample mean curve on original poisson data
+hist(data, freq = FALSE, ylim=c(0,2.0))
+quantile(data,c(0.025,0.975))
+curve(dnorm(x,mean=3, sd = sqrt(3)/sqrt(50)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+
+# sample variance - exponential n = 50
+data <- replicate(10000,rexp(50,1/3))
+vars <- apply(data,2,var)
+hist(vars)
+mean(vars)
+sd(vars)
+quantile(vars,c(0.025,0.975))
+
+# biased sample variance - exponential n = 50
+data <- replicate(10000,rexp(50,1/3))
+vars <- apply(data,2,var)
+bvars <- vars*49/50
+hist(bvars)
+mean(bvars)
+sd(vars)
+quantile(bvars,c(0.025,0.975))
+
+
+# sample variance - normal n = 50 mean = 100 sd = 10
+data <- replicate(10000,rnorm(50,100,10))
+vars <- apply(data,2,var)
+hist(vars)
+mean(vars)
+sd(vars)
+quantile(vars,c(0.025,0.975))
+
+# biased sample variance - normal n = 50 mean = 100 sd = 10
+data <- replicate(10000,rnorm(50,100,10))
+vars <- apply(data,2,var)
+bvars <- vars*49/50
+hist(bvars)
+mean(bvars)
+sd(bvars)
+quantile(bvars,c(0.025,0.975))
+```
+
+
+## 8.4  
+
+```{r}
+# binomial n = 985 and p = 0.6
+data <- replicate(10000,rbinom(985,1,.6))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,30.0))
+curve(dnorm(x,mean=.6, sd = sqrt(.24)/sqrt(985)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+
+# binomial n = 985 and p = 0.5
+data <- replicate(10000,rbinom(985,1,.5))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,30.0))
+curve(dnorm(x,mean=.5, sd = sqrt(.25)/sqrt(985)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+
+# binomial n = 985 and p = 0.1
+data <- replicate(10000,rbinom(985,1,.1))
+means <- colMeans(data)
+hist(means, freq = FALSE, ylim=c(0,50.0))
+curve(dnorm(x,mean=.1, sd = sqrt(.09)/sqrt(985)), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+mean(means)
+sd(means)
+quantile(means,c(0.025,0.975))
+```
+
+## 8.6  
+
+```{r}
+##  Begin Z-interval for mean
+
+# sample - poisson n = 50 mean = 3
+n <- 50 # sample size
+b <- 10000 # number of simulations
+data <- matrix(replicate(b,rpois(50,3)), ncol = n)
+# data is now a matrix with 50 columns and 10,000 rows
+
+
+## here we are going to write our own z interval function for the mean
+zint <- function(x,alpha=.05) {
+   n<-length(x)
+   z <- qnorm(1-(alpha/2))
+   xbar <- mean(x)
+   s <- sd(x)
+   xbar + c(-1,1)*z*s/sqrt(n)
+  # this will return a z interval with chosen alpha
+}
+
+ints <- apply(data, 1, zint)
+# this is a strange shaped matrix so i take the transpose of it
+ints <- t(ints)
+head(ints) # each row contains the lower and upper bound on your intervals
+ 
+# counting CIs that contain 3
+correct <- ints[,1] < 3 & ints[,2] > 3  
+summary(correct)
+
+# interesting visualization for 100 of your confidence intervals
+s <- sample(1:10000, 100) # randomly selects 100 numbers from 1 to 10000
+conf.int <- ints[s, ] # simple random sample; takes subset of ints
+test <- conf.int[,1] < 3 & conf.int[,2] > 3
+plot(range(conf.int), c(0, 1 + 100), type = "n", 
+     xlab = "mean tail length", ylab = "sample run")
+for (i in 1:100) {
+  lines(conf.int[i,], rep(i, 2), lwd = 2, 
+                       col = ifelse(test[i], "black", "red"))
+}
+abline(v = 3, lwd = 2, lty = 2) # population mean
+
+t(apply(head(data),1,zint, alpha = .05))
+
+##  End Z-interval
+
+## Begin Z-interval for p
+
+# sample - binomial n = 500 and p = 0.5
+n <- 500 # sample size
+b <- 10000 # number of simulations
+data <- matrix(replicate(b,rbinom(500,1,.5)), ncol = n)
+# data is now a matrix with 500 columns and 10,000 rows
+
+## here we are going to write our own z interval function for the proportion
+zintp <- function(x,alpha=.05) {
+   n<-length(x)
+   z <- qnorm(1-(alpha/2))
+   phat <- mean(x)
+   phat + c(-1,1)*z*sqrt(phat*(1-phat)/n)
+  # this will return a z interval with chosen alpha
+}
+
+ints <- apply(data, 1, zintp)
+# this is a strange shaped matrix so i take the transpose of it
+ints <- t(ints)
+head(ints) # each row contains the lower and upper bound on your intervals
+ 
+# counting CIs that contain .5
+correct <- ints[,1] < .5 & ints[,2] > .5  
+summary(correct)
+
+# interesting visualization for 100 of your confidence intervals
+s <- sample(1:10000, 100) # randomly selects 100 numbers from 1 to 10000
+conf.int <- ints[s, ] # simple random sample; takes subset of ints
+test <- conf.int[,1] < .5 & conf.int[,2] > .5
+plot(range(conf.int), c(0, 1 + 100), type = "n", 
+     xlab = "mean tail length", ylab = "sample run")
+for (i in 1:100) {
+  lines(conf.int[i,], rep(i, 2), lwd = 2, 
+                       col = ifelse(test[i], "black", "red"))
+}
+abline(v = .5, lwd = 2, lty = 2) # population proportion
+
+t(apply(head(data),1,zint, alpha = .05))
+
+## End Z-interval for p
+```
+
+## 8.8  
+
+```{r}
+##  Begin Z-interval for mean
+
+# sample - normal dist. mean = 100, sd = 10, n=5
+n <- 5 # sample size
+b <- 10000 # number of simulations
+data <- matrix(replicate(b,rnorm(n,100,10)), ncol = n)
+# data is now a matrix with 5 columns and 10,000 rows
+
+## here we are going to write our own z interval function for the mean
+zint <- function(x,alpha=.05) {
+   n<-length(x)
+   z <- qnorm(1-(alpha/2))
+   xbar <- mean(x)
+   s <- sd(x)
+   xbar + c(-1,1)*z*s/sqrt(n)
+  # this will return a z interval with chosen alpha
+}
+
+ints <- apply(data, 1, zint)
+# this is a strange shaped matrix so i take the transpose of it
+ints <- t(ints)
+head(ints) # each row contains the lower and upper bound on your intervals
+ 
+# counting CIs that contain 100
+correct <- ints[,1] < 100 & ints[,2] > 100  
+summary(correct)
+
+# interesting visualization for 100 of your confidence intervals
+s <- sample(1:10000, 100) # randomly selects 100 numbers from 1 to 10000
+conf.int <- ints[s, ] # simple random sample; takes subset of ints
+test <- conf.int[,1] < 100 & conf.int[,2] > 100
+plot(range(conf.int), c(0, 1 + 100), type = "n", 
+     xlab = "mean tail length", ylab = "sample run")
+for (i in 1:100) {
+  lines(conf.int[i,], rep(i, 2), lwd = 2, 
+                       col = ifelse(test[i], "black", "red"))
+}
+abline(v = 3, lwd = 2, lty = 2) # population mean
+##  End Z-interval
+
+
+##  Begin T-interval for mean
+# sample - normal dist. mean = 100, sd = 10, n=5
+n <- 5 # sample size
+b <- 10000 # number of simulations
+data <- matrix(replicate(b,rnorm(n,100,10)), ncol = n)
+# data is now a matrix with 5 columns and 10,000 rows
+
+## here we are going to write our own function
+tint <- function(x) {
+  t.test(x, conf.level = 0.95)$conf.int 
+  # this will return a confidence interval with alpha = .05
+}
+
+ints <- apply(data, 1, tint)
+# this is a strange shaped matrix so i take the transpose of it
+ints <- t(ints)
+head(ints) # each row contains the lower and upper bound on your intervals
+ 
+# counting CIs that contain 100
+correct <- ints[,1] < 100 & ints[,2] > 100  
+summary(correct)
+
+# interesting visualization for 100 of your confidence intervals
+s <- sample(1:10000, 100) # randomly selects 100 numbers from 1 to 10000
+conf.int <- ints[s, ] # simple random sample; takes subset of ints
+test <- conf.int[,1] < 100 & conf.int[,2] > 100
+plot(range(conf.int), c(0, 1 + 100), type = "n", 
+     xlab = "mean tail length", ylab = "sample run")
+for (i in 1:100) {
+  lines(conf.int[i,], rep(i, 2), lwd = 2, 
+                       col = ifelse(test[i], "black", "red"))
+}
+abline(v = 3, lwd = 2, lty = 2) # population mean
+
+##  End T-interval
+```
+
+
+## 8.9  
+
+```{r}
+##  Begin Normal Distribution
+
+# sample variance - normal n = 30 mean = 100 sd = 10
+n <- 30 # sample size
+b <- 10000 # number of simulations
+data <- matrix(replicate(b,rnorm(30,100,10)), ncol = n)
+# data is now a matrix with 30 columns and 10,000 rows
+vars <- apply(data,1,var) # changing it to rows instead of cols
+hist(vars, col = "green") # add some color to plots ;)
+mean(vars)
+sd(vars)
+quantile(vars,c(0.025,0.975))
+
+## here we are going to write our own chisq interval function
+chisqint <- function(x,alpha=.05) {
+   n<-length(x)
+   chiU <- qchisq(1-(alpha/2),n-1)
+   chiL <- qchisq(alpha/2,n-1)
+   s <- sd(x)
+   (n-1)*s^2/c(chiU,chiL) 
+  # this will return a chi square interval with chosen alpha
+}
+
+t(apply(head(data),1,chisqint, alpha = .05))
+
+ints <- apply(data, 1, chisqint)
+# this is a strange shaped matrix so i take the transpose of it
+ints <- t(ints)
+head(ints) # each row contains the lower and upper bound on your intervals
+ 
+# interesting visualization for 100 of your confidence intervals
+s <- sample(1:10000, 100) # randomly selects 100 numbers from 1 to 10000
+conf.int <- ints[s, ] # simple random sample; takes subset of ints
+test <- conf.int[,1] < 100 & conf.int[,2] > 100
+plot(range(conf.int), c(0, 1 + 100), type = "n", 
+     xlab = "mean tail length", ylab = "sample run")
+for (i in 1:100) {
+  lines(conf.int[i,], rep(i, 2), lwd = 2, 
+                       col = ifelse(test[i], "black", "red"))
+}
+abline(v = 100, lwd = 2, lty = 2) # population mean
+
+# counting CIs that contain 100
+correct <- ints[,1] < 100 & ints[,2] > 100  
+summary(correct)
+##  End Normal distribution
+
+
+##  Begin Gamma Distribution
+
+# sample variance - gamma alpha = 4 and beta = 5
+n <- 30 # sample size
+b <- 10000 # number of simulations
+data <- matrix(replicate(b,rgamma(30,4, .2)), ncol = n)
+# data is now a matrix with 30 columns and 10,000 rows
+vars <- apply(data,1,var) # changing it to rows instead of cols
+hist(vars, col = "green") # add some color to plots ;)
+mean(vars)
+sd(vars)
+quantile(vars,c(0.025,0.975))
+
+## here we are going to write our own chisq interval function
+chisqint <- function(x,alpha=.05) {
+   n<-length(x)
+   chiU <- qchisq(1-(alpha/2),n-1)
+   chiL <- qchisq(alpha/2,n-1)
+   s <- sd(x)
+   (n-1)*s^2/c(chiU,chiL) 
+  # this will return a chi square interval with chosen alpha
+}
+
+t(apply(head(data),1,chisqint, alpha = .05))
+
+ints <- apply(data, 1, chisqint)
+# this is a strange shaped matrix so i take the transpose of it
+ints <- t(ints)
+head(ints) # each row contains the lower and upper bound on your intervals
+ 
+# interesting visualization for 100 of your confidence intervals
+s <- sample(1:10000, 100) # randomly selects 100 numbers from 1 to 10000
+conf.int <- ints[s, ] # simple random sample; takes subset of ints
+test <- conf.int[,1] < 100 & conf.int[,2] > 100
+plot(range(conf.int), c(0, 1 + 100), type = "n", 
+     xlab = "mean tail length", ylab = "sample run")
+for (i in 1:100) {
+  lines(conf.int[i,], rep(i, 2), lwd = 2, 
+                       col = ifelse(test[i], "black", "red"))
+}
+abline(v = 100, lwd = 2, lty = 2) # population mean
+
+# counting CIs that contain 100
+correct <- ints[,1] < 100 & ints[,2] > 100  
+summary(correct)
+ 
+##  End Gamma distribution
+
+##  Begin Poisson Distribution
+
+# sample variance - poisson lambda = 100
+n <- 30 # sample size
+b <- 10000 # number of simulations
+data <- matrix(replicate(b,rpois(30,100)), ncol = n)
+# data is now a matrix with 30 columns and 10,000 rows
+vars <- apply(data,1,var) # changing it to rows instead of cols
+hist(vars, col = "green") # add some color to plots ;)
+mean(vars)
+sd(vars)
+quantile(vars,c(0.025,0.975))
+
+## here we are going to write our own chisq interval function
+chisqint <- function(x,alpha=.05) {
+   n<-length(x)
+   chiU <- qchisq(1-(alpha/2),n-1)
+   chiL <- qchisq(alpha/2,n-1)
+   s <- sd(x)
+   (n-1)*s^2/c(chiU,chiL) 
+  # this will return a chi square interval with chosen alpha
+}
+
+t(apply(head(data),1,chisqint, alpha = .05))
+
+ints <- apply(data, 1, chisqint)
+# this is a strange shaped matrix so i take the transpose of it
+ints <- t(ints)
+head(ints) # each row contains the lower and upper bound on your intervals
+ 
+# interesting visualization for 100 of your confidence intervals
+s <- sample(1:10000, 100) # randomly selects 100 numbers from 1 to 10000
+conf.int <- ints[s, ] # simple random sample; takes subset of ints
+test <- conf.int[,1] < 100 & conf.int[,2] > 100
+plot(range(conf.int), c(0, 1 + 100), type = "n", 
+     xlab = "mean tail length", ylab = "sample run")
+for (i in 1:100) {
+  lines(conf.int[i,], rep(i, 2), lwd = 2, 
+                       col = ifelse(test[i], "black", "red"))
+}
+abline(v = 100, lwd = 2, lty = 2) # population mean
+
+# counting CIs that contain 100
+correct <- ints[,1] < 100 & ints[,2] > 100  
+summary(correct)
+ 
+##  End Poisson distribution
+```
+

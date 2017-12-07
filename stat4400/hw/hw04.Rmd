@@ -1,0 +1,223 @@
+---
+title: "Homework 4"
+author: "Cody Frisby"
+date: "3/17/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, warning=F, message=F, cache = TRUE)
+library(MVA) # library for the textbook but with my modifications.
+```
+
+## 4.1  
+
+```{r}
+# function for s for ex. 4.1
+f <- function(x, y) {
+  i <- x
+  j <- y
+  s <- ifelse(i == j, 9, 
+            ifelse(abs(i - j) >= 1 & abs(i - j) <= 3, 8, 
+            ifelse(abs(i - j) >= 4 & abs(i - j) <= 6, 7,
+            ifelse(abs(i - j) >= 7 & abs(i - j) <= 9, 6,
+            ifelse(abs(i - j) >= 10 & abs(i - j) <= 12, 5,
+            ifelse(abs(i - j) >= 13 & abs(i - j) <= 15, 4,
+            ifelse(abs(i - j) >= 16 & abs(i - j) <= 18, 3,
+            ifelse(abs(i - j) >= 19 & abs(i - j) <= 21, 2,
+            ifelse(abs(i - j) >= 22 & abs(i - j) <= 24, 1, 0)))))))))
+    return(s)
+}
+```
+
+
+```{r}
+# create a matrix with our converted dissimilarities
+m <- outer(1:51, 1:51, f)
+dij <- sqrt(18 - 2 * m[lower.tri(m)])
+d <- matrix(ncol = 51, nrow = 51)
+diag(d) <- 0
+d[lower.tri(d)] <- dij
+a <- as.dist(d, diag = T, upper = F)
+mds <- cmdscale(a, eig = TRUE)
+x <- mds$points[,1]; y <- mds$points[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+txt <- 1:51
+text(x, y, txt, cex = 0.6)
+```
+
+It looks like a necklace.  
+
+## 4.2  
+
+A plot of the two-dimensional solution is displayed here.  
+
+```{r}
+# creating the matrix from the problem.
+m <- diag(0, 8)
+x <- c(21.1,71.2,36.4,52.1,89.9,53,90.1,54.1,36.4,54.1,75.2,73,
+       93.2,36.4,52.1,36.4,75.2,71.2,.70,54.1,52.1,63.4,53,36.4,
+       52.1,88.3,36.4,73)
+m[lower.tri(m)] <- x
+a <- as.dist(m, diag = T, upper = F)
+mds <- cmdscale(a, k = 7, eig = T)
+x <- mds$points[,1]; y <- mds$points[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+txt <- c("assault&batt", "rape", "embez", "perjury", "libel", "burglary", "prostitution", "stolegoods")
+text(x, y, txt, cex = 0.6)
+```
+
+From examining this plot it appears that *rape* an *recieving stolen goods* are viewed as very dissimilar.  Taking a look at the eigen values indicates that a 3 dimension solution is probably adequate.    
+
+```{r}
+e <-cumsum(abs(mds$eig)) / sum(abs(mds$eig))
+e2 <- cumsum(mds$eig ^ 2) / sum(mds$eig ^ 2)
+df <- data.frame(dim = 1:length(e), abs_eig = e, eig2 = e2)
+knitr::kable(df)
+```
+
+
+```{r, eval=FALSE}
+# for my own checks
+dim(m)
+dim(mds$points)
+round(max(abs(m - dist(mds$points[, 1:5]))), 13)
+```
+
+
+## 4.3  
+
+```{r}
+m <- HSAUR2::gardenflowers
+mds <- cmdscale(m, k = 17, eig = TRUE)
+```
+
+A two-dimensional solution using classical multidimensional scaling is shown below.  
+
+```{r}
+x <- mds$points[,1]; y <- mds$points[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+txt <- labels(m)
+txt <- sub(" .*", "", txt)
+text(x, y, txt, cex = 0.6)
+```
+
+Looking at some of the values from the dissimilarity matrix, a two dimension solution does show indications of groupings of some flowers.  Taking a look at some of the flowers, *Begonia* compared to *Broom* has a large value of 0.91 and they are far apart on the plot.  This is desired.  *Broom* and *Forget-me-not* also have a large value, 0.90, and they are far apart on the plot as well.     
+
+```{r, eval = FALSE}
+mds <- cmdscale(m, k = 17, eig = TRUE)
+### seeing how many dimensions needed to recovery
+round(max(abs(m - dist(mds$points[,1:9]))), 13)
+```
+
+Checking on the eigen values, to see how appropriate a two-dimension solution might be we can see that the best solution is probably around 5 or 6 dimensions.  
+
+```{r}
+e <-cumsum(abs(mds$eig)) / sum(abs(mds$eig))
+e2 <- cumsum(mds$eig ^ 2) / sum(mds$eig ^ 2)
+df <- data.frame(dim = 1:length(e), abs_eig = e, eig2 = e2)
+knitr::kable(df)
+```
+
+
+## 4.4  
+
+For this exercise we take a look at voting data from the `HSAUR2` package.  
+
+```{r}
+voting <- HSAUR2::voting
+d <- dist(voting)
+mds <- cmdscale(d, eig = T)
+x <- mds$points[,1]
+y <- mds$points[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+text (x, y, colnames(voting), cex = 0.6)
+```
+
+The locations of the above plot are slightly different from the solution in the book.  But there is still two distinct groupings of the two political parties with republicans on the left hand side and democrats on the right hand side.  We can still detect party affiliations in the data for the most part, **Rinaldo(R)** being the lone exception.  
+
+--------
+
+## R code:
+
+```{r, eval = FALSE, echo=TRUE}
+######  4.1 ######
+# function for s for ex. 4.1
+f <- function(x, y) {
+  i <- x
+  j <- y
+  s <- ifelse(i == j, 9, 
+            ifelse(abs(i - j) >= 1 & abs(i - j) <= 3, 8, 
+            ifelse(abs(i - j) >= 4 & abs(i - j) <= 6, 7,
+            ifelse(abs(i - j) >= 7 & abs(i - j) <= 9, 6,
+            ifelse(abs(i - j) >= 10 & abs(i - j) <= 12, 5,
+            ifelse(abs(i - j) >= 13 & abs(i - j) <= 15, 4,
+            ifelse(abs(i - j) >= 16 & abs(i - j) <= 18, 3,
+            ifelse(abs(i - j) >= 19 & abs(i - j) <= 21, 2,
+            ifelse(abs(i - j) >= 22 & abs(i - j) <= 24, 1, 0)))))))))
+    return(s)
+}
+# create a matrix with our converted dissimilarities
+m <- outer(1:51, 1:51, f)
+dij <- sqrt(18 - 2 * m[lower.tri(m)])
+d <- matrix(ncol = 51, nrow = 51)
+diag(d) <- 0
+d[lower.tri(d)] <- dij
+a <- as.dist(d, diag = T, upper = F)
+mds <- cmdscale(a, eig = TRUE)
+x <- mds$points[,1]; y <- mds$points[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+txt <- 1:51
+text(x, y, txt, cex = 0.6)
+
+#####   4.2  ######
+# creating the matrix from the problem.
+m <- diag(0, 8)
+x <- c(21.1,71.2,36.4,52.1,89.9,53,90.1,54.1,36.4,54.1,75.2,73,
+       93.2,36.4,52.1,36.4,75.2,71.2,70,54.1,52.1,63.4,53,36.4,
+       52.1,88.3,36.4,73)
+m[lower.tri(m)] <- x
+m[upper.tri(m)] <- t(m[lower.tri(m)])
+mds <- cmdscale(m, k = 7, eig = T)
+x <- mds$points[,1]; y <- mds$points[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+txt <- c("assault&batt", "rape", "embez", "perjury", "libel", "burglary",
+         "prostitution", "stolegoods")
+text(x, y, txt, cex = 0.6)
+e <-cumsum(abs(mds$eig)) / sum(abs(mds$eig))
+e2 <- cumsum(mds$eig ^ 2) / sum(mds$eig ^ 2)
+df <- data.frame(dim = 1:length(e), abs_eig = e, eig2 = e2)
+knitr::kable(df)
+
+#####  4.3  ######
+m <- HSAUR2::gardenflowers
+mds <- cmdscale(m, k = 17, eig = TRUE)
+x <- mds$points[,1]; y <- mds$points[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+txt <- labels(m)
+txt <- sub(" .*", "", txt)
+text(x, y, txt, cex = 0.6)
+e <-cumsum(abs(mds$eig)) / sum(abs(mds$eig))
+e2 <- cumsum(mds$eig ^ 2) / sum(mds$eig ^ 2)
+df <- data.frame(dim = 1:length(e), abs_eig = e, eig2 = e2)
+knitr::kable(df)
+
+#####  4.4  ######
+voting <- HSAUR2::voting
+d <- dist(voting)
+mds <- cmdscale(d)
+x <- mds[,1]
+y <- mds[,2]
+plot(x, y, xlab = "Coordiante 1", ylab = "Coordinate 2", type = "n", 
+     xlim = range(x) * 1.1)
+text (x, y, colnames(voting), cex = 0.6)
+
+```
+

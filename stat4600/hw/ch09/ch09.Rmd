@@ -1,0 +1,200 @@
+---
+title: "Chapter 9 Homework"
+author: "Cody Frisby"
+date: "11/9/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+library(qcc); library(SixSigma); library(qualityTools)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+## Assignment: ##
+# 1, 2, 9, 18, 19
+```
+
+
+## 9.1  
+
+```{r, fig.height=6}
+x <- c(1045,1055,1037,1064,1095,1008,1050,1087,1125,1146,1139,1169,1151,
+       1128,1238,1125,1163,1188,1146,1167)
+mu <- 1050
+s <- 25
+k <- s/2
+cs <- cusum(x, plot = TRUE, center = 1050, std.dev = 25, add.stats = F)
+x.mu <- x - mu; C <- cumsum(x.mu)
+xplus <- x - (mu + k)
+xminus <- (mu - k) - x
+cplus <- cs$pos
+cminus <- cs$neg
+df <- data.frame(x, x.mu, C, xplus, xminus, cplus, cminus)
+#knitr::kable(df)
+qc <- qcc(x, type = "xbar.one", plot = F)
+s <- qc$std.dev
+# for loop from Evan: 
+n <- length(x)-1
+v <- numeric(n+1)
+v[1] <- 0
+k <- .5
+mu0 <- 10
+for(i in 2:(n+1)) {
+  v[i] <- max(0,x[i]-(mu0+k)+v[i-1])
+}
+w <- numeric(n+1)
+w[1] <- 0.05
+for(i in 2:(n+1)) {
+  w[i] <- max(0, (mu0 - k) - x[i] + w[i-1])
+}
+```
+
+K is typically 0.5 times the shift that is desired to be detected.  Since the desired detection is $1.0\sigma$  $$\frac{1}{2}\sigma = `r 25/2`$$.  
+
+There are 11 observations that are beyond the boundry of $5\sigma = 125$.  
+
+
+### b) 
+The estimate for $\sigma$ in part a doesn't seem reasonable, $\hat \sigma = `r s`$.  
+
+## 9.2  
+
+Using $$y_i = \frac{x_i - \bar x}{\hat \sigma}$$  
+
+```{r, fig.height=6}
+x <- c(1045,1055,1037,1064,1095,1008,1050,1087,1125,1146,1139,1169,1151,
+       1128,1238,1125,1163,1188,1146,1167)
+x <- (x - mean(x))/sd(x)
+qc <- qcc(x, type = "xbar.one", plot = F)
+mu <- qc$center; s <- qc$std.dev
+cs <- cusum(x, plot = T, add.stats = F)
+x.mu <- x - mu; C <- cumsum(x.mu)
+xplus <- x - (mu + k)
+xminus <- (mu - k) - x
+cplus <- cs$pos
+cminus <- cs$neg
+df <- data.frame(x, x.mu, C, xplus, xminus, cplus, cminus)
+```
+
+Standardizing has no effect on the ability to detect OOC points. 
+
+## 9.9  
+
+```{r}
+x <- c(3169,3173,3162,3154,3139,3145,3160,3172,3175,3205,3203,3209,
+       3208,3211,3214,3215,3209,3203,3185,3187,3192,3199,3197,3193,
+       3190,3183,3197,3188,3183,3175,3174,3171,3180,3179,3175,3174)
+qc <- qcc(x, type = "xbar.one", plot = F)
+d2 <- 1.128
+R <- abs(diff(x))
+s <- mean(R)/d2
+```
+
+To estimate the process standard deviation, where $n = 1$, we first calculate the moving range of the oberservations $x$.  $$Moving~Range = `r R`$$  $$\hat \sigma = \frac{\bar R}{d_2} = \frac{`r mean(R)`}{`r d2`} = `r s`$$  
+
+
+See plot below (red points are above or below h):  
+
+```{r, comment= ""}
+
+# for loop from Evan: 
+n <- length(x)
+v <- numeric(n)
+v[1] <- 0
+k <- 0.25
+h <- 8.01
+mu0 <- 3200
+for(i in 2:(n)) {
+  v[i] <- max(0, x[i] - (mu0+k) + v[i-1])
+}
+w <- numeric(n)
+w[1] <- 30.75
+for(i in 2:n) {
+  w[i] <- max(0, (mu0 - k) - x[i] + w[i-1])
+}
+plot(c(1, length(x)) ,range(max(c(5, v)), min(-5, w*-1)), 
+     type = "n", xlab = "", ylab = "")
+points(v, type = "b", pch = 16, col = ifelse(v > h, "red", "black"))
+points(w*-1, type = "b", pch = 16, col = ifelse(w*-1 < -h, "red", "black"))
+abline(h = 0, lty = 1, lwd = 2)
+abline(h = c(-1,1)*h, lty = 2)
+```
+
+
+## 9.18  
+
+```{r}
+u0 <- 10; s <- 1; i <- 1
+# part a
+lam <- 0.1; L <- 3
+ucl <- u0 + L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+lcl <- u0 - L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+```
+
+With $\lambda = `r lam`$ when $i = 1$
+
+$$UCL = `r ucl`$$
+$$LCL = `r lcl`$$
+
+```{r}
+# part b
+lam <- 0.2; L <- 3
+ucl <- u0 + L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+lcl <- u0 - L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+```
+
+With $\lambda = `r lam`$ when $i = 1$
+
+$$UCL = `r ucl`$$
+$$LCL = `r lcl`$$
+
+```{r}
+# part c
+lam <- 0.4; L <- 3
+ucl <- u0 + L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+lcl <- u0 - L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+```
+
+With $\lambda = `r lam`$ when $i = 1$
+
+$$UCL = `r ucl`$$
+$$LCL = `r lcl`$$
+
+It appears that the affect of $\lambda$ is a positive one, meaning as $\lambda$ increases so do our LCL and UCL.  
+
+As $i$ increases our control limits become steady.  For example, when $i = 20$ and $\lambda = `r lam`$ we get
+
+```{r}
+i <- 20
+ucl <- u0 + L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+lcl <- u0 - L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+```
+
+$$UCL = `r ucl`$$
+$$LCL = `r lcl`$$
+
+```{r}
+i <- 20; lam = 0.2
+ucl <- u0 + L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+lcl <- u0 - L * s * sqrt((lam/(2-lam)) * (1 - (1-lam)^(2*i)))
+```
+
+Or with $\lambda = `r lam`$ we get 
+$$UCL = `r ucl`$$
+$$LCL = `r lcl`$$  
+
+
+## 9.19  
+
+```{r, fig.height=6}
+# data from 9.4 with lam = 0.2, L = 3
+x <- c(8,8.01,8.02,8.01,8,8.01,8.06,8.07,8.01,8.04,8.02,8.01,8.05,
+       8.04,8.03,8.05,8.06,8.04,8.05,8.06,8.04,8.02,8.03,8.05)
+qc <- qcc(x, type = "xbar.one", plot = F)
+cc <- ewma(x, center = 8.02, std.dev = 0.05)
+```
+
+With $center = 8.02$ and $\hat \sigma = 0.05$, the process is in control.  After approximately point 11 or 12 the process limits are stable and $$UCL = `r cc$limits[24,2]`$$ 
+$$LCL = `r cc$limits[24,1]`$$  
+

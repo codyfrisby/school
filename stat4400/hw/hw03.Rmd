@@ -1,0 +1,583 @@
+---
+title: "Homework 3"
+author: "Cody Frisby"
+date: "3/3/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, warning=F, message=F, cache = TRUE)
+library(MVA) # library for the textbook.
+```
+
+## 3.1  
+
+```{r}
+# create the appropriate matrix:
+r <- matrix(ncol = 7, nrow = 7)
+diag(r) <- 1
+x <- c(.402,.396,.301,.305,.339,.34,.618,.15,.135,.206,.183,
+       .321,.289,.363,.345,.846,.759,.661,.797,.8,.736)
+r[lower.tri(r)] <- x # fill the lower diagonal
+r[upper.tri(r)] <- t(r)[upper.tri(r)] # fill the upper diag
+e <- eigen(r)
+pc <- prcomp(r); pcnames <- colnames(pc$rotation)
+rm(pc)
+# original variable names, for reference
+vars <- c("head length", "head breadth", "face breadth", 
+              "Left finger lenght", "left forearm length", 
+              "left foot lengther", "height")
+```
+
+I display the principal components as a matrix with the rows corresponding to the original variable names and the columns corresponding to the principal components.  
+
+```{r}
+# clean way to display the principal comps with the 
+# original corresponding variables. 
+m <- matrix(data = e$vectors, ncol = 7)
+colnames(m) <- pcnames
+rownames(m) <- vars
+knitr::kable(round(m, 3))
+```
+
+PC1 coefficients are all negative.  This component could be the  **overall size** component of the criminals.  PC2 could be the **head size** component where head length having the largest influence while PC3 might be interpreted as the **head height** component, since *head breadth* and *face breadth* have the largest coefficients.  
+
+## 3.2  
+
+The test statistic proposed by Bartlett (1947) 
+
+$$\phi_0^2 = - \{n - \frac{1}{2}(q_1 + q_2 + 1)\} \sum_{i = 1}^s log(1 - \lambda_i)$$  
+
+has a $\chi^2$ distribution with $q_1 \times q_2$ degrees of freedom.  
+
+Applying this test statistic using `R`, the result for the *headsize* data set is  
+
+```{r}
+rm(list = ls())
+# headsize data that I'm going to use my function on:
+df <- read.csv("~/Documents/STAT4400/data/headsize.csv")
+x <- cbind(df$head1, df$breadth1)
+y <- cbind(df$head2, df$breadth2)
+# writing my own function to return test statistic
+cc.test <- function(x,y){
+  n <- dim(x)[1]
+  q1 <- dim(x)[2]
+  q2 <- dim(y)[2]
+  lam <- cancor(x,y)$cor^2
+  STAT <- -1 * (n - 0.5 * (q1 + q2 + 1)) * sum(log(1 - lam))
+  p <- 1 - pchisq(STAT, df = q1 * q2)
+  return(cbind(Bartlett = STAT, pValue = p))
+}
+knitr::kable(cc.test(x,y))
+```
+
+and we would conclude that at least one of the canonical correlations is significant.  
+
+```{r}
+# and running it again but removing the largest eigen value:
+n <- dim(x)[1]
+q1 <- dim(x)[2]
+q2 <- dim(y)[2]
+lam <- cancor(x,y)$cor^2
+STAT <- -1 * (n - 0.5 * (q1 + q2 + 1)) * sum(log(1 - lam[-1]))
+p <- 1 - pchisq(STAT, df = q1 * q2)
+temp <- cbind(Bartlett = STAT, pValue = p)
+```
+
+
+For the depression data from table 3.3, where we partition the data where $\bf{X}$ is the variables *CESD* and *Health* and $\bf{Y}$ is the variables *Gender*, *Age*, *Edu*, and *Income*, the result is
+
+```{r}
+# note: this is already the correlation matrix
+# so I won't be using the function I wrote above.
+df <- read.csv("~/Documents/STAT4400/data/LAdepr.csv")
+df <- as.matrix(df)
+r11 <- df[1:2, 1:2]
+r22 <- df[-(1:2), -(1:2)]
+r12 <- df[1:2, -(1:2)]
+r21 <- df[-(1:2), 1:2]
+E2 <- solve(r22) %*% r21 %*% solve(r11) %*% r12
+e2 <- eigen(E2)
+lam <- e2$values
+### borrowing from the above function:
+q1 <- 2; q2 <- 4; n <- 294
+STAT <- -1 * (n - 0.5 * (q1 + q2 + 1)) * sum(log(1 - lam))
+p <- 1 - pchisq(STAT, df = q1 * q2)
+# print the results "pretty" knitting a PDF.
+knitr::kable(cbind(Bartlett = STAT, pValue = p))
+```
+
+and we would conclude that at least one of the canonical correlations is significant.  
+
+## 3.3  
+
+As in the book, I first take a look at independent variables via a scatter-plot matrix.  
+
+```{r 3.3 scatterplot, fig.height=6}
+# scatterplot matrix, labeling a few outliers per plot.
+id <- USairpollution$X
+car::spm(USairpollution[-(1:2)], diagonal = "histogram", smoother = NULL, reg.line = NULL, labels = USairpollution$X, id.method = "mahal", id.n = 2, id.cex = 0.7, cex.labels = 1)
+```
+
+There appears to be some observations that could be considered outliers.  Using the methods from the `bvbox` function, we can identify some of those outliers (here I've only labeled 2 per plot).  Based on the analysis performed in chapter 2 homework **2.1** where I summarized the number of times a city was outside or on the outer ellipse, I'm going to proceed with excluding **Chicago**, **Philadelphia**, and **Phoenix**.  
+
+Below, I display side-by-side each of the *SO2* vs. $PC_i$ without (left) and with the three outliers mentioned above.  
+
+```{r 3.3 regression using prcomp, fig.height=3}
+# we need to fit a linear model, excluding the "outliers" regresssing the PCs onto SO2
+# here I subset the USairpollution data set, excluding those 3 citys.
+df <- USairpollution[!USairpollution$X %in% 
+          c("Chicago", "Philadelphia", "Phoenix"), -1]
+pc_air <- prcomp(df[-1], scale. = TRUE)
+pc_air2 <- prcomp(USairpollution[-1], scale. = TRUE)
+x <- pc_air$x # principal components rotation matrix
+y <- pc_air2$x
+id <- USairpollution$X[as.numeric(rownames(df))]
+par(mfrow = c(1,2))
+for (i in 1:6) { bvbox(cbind(x[,i], df$SO2), 
+    xlab = colnames(x)[i], 
+    ylab = "SO2", labels = id)
+  MVA::bvbox(cbind(y[,i], USairpollution$SO2), 
+    xlab = colnames(y)[i], 
+    ylab = "SO2", labels = USairpollution$X)
+}
+```
+
+After removing the three aforementioned cities we have a new "outlier" city based on the `bvbox` function methods, **Providence**.  Also, it appears that plotting *SO2* by each principal component may change how you identify an outlier.  I would definitely be considering **Providence** as a possible outlier now.  Interestingly, most of the plots look similar before and after except for *SO2* vs. $PC_1$.  
+
+```{r}
+# we need to produce scatter plots of SO2 vs PC[i] for all i
+fit <- lm(SO2 ~ x, df)
+temp <- summary(fit)
+```
+
+The explanatory ability of all the $PC_i$'s definitely goes down when fitting a linear model than when they are included.  In the book example, where no observations are excluded from the model, the $R^2$ value is around $0.67$.  Here, ours is around $0.50$.  I display the model coefficients below.  
+
+`r knitr::kable(temp$coefficients)`
+
+## 3.4  
+
+First, after transforming *hurdles*, *run200m*, and *run800m*, we take a look at the correlation matrix.  
+
+```{r}
+rm(list = ls())
+df <- read.csv("~/Documents/STAT4400/data/heptathlon.csv")
+id <- df$X
+df <- df[-1]
+# first we need to alter some of the variables:
+# for hudles, 200m and 800m, shorter is better.  But for
+# the others, longer is better.  Let's get them all going in 
+# the same direction.
+df$hurdles <- max(df$hurdles) - df$hurdles
+df$run200m <- max(df$run200m) - df$run200m
+df$run800m <- max(df$run800m) - df$run800m
+# how correlated are some of these variables?
+knitr::kable(cor(df[-8]))
+```
+
+And here is the scatter plot matrix:
+
+```{r, fig.height=6}
+# shorten our ID variable, keeping the country
+temp <- strsplit(as.character(id), " ")
+id <- unlist(temp)[c(FALSE, TRUE)]
+car::spm(df[-8], diagonal = "histogram", smoother = NULL, reg.line = NULL, labels = id, id.method = "mahal", id.n = 1, id.cex = 0.6, cex.labels = 1)
+```
+
+It can be seen that **(PNG)** is quite far from the rest of the pack on *highjump*, *hurdles*, *longjump*, and *run800m* to name a few.  
+
+```{r}
+# perform PCA analysis
+A <- cor(df[-8]) # correlation matrix 
+E <- eigen(A) # egien values/vectos of correlation matrix
+pc <- prcomp(df[-8], scale. = TRUE) # R principal component function.
+# scale. = TRUE so that we compute based on the correlation matrix.
+```
+
+Perfroming principal component analysis using `prcomp` with `scale. = TRUE` so that the eigen values will be computed based on the correlation matrix we get `r knitr::kable(pc$rotation)` which are each of the principal component coefficients for each of the original variables.  
+
+```{r}
+b <- round(abs(pc$rotation[,1]), 4)
+```
+
+For example, the linear function for the first principal component, $Y_1$ would be
+
+$$Y_1 = -`r b[1]`X_{1} - `r b[2]`X_{2} - `r b[3]`X_{3} - `r b[4]`X_{4} - `r b[5]`X_{5} - `r b[6]`X_{6} - `r b[7]`X_{7}.$$
+
+where $$X_1 = `r names(b)[1]`, X_2 = `r names(b)[2]`, X_3 = `r names(b)[3]`, X_4 = `r names(b)[4]`, X_5 = `r names(b)[5]`, X_6 = `r names(b)[6]`, X_7 = `r names(b)[7]`$$
+
+All the signs on the coefficients are negative here, which intuitely may not make sense for $Y_1$ since this is the principal component associated with the largest variance and we may think of *score* being positively associated with all the $X_i$'s.  But this is due to the arbitrainess of the signs in principal component analysis and would have no effect on the predictive ability of $Y_1$ on the response variable *score*.
+
+A plot of *score* vs. $Y_1$ illustrates the strong correlation between the two.  
+
+```{r}
+y1 <- pc$x[,1]
+plot(y1, df$score, xlab = "Principal Component 1", 
+     ylab = "score")
+text(5, 7100, paste("cor =", round(cor(y1, df$score), 4)), cex = 0.75)
+abline(lm(df$score ~ y1), lty = 3, col = "blue")
+```
+
+And we can see that they have a very high correlation, 
+$`r round(cor(y1, df$score), 4)`$.  
+
+A plot of the variances and the cummulative variances of all principal components is displayed as well.  
+
+```{r}
+# Scree Diagram
+par(mfrow = c(1,2))
+plot(pc$sdev^2, type = "b", xlab = "Component Number", 
+     ylab = "Eigenvalue")
+# plotting the cummulative variance of the principal components
+plot(cumsum(pc$sdev^2)/sum(pc$sdev^2), ylim = c(0, 1.1), 
+     type = "h", lty = 3, xlim = c(0.7, 7.1), lwd = 2,
+     xlab = "Component Number", ylab = "Cummulative Variance (%)")
+text(1:7, cumsum(pc$sdev^2)/sum(pc$sdev^2), pos = 3, 
+     paste(round(cumsum(pc$sdev^2)/sum(pc$sdev^2), 3)*100, 
+           sep = ""), cex = 0.65)
+lines(1:7, cumsum(pc$sdev^2)/sum(pc$sdev^2), lty = 3)
+```
+
+These plots illustrate the relative variances of all 7 principal components.  We can see that the first 2 principal components contain over 80 percent of the variance.  Depending on the research question, we may want to continue with 2 - 3 principal components rather than all 7.  
+
+## 3.5  
+
+For this problem I define $\bf X$ as *breaklength*,  *elasticmod*, *stressfail*, and *burststren* and $\bf Y$ as *arithmeticleng*, *longfractin*, *finefaraction*, and *zerotensile*.  
+
+```{r}
+rm(list = ls())
+# property data
+df <- read.csv("~/Documents/STAT4400/data/propertydata.csv")
+# first we should standardize all the data.
+# create x and y
+x <- cbind(df$breaklength, df$elasticmod, df$stressfail, 
+           df$burststren)
+colnames(x) <- colnames(df)[1:4]
+y <- cbind(df$arithmeticleng, df$longfractin,
+           df$finefaraction, df$zerotensile)
+colnames(y) <- colnames(df)[5:8]
+# function to determine significant canonical correlations:
+cc1 <- CCA::cc(x,y)
+source("~/Documents/STAT4400/R/cc.wilks.R")#function to test for significance
+temp <- cc.wilks(x, y)
+```
+
+### a)  
+
+The problem does not specify which test to use to determine the number of significant cannonical variates.  Using a function I wrote that returns similar results to `PROC cancorr` in SAS, there are **two** significant canonical variate pairs.  Using Bartlett's test we would conclude similarly.  The below table displays all variate pairs correlation and the corresponding Wilks Lambda test results.  
+
+`r knitr::kable(temp)`
+
+Essentially what this means is that the correlation between the two sets of variables is significant for cannonical variate pairs 1 and 2 but not for pairs 3 and 4.  
+
+### b)  
+
+All 4 canonical variates are 
+
+$$(paper_1, fiber_1), (paper_2, fiber_2), (paper_3, fiber_3), (paper_4, fiber_4)$$  
+
+These can be calculated multiplying the cannonical coefficients for $\bf{X}$ which will return the raw cannonical coefficients.  
+
+```{r}
+temp <- cc1$xcoef
+colnames(temp) <- paste("paper", 1:4, sep = "")
+knitr::kable(temp)
+```
+
+by each of our x values.  Similar procedure goes for $\bf{Y}$.  
+
+```{r}
+temp <- cc1$ycoef
+colnames(temp) <- paste("fiber", 1:4, sep = "")
+knitr::kable(temp)
+```
+
+We can standardize the raw cannonical coefficients by multiplying them by the square root of the variances of the corresponding $\bf{X}$ variables.
+
+```{r}
+rows <- row.names(var(x))
+s1 <- sqrt(diag(diag(var(x))))
+temp <- s1 %*% cc1$xcoef
+colnames(temp) <- paste("paper", 1:4, sep = "")
+row.names(temp) <- rows
+knitr::kable(temp)
+```
+
+And for those corresponding to $\bf{Y}$
+
+```{r}
+rows <- row.names(var(y))
+s2 <- sqrt(diag(diag(var(y))))
+temp <- s2 %*% cc1$ycoef
+colnames(temp) <- paste("fiber", 1:4, sep = "")
+row.names(temp) <- rows
+knitr::kable(temp)
+```
+
+### c)  
+
+Below I display the correlations between the cannonical variables and the observed variables for both sets.    
+
+```{r}
+temp <- cc1$scores$corr.X.xscores
+colnames(temp) <- paste("paper", 1:4, sep = "")
+knitr::kable(temp)
+```
+
+
+```{r}
+temp <- cc1$scores$corr.Y.yscores 
+colnames(temp) <- paste("fiber", 1:4, sep = "")
+knitr::kable(temp)
+b <- round(abs(cc1$xcoef[,1]), 4)
+```
+
+We can see large values for all $\bf{X}$ variables and **paper1**.  There is strong linear relationship between all **X** variables and **paper1**. 
+
+### d)  
+
+To summarize, the linear function for cannonical variate $u_1$ would be
+$$paper_1 = `r b[1]`X_{`r names(b)[1]`} + `r b[2]`X_{`r names(b)[2]`} - `r b[3]`X_{`r names(b)[3]`} - `r b[4]`X_{`r names(b)[4]`}$$
+
+```{r}
+b <- round(abs(cc1$ycoef[,1]), 4)
+```
+
+
+and $$fiber_1 = `r b[1]`X_{`r names(b)[1]`} + `r b[2]`X_{`r names(b)[2]`} - `r b[3]`X_{`r names(b)[3]`} - `r b[4]`X_{`r names(b)[4]`}$$
+
+resulting in  $$Cor(u_1, v_1) = `r cc1$cor[1]`.$$
+    
+```{r, eval = FALSE}
+# this is an exercise for me:
+u1 <- x %*% as.matrix(cc1$xcoef[,1])
+v1 <- y %*% as.matrix(cc1$ycoef[,1])
+cor(u1, v1)
+# and this should be zero:
+v2 <- y %*% as.matrix(cc1$ycoef[,2])
+round(cor(u1, v2), 10) # it is, indeed, zero.
+```
+
+For reference I plot the linear relationships of $paper_1$ vs. $fiber_1$ and $paper_2$ vs. $fiber_2$ where it can be seen that they are strongly correlated with eachother.  
+
+```{r}
+# side by side plots
+par(mfrow = c(1, 2))
+# plot the cannonical variates for u1, v1:
+bx1 <- as.matrix(cc1$xcoef[,1])
+by1 <- as.matrix(cc1$ycoef[,1])
+u1 <- x %*% bx1
+v1 <- y %*% by1
+plot(u1, v1, xlab = "paper1", ylab = "fiber1")
+text(4, -30, paste("cor =", round(cor(u1, v1), 4)), cex = 0.75)
+abline(lm(v1 ~ u1), lty = 3, col = "blue")
+# plot the cannonical variates for u2, v2
+bx2 <- as.matrix(cc1$xcoef[,2])
+by2 <- as.matrix(cc1$ycoef[,2])
+u2 <- x %*% bx2
+v2 <- y %*% by2
+plot(u2, v2, xlab = "paper2", ylab = "fiber2")
+text(-35, -53, paste("cor =", round(cor(u2, v2), 4)), cex = 0.75)
+abline(lm(v2 ~ u2), lty = 3, col = "blue")
+```
+
+
+-----------
+
+## R code:  
+
+```{r, eval = FALSE, echo = TRUE}
+#####
+# 3.1
+# create the appropriate matrix
+r <- matrix(ncol = 7, nrow = 7)
+diag(r) <- 1
+x <- c(.402,.396,.301,.305,.339,.34,.618,.15,.135,.206,.183,
+       .321,.289,.363,.345,.846,.759,.661,.797,.8,.736)
+r[lower.tri(r)] <- x # fill the lower diagonal
+r[upper.tri(r)] <- t(r)[upper.tri(r)] # fill the upper diag
+e <- eigen(r)
+pc <- prcomp(r); pcnames <- colnames(pc$rotation)
+rm(pc)
+# original variable names, for reference
+vars <- c("head length", "head breadth", "face breadth", 
+              "Left finger lenght", "left forearm length", 
+              "left foot lengther", "height")
+# clean way to display the principal comps with the 
+# original corresponding variables. 
+m <- matrix(data = e$vectors, ncol = 7)
+colnames(m) <- pcnames
+rownames(m) <- vars
+knitr::kable(round(m, 3))
+###### 
+# 3.2  
+# headsize data that I'm going to use my function on:
+df <- read.csv("~/Documents/STAT4400/data/headsize.csv")
+x <- cbind(df$head1, df$breadth1)
+y <- cbind(df$head2, df$breadth2)
+# writing my own function to return test statistic
+cc.test <- function(x,y){
+  n <- dim(x)[1]
+  q1 <- dim(x)[2]
+  q2 <- dim(y)[2]
+  lam <- cancor(x,y)$cor^2
+  STAT <- -1 * (n - 0.5 * (q1 + q2 + 1)) * sum(log(1 - lam))
+  p <- 1 - pchisq(STAT, df = q1 * q2)
+  return(cbind(Bartlett = STAT, pValue = p))
+}
+knitr::kable(cc.test(x,y))
+# note: the depression data is already the correlation matrix
+# so I won't be using the function I wrote above.
+df <- read.csv("~/Documents/STAT4400/data/LAdepr.csv")
+df <- as.matrix(df)
+r11 <- df[1:2, 1:2]
+r22 <- df[-(1:2), -(1:2)]
+r12 <- df[1:2, -(1:2)]
+r21 <- df[-(1:2), 1:2]
+E2 <- solve(r22) %*% r21 %*% solve(r11) %*% r12
+e2 <- eigen(E2)
+lam <- e2$values
+### borrowing from the above function:
+q1 <- 2; q2 <- 4; n <- 294
+STAT <- -1 * (n - 0.5 * (q1 + q2 + 1)) * sum(log(1 - lam))
+p <- 1 - pchisq(STAT, df = q1 * q2)
+# print the results "pretty" knitting a PDF.
+knitr::kable(cbind(Bartlett = STAT, pValue = p))
+###### 
+# 3.3 
+# scatterplot matrix, labeling a few outliers per plot.
+id <- USairpollution$X
+car::scatterplotMatrix(USairpollution[-(1:2)], diagonal = "histogram", smoother = NULL, reg.line = NULL, labels = USairpollution$X, id.method = "mahal", id.n = 2, id.cex = 0.7, cex.labels = 1)
+# we need to fit a linear model, excluding the "outliers" regresssing the PCs onto SO2
+# here I subset the USairpollution data set, excluding those 3 citys.
+df <- USairpollution[!USairpollution$X %in% 
+          c("Chicago", "Philadelphia", "Phoenix"), -1]
+pc_air <- prcomp(df[-1], scale. = TRUE)
+pc_air2 <- prcomp(USairpollution[-1], scale. = TRUE)
+x <- pc_air$x # principal components rotation matrix
+y <- pc_air2$x
+id <- USairpollution$X[as.numeric(rownames(df))]
+par(mfrow = c(1,2))
+for (i in 1:6) { bvbox(cbind(x[,i], df$SO2), 
+    xlab = colnames(x)[i], 
+    ylab = "SO2", labels = id)
+  MVA::bvbox(cbind(y[,i], USairpollution$SO2), 
+    xlab = colnames(y)[i], 
+    ylab = "SO2", labels = USairpollution$X)
+}
+# fit a linear model using the PC as predictors
+fit <- lm(SO2 ~ x, df)
+temp <- summary(fit)
+######
+# 3.4  
+df <- read.csv("~/Documents/STAT4400/data/heptathlon.csv")
+id <- df$X
+df <- df[-1]
+# first we need to alter some of the variables:
+# for hudles, 200m and 800m, shorter is better.  But for
+# the others, longer is better.  Let's get them all going in 
+# the same direction.
+df$hurdles <- max(df$hurdles) - df$hurdles
+df$run200m <- max(df$run200m) - df$run200m
+df$run800m <- max(df$run800m) - df$run800m
+# how correlated are some of these variables?
+knitr::kable(cor(df[-8]))
+# scatterplot
+# shorten our ID variable, keeping the country
+temp <- strsplit(as.character(id), " ")
+id <- unlist(temp)[c(FALSE, TRUE)]
+# scatterplot matrix
+car::spm(df[-8], diagonal = "histogram", smoother = NULL, 
+         reg.line = NULL, labels = id, id.method = "mahal", 
+         id.n = 1, id.cex = 0.6, cex.labels = 1)
+# perform PCA analysis
+A <- cor(df[-8]) # correlation matrix 
+E <- eigen(A) # egien values/vectos of correlation matrix
+pc <- prcomp(df[-8], scale. = TRUE) # R principal component function.
+# scale. = TRUE so that we compute based on the correlation matrix.
+y1 <- pc$x[,1]
+plot(y1, df$score, xlab = "Principal Component 1", 
+     ylab = "score")
+text(5, 7100, paste("cor =", round(cor(y1, df$score), 4)), cex = 0.75)
+abline(lm(df$score ~ y1), lty = 3, col = "blue")
+# Scree Diagram
+par(mfrow = c(1,2))
+plot(pc$sdev^2, type = "b", xlab = "Component Number", 
+     ylab = "Eigenvalue")
+# plotting the cummulative variance of the principal components
+plot(cumsum(pc$sdev)/sum(pc$sdev), ylim = c(0, 1.1), type = "h",
+     xlab = "Principal Component", ylab = "Cummulative Variance",
+     lty = 3, xlim = c(0.9, 7), lwd = 2)
+text(1:7, cumsum(pc$sdev)/sum(pc$sdev), pos = 3, 
+     paste(round(cumsum(pc$sdev)/sum(pc$sdev), 3)*100,"%", 
+           sep = ""), cex = 0.75)
+lines(1:7, cumsum(pc$sdev)/sum(pc$sdev), lty = 3)
+######## 
+# 3.5
+#####
+# part a
+rm(list = ls())
+# property data
+df <- read.csv("~/Documents/STAT4400/data/propertydata.csv")
+# first we should standardize all the data.
+# create x and y
+x <- cbind(df$breaklength, df$elasticmod, df$stressfail, 
+           df$burststren)
+colnames(x) <- colnames(df)[1:4]
+y <- cbind(df$arithmeticleng, df$longfractin,
+           df$finefaraction, df$zerotensile)
+colnames(y) <- colnames(df)[5:8]
+# function to determine significant canonical correlations:
+cc1 <- CCA::cc(x,y)
+source("~/Documents/STAT4400/R/cc.wilks.R")
+temp <- cc.wilks(x, y) # test for significance
+knitr::kable(temp) # for pretty printing
+#####
+# part b
+temp <- cc1$xcoef # basically the rotation matrix for x
+colnames(temp) <- paste("paper", 1:4, sep = "") 
+knitr::kable(temp) # for pretty priinting
+temp <- cc1$ycoef # rotation matrix fo y
+colnames(temp) <- paste("fiber", 1:4, sep = "")
+knitr::kable(temp) # pretty printing
+# standardize the cannonical coefs
+rows <- row.names(var(x))
+s1 <- sqrt(diag(diag(var(x))))
+temp <- s1 %*% cc1$xcoef
+colnames(temp) <- paste("paper", 1:4, sep = "")
+row.names(temp) <- rows
+knitr::kable(temp)
+#####
+# part c
+temp <- cc1$scores$corr.X.xscores # cor(X, paper)
+colnames(temp) <- paste("paper", 1:4, sep = "")
+knitr::kable(temp) # pretty printing
+temp <- cc1$scores$corr.Y.yscores  # cor(Y, fiber)
+colnames(temp) <- paste("fiber", 1:4, sep = "")
+knitr::kable(temp) # pretty printing
+# coeficients for u1
+b <- round(abs(cc1$xcoef[,1]), 4)
+# coefficients for v1
+b <- round(abs(cc1$ycoef[,1]), 4)
+######
+# part d
+# side by side plots
+par(mfrow = c(1, 2))
+# plot the cannonical variates for u1, v1:
+bx1 <- as.matrix(cc1$xcoef[,1])
+by1 <- as.matrix(cc1$ycoef[,1])
+u1 <- x %*% bx1
+v1 <- y %*% by1
+plot(u1, v1, xlab = "paper1", ylab = "fiber1")
+text(4, -30, paste("cor =", round(cor(u1, v1), 4)), cex = 0.75)
+abline(lm(v1 ~ u1), lty = 3, col = "blue")
+# plot the cannonical variates for u2, v2
+bx2 <- as.matrix(cc1$xcoef[,2])
+by2 <- as.matrix(cc1$ycoef[,2])
+u2 <- x %*% bx2
+v2 <- y %*% by2
+plot(u2, v2, xlab = "paper2", ylab = "fiber2")
+text(-35, -53, paste("cor =", round(cor(u2, v2), 4)), cex = 0.75)
+abline(lm(v2 ~ u2), lty = 3, col = "blue")
+```
+

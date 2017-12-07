@@ -1,0 +1,16 @@
+---
+title: "Education Expenditures"
+author: "Cody Frisby"
+date: "April 5, 2016"
+output: html_document
+---
+
+```{r}
+ed <- xlsx::read.xlsx("~/Documents/MATH3710/education/education.xlsx", 
+  sheetIndex = 1)
+#ed$State. <- as.character(ed$State.) # this showed a two spaces after 
+# each state. So....
+ed.noAK <- ed[ed$State. != "AK  ", ] # needed two spaces after the K
+ed.noAK <- ed[-49,] 
+# these two commands result in the same subset.
+```

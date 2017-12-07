@@ -1,0 +1,261 @@
+---
+title: "Homework 01"
+author: "Cody Frisby"
+date: "1/10/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200,warning=F,message=F)
+library(MVA) # library for the textbook.
+```
+
+## 1.1  
+
+Here I display the correlation matrix is a little different way.  
+
+```{r}
+df <- read.csv("~/Documents/STAT4400/data/hypo.csv")
+df <- df[-1]
+n <- sapply(df, class) == "integer" | sapply(df, class) == "numeric" 
+cov.mat <- cov(df[n], use = "pairwise.complete.obs")
+cor.mat <- cor(df[n], use = "pairwise.complete.obs")
+# or even better :)
+library(ggplot2); library(GGally)
+ggpairs(df[, c("age", "IQ", "weight")])
+```
+
+And here I display the covariance matrix. `r knitr::kable(cov.mat)`
+
+## 1.2  
+
+```{r}
+hypo.update <- df
+hypo.update$age <- ifelse(is.na(df$age), 
+                          mean(df$age, na.rm = TRUE), df$age)
+hypo.update$IQ <- ifelse(is.na(df$IQ), 
+                          mean(df$IQ, na.rm = TRUE), df$IQ)
+cov.mat <- cov(hypo.update[n])
+cor.mat <- cor(hypo.update[n])
+```
+
+Covariance matrix: `r knitr::kable(cov.mat)`
+
+Correlation matrix:  `r knitr::kable(cor.mat)`  
+
+
+## 1.3  
+
+Displaying the individual normality plots here:
+
+```{r, fig.height=6, fig.width=7}
+df <- read.csv("~/Documents/STAT4400/data/pottery.csv")
+x <- df[-1]
+par(mfrow = c(3,3))
+for(i in 1:9){
+qqnorm(x[,i], main = names(x)[i]); qqline(x[,i])  
+}
+```
+
+And the $\chi^2$ plot here:
+
+```{r}
+row.names(x) <- df$X # to be able to display which obs are outliers on the plot
+# following the example from page 19 in the textbook.
+cm <- colMeans(x)
+S <- cov(x)
+d <- apply(x, 1, function(x) t(x-cm) %*% solve(S) %*% (x-cm))
+plot(qc <- qchisq((1:nrow(x) - 1/2) / nrow(x), 9), sd <- sort(d), 
+     xlab = expression(paste(chi[9]^2, " Quantile")), 
+     ylab = "Ordered Distances", ylim = c(0, max(d)))
+abline(0, 1, lty = 3, col = "red", lwd = 2)
+outliers <- which(rank(abs(qc - sd), ties.method = "random") > nrow(x) - 3)
+text(qc[outliers], sd[outliers] - 1.5, names(outliers)) # label the "outliers"
+```
+
+Where $$d_i^2 = (\mathbf{x_i} - \bar x)^T \mathbf{S}^{-1} ((\mathbf{x_i} - \bar x))$$
+
+## 1.4  
+
+```{r}
+x <- matrix(c(3.8778,2.8110,3.1480,3.5062,
+              2.8110,2.1210,2.2669,2.5690,
+              3.1480,2.2669,2.6550,2.8341,
+              3.5062,2.5690,2.8341,3.2352), byrow = T, ncol = 4)
+# the way I did it before figuring out the book's syntax
+d <- sqrt(diag(x))
+y <- outer(d, d, "*")
+cor.mat <- x/y
+# the way the book does it 
+d <- diag(x)
+m <- diag(1/sqrt(d)) %*% x %*% diag(1/sqrt(d))
+# running identical(round(m, i), round(cor.mat, i))
+# for i in 1:16 all are TRUE except to 16 digits, so both methods 
+# produce the same result, basically.
+```
+The correlation matrix is displayed here:
+`r knitr::kable(cor.mat)`
+
+
+## 1.5  
+
+Using the R function 
+
+```{r}
+x <- matrix(c(3,4,4,6,1,5,1,1,7,3,6,2,0,2,6,1,1,1,0,3,4,7,3,6,2,2,2,
+              5,1,0,0,4,1,1,1,0,6,4,3,5,7,6,5,1,4,2,1,4,3,1), ncol = 5)
+d <- dist(scale(x, center = FALSE))
+library(reshape2)
+df <- melt(as.matrix(d), varnames = c("row", "col"))
+```
+
+The *Euclidean distances* for the data are `r knitr::kable(df[df$row > df$col, ])`  
+
+```{r}
+d <- dist(scale(x, center = FALSE), method = "manhattan")
+df <- melt(as.matrix(d), varnames = c("row", "col"))
+```
+
+and the city block, or `manhattan`, distances for the data are 
+
+`r knitr::kable(df[df$row > df$col, ])` 
+
+## 1.6  
+
+```{r}
+df <- data.frame(recieptID = c(101,521,746,857), books = c(4,5,4,3), 
+                 sales = c(142,252,148,158), 
+                 student = c("yes", "yes", "no", "yes"))
+```
+
+### a)  
+
+There are 4 observations, or units, in the data set, and there are 4 variables -  *reciept ID, number of books, dollars of sales*, and whether the customer was a *student* or not.  There are categorical and continuous types of variables in the data set.  Of the categorical set, *students*, there are two levels: **yes** and **no**.  
+
+### b)  
+
+`r knitr::kable(df)`
+
+### c)  
+Here I display rows 2 and 4 of the data frame above.
+
+$$X_2 = `r df[2, ]`$$
+$$X_4 = `r df[4, ]`$$
+
+## 1.7  
+
+```{r}
+x <- c(1,1,1,1)
+xbar <- c(.766, .508, .438, .161)
+S <- matrix(c(.856,.635,.173,.096,.635,.568,.127,.067,.173,.128,
+              .171,.039,.096,.067,.039,.043), ncol = 4)
+v <- sum(diag(S)) + 2*sum(S[lower.tri(S)])
+v.total <- t(x) %*% S %*% x
+```
+
+### a)  
+
+For reference:  $x_1 = petroleum, ~ x_2 = natural~gas, ~ x_3 = hydroelectric~power, ~ x_4 = nuclear~electric~power.$  
+
+The mean of a state's total energy consumption is simply the sum of the means of the 4 energy sources, $\sum \mathbf{\bar x_i} = `r sum(xbar)`$. The variance of a state would be the sum of the variances plus 2 times the covariance terms. 
+
+$$\sigma_1^2 + \sigma_2^2 + \sigma_3^2 + \sigma_4^2 + 2cov_{12} + 2cov_{13} +...+2cov_{34} = `r v`$$ or using matrix notation 
+$$\mathbf{x}^T \mathbf{S} \mathbf{x}$$ where x is a unit vector of length 4.  
+
+### b)  
+
+We are asked to find the mean of $x_1 - x_2$ as well as the $cov_{12}$.  
+
+$$x_1 - x_2 = `r xbar[1]` - `r xbar[2]` = `r xbar[1] - xbar[2]`$$  
+
+We can find the covariance of these two variables by taking the 2nd row 1st column term from the supplied matrix, S, $cov_{12} = `r S[2,1]`$.  
+
+### c)  $Y_1 = X_1 + X_2$ and $Y_2 = X_1 - X_2$  
+
+```{r}
+m.y1 <- xbar[1] + xbar[2]
+m.y2 <- xbar[1] - xbar[2]
+s.y1 <- S[1,1] + S[2,2] + 2 * S[2,1]
+s.y2 <- S[1,1] + S[2,2] - 2 * S[2,1]
+cv <- S[1,1] - S[2,2]
+m <- matrix(c(s.y1,cv ,cv ,s.y2), ncol = 2)
+```
+
+
+The variance is $`r S[1,1]` + `r S[2,2]` + 2\times`r S[2,1]` = `r s.y1` =  \sigma_{Y_1}^2$. And $\sigma_{Y_2}^2 = `r S[1,1]` + `r S[2,2]` - 2\times`r S[2,1]` = `r s.y2`$.  
+
+And the variance-covariance matrix would be `r knitr::kable(m)`
+
+------------------
+
+## R Code:
+
+```{r, eval=F, echo=T}
+### 1.1
+df <- read.csv("~/Documents/STAT4400/dat/hypo.csv")
+df <- df[-1]
+n <- sapply(df, class) == "integer" | sapply(df, class) == "numeric" 
+cov.mat <- cov(df[n], use = "pairwise.complete.obs")
+cor.mat <- cor(df[n], use = "pairwise.complete.obs")
+# or even better :)
+library(ggplot2); library(GGally)
+ggpairs(df[, c("age", "IQ", "weight")])
+### 1.2 
+hypo.update <- df
+hypo.update$age <- ifelse(is.na(df$age), 
+                          mean(df$age, na.rm = TRUE), df$age)
+hypo.update$IQ <- ifelse(is.na(df$IQ), 
+                          mean(df$IQ, na.rm = TRUE), df$IQ)
+cov.mat <- cov(hypo.update[n])
+cor.mat <- cor(hypo.update[n])
+### 1.3
+df <- read.csv("~/Documents/STAT4400/dat/pottery.csv")
+x <- df[-1]
+par(mfrow = c(3,3))
+for(i in 1:9){
+qqnorm(x[,i], main = names(x)[i]); qqline(x[,i])  
+}
+row.names(x) <- df$X # to be able to display which obs are outliers on the plot
+# following the example from page 19 in the textbook.
+cm <- colMeans(x)
+S <- cov(x)
+d <- apply(x, 1, function(x) t(x-cm) %*% solve(S) %*% (x-cm))
+plot(qc <- qchisq((1:nrow(x) - 1/2) / nrow(x), 9), sd <- sort(d), 
+     xlab = expression(paste(chi[9]^2, " Quantile")), 
+     ylab = "Ordered Distances", ylim = c(0, max(d)))
+abline(0, 1, lty = 3, col = "red", lwd = 2)
+outliers <- which(rank(abs(qc - sd), ties.method = "random") > nrow(x) - 3)
+text(qc[outliers], sd[outliers] - 1.5, names(outliers)) # label the "outliers"
+### 1.4 
+x <- matrix(c(3.8778,2.8110,3.1480,3.5062,
+              2.8110,2.1210,2.2669,2.5690,
+              3.1480,2.2669,2.6550,2.8341,
+              3.5062,2.5690,2.8341,3.2352), byrow = T, ncol = 4)
+d <- sqrt(diag(x))
+y <- outer(d, d, "*")
+cor.mat <- x/y
+### 1.5 
+x <- matrix(c(3,4,4,6,1,5,1,1,7,3,6,2,0,2,6,1,1,1,0,3,4,7,3,6,2,2,2,
+              5,1,0,0,4,1,1,1,0,6,4,3,5,7,6,5,1,4,2,1,4,3,1), ncol = 5)
+d <- dist(scale(x, center = FALSE))
+library(reshape2)
+df <- melt(as.matrix(d), varnames = c("row", "col"))
+d <- dist(scale(x, center = FALSE), method = "manhattan")
+df <- melt(as.matrix(d), varnames = c("row", "col"))
+### 1.6  
+df <- data.frame(recieptID = c(101,521,746,857), books = c(4,5,4,3), 
+                 sales = c(142,252,148,158), 
+                 student = c("yes", "yes", "no", "yes"))
+### 1.7 
+xbar <- c(.766, .508, .438, .161)
+S <- matrix(c(.856,.635,.173,.096,.635,.568,.127,.067,.173,.128,.171,.039,
+              .096,.067,.039,.043), ncol = 4)
+v <- sum(diag(S)) + 2*sum(S[lower.tri(S)])
+m.y1 <- xbar[1] + xbar[2]
+m.y2 <- xbar[1] - xbar[2]
+s.y1 <- S[1,1] + S[2,2] + 2 * S[2,1]
+s.y2 <- S[1,1] + S[2,2] - 2 * S[2,1]
+cv <- S[1,1] - S[2,2]
+m <- matrix(c(s.y1,cv ,cv ,s.y2), ncol = 2)
+```
+

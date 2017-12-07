@@ -1,0 +1,211 @@
+---
+title: "Homework 5"
+author: "Cody Frisby"
+date: "4/10/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, warning=F, message=F, cache = TRUE)
+library(MVA) # library for the textbook but with my modifications.
+# other libraries used for FA
+library(psych)
+library(nFactors)
+library(FactoMineR)
+library(ggplot2)
+source("~/Documents/MVA/R/factoranalysis.R")
+```
+
+
+## 5.1  
+
+### Assumptions of factor model:  
+
+- Uncorrelated common factors:  $cov(f_i, f_j) = 0$ for $i\neq j$.
+- Specific factors are uncorrelated with each other: $cov(\psi_i, \psi_j) = 0$ for $i \neq j$.
+- Independence of common factors and specific variances: 
+$cov(\psi_i, f_j) = 0$ for $i \neq j$.
+
+The factor model can be written as $X = \Lambda f + u$.  With the above assumptions we can write the population variance/covariance matrix, $\Sigma$, as
+$$\Sigma = V(X) = V(\Lambda f + u) = \Lambda V(f)\Lambda^T + V(u) = \Lambda \Lambda^T + \Psi$$ since $cov(f_i, f_j) = 0$, $cov(u_i, u_j) = 0$, and $cov(f_i, u_j) = 0$.  
+
+If we let the common factors be correlated then $cov(f_i, f_j) \neq 0$ and the assumptions of the factor model are no longer valid.  The $(i,j)$ element of $\Sigma$ ($\sigma_{ij}$) would be 
+$$\sigma_{ij} = cov(x_i, x_j) = cov(\lambda_{i1} f_1, \lambda_{j1} f_1) + cov(\lambda_{i2} f_2, \lambda_{j2} f_2) + ... + cov(\lambda_{ik} f_k, \lambda_{jk} f_k)$$ which under the model assumptions is $0 + 0 +...+ 0$ but if they are correlated this is not the case $\blacksquare$ 
+
+## 5.2  
+
+Re-writing $X = \Lambda f + u$ as $$X = \Lambda M M^T f + u = \Lambda^*f^* + u$$ and letting $M$ be any orthonormal matrix, the original model formulation becomes    
+$$\Sigma = \Lambda^* (\Lambda^*)^T + \Psi = \Lambda M (\Lambda M)^T + \Psi = \Lambda MM^T \Lambda^T + \Psi = \Lambda \Lambda^T + \Psi$$ which is the result of the original model $\blacksquare$  
+
+## 5.3  
+
+Let $p_j$ equal the proportion of variance explained by the $jth$ factor.  Let $e_j$ equal the $jth$ eigen value from the correlation matrix of $\bf{X}$.  Let $n$ equal the number of eigen values.  
+
+$$p_j = \frac{e_j}{ \sum_{i = 1}^n e_i}, ~ for~j = 1,2,...,n$$
+
+
+## 5.4  
+
+A one factor solution for both males and females is pictured here.
+
+```{r}
+df <- read.csv("~/Documents/STAT4400/data/life.csv")
+id <- df$X
+df <- df[-1]
+m <- df[, 1:4]
+w <- df[, -(1:4)]
+# use maximum liklihood method
+fa.both <- factanal(df, factors = 3, scores = "regression")
+fa.m <- factanal(m,factors=1, rotation="varimax", 
+                  scores = "regression")
+m1scores <- fa.m$scores
+fa.w <- factanal(w,factors=1, rotation="varimax", 
+                  scores = "regression")
+w1scores <- fa.w$scores
+# plot factor1 for men vs. factor1 for women:
+dt <- data.frame(x = m1scores, y = w1scores, z = id)
+names(dt) <- c("x", "y", "z")
+library(ggplot2)
+library(ggrepel)
+gg <- ggplot(data = dt, aes(x = x, y = y)) + theme_bw()
+gg <- gg + geom_text_repel(aes(label = z), size = 2,
+                           segment.alpha = 0.5,
+                           segment.size = 0.25)
+gg <- gg + geom_point(color = "red", size = 3)
+gg <- gg + xlab("Factor1 Scores Men") + ylab("Factor1 Scores Women")
+gg <- gg + geom_line(stat = "smooth", method = "lm", color = "red",
+                       linetype = "dashed", alpha = 0.5)
+gg
+```
+
+
+It looks like there is a linear relationship between the sexes' factor1 loading scores.  The correlation between the two is $`r cor(m1scores, w1scores)`$.  A fitted least squares line is displayed for reference.  A bivariate box plot would identify **Cameroon**, **Madagascar**, and **Algeria** as potential outliers although there is no strong disagreement between the two factors as evidence by the linear relationship.  Table 1 displays a comparison between the two factors for both men and women.  
+
+```{r}
+temp <- cbind(fa.m$loadings, fa.w$loadings)
+rownames(temp) <- c(0, 25, 50, 75)
+colnames(temp) <- c("Men", "Women")
+knitr::kable(temp)
+```
+
+Table: Loadings
+
+We can see that *factor1* for women has large values for 0, 25, and 50; life expectancy in infancy, young adulthood, and even middle age.  The largest value for men is for 50 and 75, which is life expectancy for middle aged and older.    
+
+## 5.5  
+
+
+```{r}
+# exercise 5.5
+x <- c(1,.44,.41,.29,.33,.25,1,.35,.35,.32,.33,1,.16,.19,.18,
+       1,.59,.47,1,.46,1)
+# fill up a matrix, and make it symmetirc.
+m <- matrix(ncol = 6, nrow = 6)
+m[lower.tri(m, diag = T)] <- x
+m[upper.tri(m)] <- t(m)[upper.tri(m)]
+name <- c("french", "english", "history", "arithmetic", "algebra",
+          "geometry")
+rownames(m) <- name
+colnames(m) <- name
+n <- 220; q <- 6
+#library(lattice)
+#levelplot(m)
+fitnone <- factanal(factors = 2, covmat = m, n.obs = 220, 
+                    rotation = "none")
+fitrot <- factanal(factors = 2, covmat = m, n.obs = 220, 
+                   rotation = "varimax")
+fitobl <- factanal(factors = 2, covmat = m, n.obs = 220, 
+                   rotation = "promax")
+# varimax for orthogonal
+# promax for oblique
+
+```
+
+A two-factor solution produces a p-value of `r fitnone$PVAL`.  A large p-value indicated that a two-factor solution is sufficient.  The *specific* or *unique* values are shown in table 2.  
+
+```{r}
+temp <- as.matrix(fitnone$uniquenesses)
+knitr::kable(t(temp))
+```
+
+Table: Uniqueness
+
+The derived loadings (without any rotation) are shown in table 3.
+
+```{r}
+temp <- fitnone$loadings[,1:2]
+knitr::kable(temp)
+```
+
+Table: Loadings
+
+We could **rotate** this matrix by multiplying the loadings by an orthogonal matrix.  The matrix in table 4 is used.  
+
+```{r}
+temp <- fitrot$rotmat
+rownames(temp) <- c("1", "2"); colnames(temp) <- c("1", "2")
+knitr::kable(temp)
+```
+
+Table: Rotation matrix
+
+The derived rotation is pictured here.  
+
+```{r, fig.height=3, fig.width=4}
+plot.loadings(fitrot$loadings[,1], fitrot$loadings[,2], 
+              names(fitrot$loadings[,1]))
+```
+
+There is some clear separation between the math related subjects and the others using an orthogonal rotation.  
+
+The rotated loadings that are plotted above are shown in table 5.
+
+```{r}
+temp <- fitrot$loadings[,1:2]
+knitr::kable(temp)
+```
+
+Table:  Rotated Loadings
+
+Looking at the orthogonally rotated loadings it becomes clear that the math related subjects load heavily on *Factor1* while the others load heavily on *Factor2*.   
+
+## 5.6  
+
+```{r}
+# fill up the matrix.
+x <- c(-.04, .61, .45, .03, -.29, -.3, .45, .3, -.07, -.12,
+       .49, .43, .3, -.31, -.17, .59, .03, -.13, -.24, .59,
+       .32, -.08, -.21, -.19, .63, .37, .47, .41, -.14, -.24, 
+       .63, -.13, -.15, -.26, -.29, .4)
+# fill up a matrix, and make it symmetirc.
+m <- diag(1, 9)
+m[lower.tri(m)] <- x
+m[upper.tri(m)] <- t(m)[upper.tri(m)]
+name <- c("doc skill", "blame me", "what can docs do", "medical",
+          "exercise and diet", "carelessness", "me", "doc control",
+          "luck")
+rownames(m) <- name
+colnames(m) <- name
+# determine the number of factors to fit:
+# i tried 3, 4, 5, 6
+fitrot <- factanal(factors = 3, covmat = m, n.obs = 123, 
+                   rotation = "varimax")
+```
+
+
+Using `factanal` function in `R` and trying a few values of k ranging from 2 to 6 I found that the number of factors should be 3, $p = `r fitrot$PVAL`$.  
+
+The rotated loadings are shown in table 6.  With so many factors it is going to take some heroism on my part to interpret them.  
+
+
+```{r}
+# orthogonal fit.
+temp <- fitrot$loadings[,1:3]
+knitr::kable(temp)
+```
+
+Table:  Rotated Loadings 
+
+Starting with *factor1* it appears this factor loads heavily on doctor involvement in the persons' pain, i.e. there are large values for "doc skill", "what can docs do", "medical" (seeking medical help), and "doc control".  *Factor2* could be thought of as the "individual responsibility" factor with heavy loadings on "carelessness", their own personal responsibility, "me", and "exercise and diet" having the largest values.  *Factor3* has a large score for for the "blame me" question.  This factor could be thought of as the "my fault" factor.
+
+

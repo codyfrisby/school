@@ -1,0 +1,259 @@
+---
+title: "Physics Class Notes"
+author: "Cody"
+date: "8/24/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = 'center')
+```
+
+
+# Physics Class Notes  
+
+Try to do all 20 chapters. (cut out fluids?) 
+4 hours 20 minutes of class time every week.
+
+Scientific notation review
+SI system: m (meters), kg (kilograms), s (seconds)
+
+http://www.scaleofuniverse.com
+
+Physics is the study of energy
+
+Magnitude of a vector is another name for its length. It's essentially a quantity.  It's the size of the thing you are measuring. Arrows are really useful for this….
+How do I find components?  Vectors have components. You've gotta have a reference frame. Usually we use the XY grid. Euclidean space. How do I find the magnitude of a vector if I have the angle and the magnitude?
+
+Cross product review.  
+
+Note: R's built in %*% and crossprod do not give the correct results.  
+**USE** `pracma`
+
+```{r}
+A <- 1:3
+B <- c(-1, 0, 2)
+C <- c(1, 1, 0)
+library(pracma)
+BC <- cross(B, C)
+cross(A, BC)
+# same result
+(B * dot(A, C)) - (C * dot(A, B))
+```
+
+
+##  Motion  
+
+What do we mean when we say something is relative?  
+
+First we need to choose a reference frame.  
+
+X will represent the position of objects.  $X_0$ is our initial position.  $X_f$ is our final position.  Change is found by 
+  
+$$\Delta x = x_f - x_0$$
+
+How fast are we changing?  Velocity vs. Speed, what's the difference.  
+Velocity is a vector.  Position is technically a vector too.  
+
+$$v = \frac{\Delta x}{\Delta t}$$
+
+This is only the average velocity.  In general, $X$ is a function of **time**.  Time is the independent variable here.  $X(t)$.  
+
+This is instantaneous velocity
+
+$$v = \frac{dx}{dt}$$  
+
+What if velocity is changing?  
+
+$$\Delta v = v_f - v_0$$  
+
+Average acceleration is $$a = \frac{\Delta v}{\Delta t}$$
+
+Instantaneous acceleration is $$a = \frac{dv}{dt}$$
+
+The derivative of acceleration is referred to as **jerk**.  
+
+Draw an x-t graph for an object that isn't moving.  
+
+```{r}
+plot(1:4, rep(4, 4), type = "b", ylim = c(0, 10), xlim = c(0, 5))
+```
+
+
+Try this:  
+
+$$ a = \frac{dv}{dt}$$  
+
+$$dv = adt$$  
+
+$$\int dv = \int adt$$
+
+First kinematic equation
+$$v(t) = at + v_0$$
+
+
+## 8-29-17  
+
+Still talking about linear motion.  
+
+
+$$x(t) = 3t^2 - 5t + 21$$  
+
+- What is the initial position of a particle?  
+
+$x(0) = `r 3*0^2 - 5*0 + 21`$
+
+- What is the initial velocity of the particle?  
+
+$x'(0) = `r 6*0 - 5`$
+
+- Find the acceleration of the particle? 
+
+$x''(0) = 6$
+
+- How far has the particle traveled after 8 seconds? 
+
+$x(8) = `r 3*8^2 - 5*8 + 21$
+
+- How long does it take the particle to travel a distance of 52m?  
+Set $x(t) = 52$ and solve for t.  $52 = 3t^2 - 5t + 21 = 3t^2 - 5t - 31 = 0$ and just use the quadratic equation to solve.  
+
+- How fast is the particle traveling when it reaches this position?
+
+Plug in the positive solution to the above quadratic into the first derivative of our function.  $v(4.07) = 6(4.07) - 5$.  
+
+Reminder of our first kinematic equation
+
+$$v(t) = at + v_0$$ 
+
+$$v = \frac{dx}{dt}$$
+
+$$dx = vdt$$  
+
+$$\int dx = \int vdt$$
+
+$$x = \int v_0 + at dt = \int v_0 dt + \int at dt = v_0t + \frac{1}{2} at^2 + C$$  
+
+where $C$ is $x_0$, our initial position.  
+
+**This is our second kinematic equation**:
+
+$$x(t) = x_0 +v_0t + \frac{1}{2}at^2$$  
+
+Set $t = \frac{v - v_0}{a}$ and $a = \frac{v - v_0}{t}$ and solve.  
+
+![](~/Documents/phys2210/img/eq.png)  
+
+
+How long does it take a rocket, traveling at a constant speed of 600 m/s to travel 1300 m?  
+
+Everything is known for this problem except time.  So pick one of the equations that includes t in an easy way.  (we used the 4th one).  
+
+If a car is initially traveling at a speed of 20 m/s and is accelerating at a constant rate of $6 m/s^2$.  How long will it take to reach a speed of 40 m/s?  
+
+What is known?  $a, v_0, v_f$.  
+Not known?  $t, x_f$.  
+Use the first one for this.  
+
+Suppose you throw a rock straight up in the air with an initial speed of 20 m/s.  Find the maximum height of the rock.  (homework problem).  
+
+Known:  $x_0 = 0, v_0 = 20 m/s, a = -9.8 m/s^2, v_f = 0$
+Not : $x_f, t$  
+
+**Don't forget that a is a vector.  Make sure your signs are correct!!**  
+
+Use the third one.  
+
+You are driving your car down state street at a constant speed of 15 m/s.  All of a sudden a lost cow wonders onto the road 20 meters in front of you.  You immediately apply the breaks and your car comes to a stop after 2.6 s.  Do you hit the cow?  
+
+Use the 4th one.  
+
+Moving on to motion in 2D and 3D.  
+
+**Orthogonality** is important.  The basis are independent from one another.  (video of shooting and dropping a bullet and bowling ball feather drop in the worlds largest vacuum chamber. Spoiler alert: the hit the ground at the same time).  
+
+A component is simply a projection of a vector onto another reference frame.  
+
+Gravity doesn't care when dealing with orthogonal basis.  
+
+Recall def for vectors.  $$\bar r = x \hat i + y \hat j + z \hat k$$  
+
+What about $$\bar{r(t)} = x(t) \hat i + ....$$
+
+**Note:  kinematic equations only work with one direction.**  
+
+Time is NOT a vector.  It is a scalar.  
+
+
+## 8-31-17  
+
+Two projection angles that add to 90 degrees will have the same projection distance.  
+
+(Phet interactive web app.) phet.colorado.edu  
+
+
+We want to know the range given two values, initial velocity and angle.  $v_0, \theta$.  Start with y dimension since it helps us more to find t since we have $a = acceleration = 9.8 \frac{m}{s^2}$.
+$$v_{fy} = v_{v0y} + a_y t$$  
+
+With our example in class:
+
+$$t = \frac{2v_0 sin(\theta)}{g}$$  
+
+
+$$R = \frac{2v_0^2sin\theta cos\theta}{g} = \frac{v_0^2sin(2\theta)}{g}$$  
+
+Now on to orbital mechanics.  
+
+Acceleration.  If you are moving in a circle you are constantly changing direction so you are constantly accelerating.  
+
+Centripetal force is  $$F = \frac{mv^2}{r}$$  where m is the mass v is the velocity and r is the radius from the center.  
+
+Centripetal force always points towards the center. In this equation  $$a = \frac{v^2}{r}$$
+
+Period is the amount of time it takes for something to happen once.  
+
+The orbital period is
+$$time = \frac{2\pi r}{v}$$  
+
+
+## 9-5-17  
+
+Newton's Laws:
+- Inertia
+- $F = ma$ 
+- $F_{12} = F_{21}$  
+
+**Inertia** is the tendency of an object to resist changes in its motion. 
+
+**Newton's 2nd Law** is often considered the most fundamental law of nature.  The foundation for all motion. 
+
+$$F_{net} = ma$$
+$$\sum F = ma$$
+
+## 9-7-17  
+
+Applications of Newton's Laws.  (Chapter 5)
+
+- Vetctors
+- Inertial Reference Frames
+- Friction 
+
+A reference frame traveling at a constant velocity is called an inertial frame, in which all laws of physics hold.  
+
+Earth is an inertial reference frame.  It is changing position so slowly so it basically is an inertial reference frame.  The tangential speed is fast, almost 100 MPH, but imagine a basketball on the table and you rotate it 360 degrees in 24 hours... you can't really tell that it's spinning.  
+
+The airplane can also be thought of as an inertial reference frame.  When you are moving at a constant velocity, it doens't matter how fast you're moving.  
+
+Is there such a thing as a non-inertial reference frame?  Yes  
+
+Force is indistinguishable from acceleration in non-inertial reference frames.  
+
+Equivalence Principal.  
+
+## 9-12-17  
+
+Friction  $$F_f = \mu N$$  
+where $\mu$ is the coefficient of friction.  
+
+## 9-14-17  
+

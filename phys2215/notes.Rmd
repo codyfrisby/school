@@ -1,0 +1,119 @@
+---
+title: "Lab Notes"
+author: "Cody"
+date: "8/24/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = 'center', dpi = 200)
+```
+
+
+Rate of change in position over the rate of change in time is defined as velocity.  
+
+$$\frac{dx}{dt} = v$$
+
+$$\frac{d^2x}{dt^2} = \frac{dv}{dt} = a$$
+
+$$\frac{x_{n+1} - x_n}{\delta t} = v$$
+
+$$x_{n+1} = v_0 \delta t + x_n$$  
+
+$$a = \frac{v_{n+1} - v_n}{\delta t}$$  
+
+Euler's method.  Verlay's method.  
+
+Which do you update first?  Position or velocity?
+
+
+## Lab0  
+
+First, I'm going to reproduct the time and $sin(omega t)$ data and plot it.  
+
+```{r}
+omega <- 5
+s <- 0.025
+time <- seq(0, 10, s)
+f <- function (t, omega = 3) {
+  sin(omega * t)
+}
+plot(time, f(t = time), type = "l", ylab = "sin(omega * t)")
+```
+
+Now, we need to take the numerical derivative of $sin(omega t)$ with respect to time.  
+
+```{r}
+# in the lab we used excel and created a time diff by lag 2.  
+#dx <- numericDeriv(f(t = time), "time", dir = )
+# the above code is wrong
+dx <- diff(f(time)) / s / omega
+fdx <- diffinv(dx) * s + c(0, f(time[-1]))
+plot(time[-1], dx, type = "l", xlab = "time", ylab = ("dx"))
+plot(time, fdx, type = "l", xlab = "time", ylab = ("fdx"))
+```
+
+
+Using ggplot2 to put them on the same plot. 
+
+```{r}
+# first take the integral of the derivative:
+library(ggplot2)
+df <- data.frame(cbind(time, f(time), dx, fdx))
+names(df) <- c("time", "x", "dx", "fdx")
+# xlab = expression(hat(mu)[0]), ylab = expression(alpha^beta),
+#  main = expression(paste("Plot of ", alpha^beta, " versus ", hat(mu)[0])))
+library(reshape2)
+df_melt <- melt(df[-1])
+df_melt$time <- df$time
+gg <- ggplot(df_melt, aes(x = time, y = value, color = variable))
+gg + geom_line() + theme_bw()
+```
+
+
+## 8-31-17  
+
+Lecture is to derive kinematic equations for constant acceleration.  
+
+$$a = \frac{dv}{dt}$$  
+
+$$adt = dv$$  
+
+$$\int adt = \int v$$
+
+$$at + v_0 = v$$  
+
+Moving onto the next one.  We can rewrite v as the time integral of position.  
+
+$$at + v_0 = \frac{dx}{dt}$$  
+
+$$\frac{1}{2}at^2 + v_0t + x_0 = x$$  
+
+The elastic force for a spring is $-k \Delta x$.  
+
+Sinusoidal position is $Asin(\omega t)$.  $v = \omega Acos(\omega t)$ and $a = \omega^2 A sin(\omega t)$.  
+
+7-10 should be our spring constant if we do it right.  
+
+
+In excel, where A is time and B is pos make it $$\frac{B_{n+2} - B_n}{A_{n+2} - A_n}$$  
+
+## 9-7-17  
+
+
+## 9-14-17  
+
+Today's lab is all about statistics and error and prediction.  
+
+Need to solve a system of linear equations first.  It's easier in R since I already know how to.  
+
+```{r}
+x <- matrix(c(1, 1, 0.510204, -0.051020408), ncol = 2)
+y <- c(0.3661, 0.5)
+solve(x, y)
+pracma::rref(cbind(x, y))
+x <- matrix(c(1, 1, (0.510204 + 0.0806), -(0.1)) ,ncol = 2)
+y <- c(0.42395, 0.98)
+pracma::rref(cbind(x, y))
+```
+

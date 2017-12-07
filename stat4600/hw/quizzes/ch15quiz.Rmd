@@ -1,0 +1,60 @@
+---
+title: "Quiz 11"
+author: "Cody Frisby"
+date: "11/18/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+library(qcc); library(SixSigma); library(qualityTools); library(rms)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+
+```
+
+## 15.2 
+
+```{r, fig.height=6}
+# Draw the type-B OC curve for 
+p <- 1:100/1000
+n <- 100
+c <- 2
+plot(p , pbinom(c, n, p), type = "l", lwd = 3,
+     xlab = "Fraction Defective, p", ylab = "Probability of Acceptance, Pa",
+     col = "blue", main = paste0("OC curve for n = ", n, " c = ", c))
+```
+
+For any given point p, $`r min(p)` < p < `r max(p)`$, $P_a$ is given by $$P_a(p) = \sum_{c = 0}^2 \binom{100}{c} p^{c} (1 - p)^{100 - c}$$  
+
+------
+
+Here I display the points on the plot: 
+
+```{r}
+df <- data.frame(p, pbinom(c, n, p))
+names(df) <- c("Fraction defective, p", "Probability of Acceptance, Pa")
+s <- sample(1:100, 10)
+#df <- df[s,]
+knitr::kable(df)
+```
+
+
+
+```{r}
+qcc.options(old)
+```
+
+
+```{r, eval=FALSE}
+# this is a function to check some of the computations
+binom <- function(p){ # for c = 2
+  choose(100, 0)*p^0*(1-p)^100 +
+    choose(100, 1)*p^1*(1-p)^99 +
+    choose(100, 2)*p^2*(1-p)^98
+}
+binom(.1)
+
+```
+

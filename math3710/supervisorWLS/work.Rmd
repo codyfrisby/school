@@ -1,0 +1,188 @@
+---
+title: "Work WLS"
+author: "Cody Frisby"
+date: "March 31, 2016"
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+```{r}
+work <- read.table("~/Documents/MATH3710/supervisorWLS/work.txt", header = T)
+fit <- lm(y~x, work)
+summary(fit)
+```
+
+Fit model without weights or transformation.  
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit, which = c(1,2))
+```
+
+
+## Add weights to our data table
+
+```{r}
+work$w <- 1/work$x^2
+work$yt <- work$y/work$x
+work$xt <- 1/work$x
+```
+
+Now fit the model with the transformed x & y
+
+```{r}
+fit.t <- lm(yt ~ xt,data = work)
+summary(fit.t)
+```
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit.t, which = c(1,2))
+```
+
+Now fit the model with weights
+
+```{r}
+# not using yt and xt
+fit.w <- lm(y ~ x, weights = work$w, data = work)
+summary(fit.w)
+```
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit.w, which = c(1,2))
+```
+
+
+```{r}
+# Here, we calculate the WLS estimates for B_i
+X <- cbind(1, work$x)
+Y <- matrix(work$y, nrow = length(work$y))
+W <- matrix(diag(work$w), nrow = length(work$w))
+B <- solve(t(X)%*%W%*%X) %*% t(X)%*%W%*%Y
+B # intercept and slope WLS
+coef(fit.w) # same as above
+```
+
+
+```{r}
+# WSSE(X)
+WSSE.x <- sum(work$w*(work$y-(B[1] + B[2]*work$x))^2)
+WSSE.x
+WMSE.x <- WSSE.x/(length(work$x) - 2)
+WMSE.x
+sigma0 <- sqrt(WMSE.x)
+sigma0 # sigma calculated "by hand"
+summary(fit.w)$sigma; summary(fit.t)$sigma #WLS and transformed sigma
+```
+
+
+```{r}
+# C matrix
+C <- solve(t(X) %*% W %*% X)
+C
+```
+
+
+```{r}
+# confidence intervals for B
+confint(fit.w) # B1 is Significant
+```
+
+
+### Graybill book example pg 576
+
+```{r}
+co <- read.table("~/Documents/MATH3710/datafiles/CARBMON.DAT", header = F)
+colnames(co) <- c("y", "x")
+co$w <- 1/co$x
+# using R lm function with weights argument
+fit.w <- lm(y ~ x, data = co, weights = w)
+y <- co$y; X <- cbind(1, co$x)
+# note : w_i = (1/G(x_i)^2) = 1/x_i
+W <- matrix(diag(1/co$x), nrow = length(co$x))
+B <- solve(t(X)%*%W%*%X) %*% t(X)%*%W%*%y
+B; coef(fit.w) # intercept and slope WLS
+C <- solve(t(X) %*% W %*% X)
+C
+```
+
+
+```{r}
+WSSE.x <- sum(co$w*(co$y-(B[1] + B[2]*co$x))^2)
+WMSE.x <- WSSE.x/(length(co$x) - 2)
+sigma0 <- sqrt(WMSE.x)
+sigma0
+summary(fit.w)$sigma
+```
+
+### Confidence Intervals "By Hand"
+```{r}
+# SE of B
+SE.b0 <- sigma0*sqrt(C[1,1])
+SE.b1 <- sigma0*sqrt(C[2,2])
+# calculate confidence intervals
+cv0 <- qt(0.95, 11)*SE.b0; cv1 <- qt(0.95, 11)*SE.b1
+b0 <- B[1] + c(-cv0, cv0)
+b1 <- B[2] + c(-cv1, cv1)
+rbind(b0,b1)
+confint(fit.w, level = 0.90) #compare to R's built in function
+```
+
+
+Confidence interval for sigma and then Y(300)
+
+```{r}
+# alpha = 0.2
+chi.cv <- qchisq(c(0.9, 0.1), 11)
+sqrt(WSSE.x/chi.cv)*sqrt(300) # note, sqrt(300) is the g(y) value
+```
+
+Confidence interval for x = 500  
+
+```{r}
+# using R "predict"
+predict(fit.w, data.frame(x = 500), interval = "confidence")
+predict(fit.w, data.frame(x = 500), se.fit = TRUE)$se.fit #SE
+# "By hand"
+test <- rbind(1,500)
+sigma0*sqrt(t(test)%*%C%*%test)
+predict(fit.w, data.frame(x=500)) +
+  c(-sigma0*sqrt(t(test)%*%C%*%test)*qt(0.975,11),
+    sigma0*sqrt(t(test)%*%C%*%test)*qt(0.975,11))
+```
+
+
+Prediction interval for x = 300, pg. 579 in Graybill book 
+
+```{r}
+# "By hand"
+test <- rbind(1,300)
+sigma0*sqrt(sqrt(300)^2 + t(test)%*%C%*%test)
+predict(fit.w, data.frame(x=300)) +
+  c(-sigma0*sqrt(sqrt(300)^2 + t(test)%*%C%*%test)*qt(0.975,11),
+    sigma0*sqrt(sqrt(300)^2 + t(test)%*%C%*%test)*qt(0.975,11))
+```
+
+
+I'm going to try to go further with this and define *w* as a function of *x* using R code to do all the computations for me.
+
+```{r}
+# now to attempt the computation using the books notation
+# for thw WSSE(X) using R's functionioal programming.
+# wwse is a function that takes an 1xn x argument, 1xn y argument
+# and an f argument that is a function of x
+wls <- function(x, y, w){
+  X <- cbind(1, x) # create matrix for computations
+  W <- matrix(diag(w), nrow = length(x)) # weight matrix
+  B <- solve(t(X) %*% W %*% X) %*% t(X) %*% W %*% y #Betas
+  sse <- sum(w*(y-(B[1] + B[2]*x))^2)
+  mse <- sse/(length(x) - 2)
+  sigma0 <- sqrt(mse)
+  z <- list(betas = B, sse = sse, mse = mse, sigma = sigma0) # weighted sum of squares
+  z
+}
+wls(work$x, work$y, 1/work$x^2)
+```

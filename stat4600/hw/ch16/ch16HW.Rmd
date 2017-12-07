@@ -1,0 +1,49 @@
+---
+title: "Chapter 16 Homework"
+author: "Cody Frisby"
+date: "11/30/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+library(qcc); library(SixSigma); library(qualityTools); library(rms)
+library(AcceptanceSampling)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+## Assignment: ##
+# 1, 2
+```
+
+## 16.1  
+
+```{r}
+p1 <- 0.02; p2 <- 0.1; alpha <- 0.1; beta <- 0.05
+plan <- find.plan(PRP = c(p1, 1 - alpha), CRP = c(p2, beta), type = "normal",
+                  s.type = "unknown")
+```
+
+Using the nomograph, n = 40.  But, using the computer, $n = `r plan$n`$.  
+
+To determine the probability of acceptance $$Z_{LSL} = \frac{\bar x - LSL}{\sigma} = \frac{0.73 - 0.7}{\frac{0.0105}{\sqrt{40}}} = 18.0702$$  and with such a large value for $Z$ we would accept this lot.  
+
+The OC curve for our sampling plan is displayed below.  
+
+```{r, fig.height=6.5}
+# create a curve for our sampling plan
+x <- OCvar(plan$n, plan$k, type = "normal", s.type = "unknown")
+plot(x, xlim = c(0, 0.15), pch = "", col = "blue", lwd = 3)
+```
+
+------  
+
+## 16.2  
+
+```{r}
+p1 <- 0.005; p2 <- 0.02; alpha <- 0.05; beta <- 0.1
+plan <- find.plan(PRP = c(p1, 1 - alpha), CRP = c(p2, beta), type = "normal",
+                  s.type = "known")
+```
+
+Using the nomograph n appears to be just above 30.  But, using the computer, $n = `r plan$n`$.

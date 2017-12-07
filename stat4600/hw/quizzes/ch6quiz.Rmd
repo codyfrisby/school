@@ -1,0 +1,74 @@
+---
+title: "Chapter 6 Quiz"
+author: "Cody Frisby"
+date: "10/19/2016"
+output: pdf_document
+---
+
+## 6.3  
+
+### A 
+
+```{r, echo=F, warning=F, message=F, dpi=200, fig.align='center'}
+obs <- c(-30,0,-50,-10,20,0,0,70,0,10,40,30,30,30,10,0,20,10,50,50,
+         50,50,10,-10,-40,0,0,-30,0,20,0,20,-30,-10,-10,0,20,-20,-10,0,
+         -20,-60,20,30,50,40,20,30,20,30,20,30,0,50,50,30,30,50,40,0,
+         10,-20,30,-20,20,-40,-20,-10,-20,10,0,10,10,-10,40,-10,30,30,20,30,
+         30,30,20,50,10,20,-10,0,10,50,20,40,10,-30,0,0,-20,10,0,10)
+xdat <- matrix(obs, ncol=5)
+x <- apply(xdat,1,mean) # sample means.
+R <- apply(xdat, 1, function(x){max(x)-min(x)}) # ranges
+tv <- .577 #table value A2
+ucl <- mean(x) + tv*mean(R)
+d2 <- 2.326 # table value D4
+sig <- mean(R)/d2 # estimate of standard deviation
+library(qcc) # a cool quality control package, easy control charts.  
+x <- xdat
+xbar <- qcc(x, "xbar", add.stats=T)
+rchart <- qcc(x, "R", add.stats=T)
+cp <- (100 - (-100))/(6 * sig)
+cpp <- 1/cp * 100
+```
+
+It appears the process is in statistical control.  There are no points outside the control limits on either the xbar or the R charts.  
+
+### B  
+The process standard deviation can be estimated using the range method  $$\hat \sigma = \frac{\bar R}{d_2} = \frac{`r mean(R)`}{`r d2`} = `r sig`$$  
+
+### C  
+Calculating the PCR estimate of $C_p$ is $$\hat C_p = \frac{USL - LSL}{6\sigma} = \frac{100 - (-100)}{`r 6 * sig`} = `r cp`$$ and it appears that the process is capable of producting a small number of non-conforming units.  We can also understand this capability by computing $\frac{1}{\hat C_p}100$.  This value is understood to be the percentage of the specification that the process will use up.  $$\frac{1}{\hat C_p}100 = \frac{1}{`r cp`}100 = `r cpp`$$
+
+```{r, comment = "", echo=FALSE}
+# adding more...
+cap <- process.capability(xbar, c(-100, 100), print = F)
+oc.curves(xbar)
+```
+
+------
+
+### R Code:  
+
+```{r, eval=FALSE}
+obs <- c(-30,0,-50,-10,20,0,0,70,0,10,40,30,30,30,10,0,20,10,50,50,
+         50,50,10,-10,-40,0,0,-30,0,20,0,20,-30,-10,-10,0,20,-20,-10,0,
+         -20,-60,20,30,50,40,20,30,20,30,20,30,0,50,50,30,30,50,40,0,
+         10,-20,30,-20,20,-40,-20,-10,-20,10,0,10,10,-10,40,-10,30,30,20,30,
+         30,30,20,50,10,20,-10,0,10,50,20,40,10,-30,0,0,-20,10,0,10)
+xdat <- matrix(obs, ncol=5)
+x <- apply(xdat,1,mean) # sample means.
+R <- apply(xdat, 1, function(x){max(x)-min(x)}) # ranges
+tv <- .577 #table value A2
+ucl <- mean(x) + tv*mean(R)
+d2 <- 2.326 # table value D4
+sig <- mean(R)/d2 # estimate of standard deviation
+library(qcc) # a cool quality control package, easy control charts.  
+x <- xdat
+xbar <- qcc(x, "xbar")
+rchart <- qcc(x, "R")
+cp <- (100 - (-100))/(6 * sig)
+cpp <- 1/cp * 100
+# adding more...
+cap <- process.capability(xbar, c(-100, 100), print = F)
+oc.curves(xbar)
+```
+

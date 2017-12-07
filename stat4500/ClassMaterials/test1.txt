@@ -1,0 +1,13 @@
+Exam 1 will be on Chapters 1, 2 and 3 on materials covered in class.
+
+Basic concepts of hypothesis testing, power, confidence interval and 
+P-values
+
+Non-parametric tests and confidence intervals for median
+
+Binomial test or sign test
+
+Wilcoxon-signed rank test
+
+You will be allowed to use a calculator. Tables will be provided during 
+the exam. Problems will be mostly data-based.

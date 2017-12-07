@@ -1,0 +1,154 @@
+---
+title: "Computer Repairs"
+author: "ccfrisby"
+date: "January 4, 2016"
+output:
+  html_document:
+    keep_md: yes
+  pdf_document: default
+---
+
+```{r, echo = FALSE, message = FALSE}
+#to check for required packages before running code.
+#if (!require(psych))
+#       {install.packages("psych")
+#        library(psych, warn.conflicts = FALSE)}
+
+#note: to make this work on your machine you may need to install the 
+# psych package by typing into the console install.packages("psych")
+# the reason I'm using this package is that the describe function from it
+# produces output much like the SAS simple statistics output from the 
+# PROC CORR procedure.  
+```
+
+Let's get started with simple linear regression using R.  This first data set is small so we have the data loaded into two variables: minutes and units.  We then put them together with the cbind function and store the result in a new variable called repair.
+
+```{r}
+units <- c(1,2,3,4,4,5,6,6,7,8,9,9,10,10,3)
+minutes <- c(23,29,49,64,74,87,96,97,109,119,149,145,154,166, NA)
+repair <- as.data.frame(cbind(units, minutes))
+repair <- repair[complete.cases(repair), ] 
+# note, the above line removes missing values.
+summary(repair)
+```
+
+Above is a summary of the data table "repair".  Below is a table of the correlation coefficients.  
+
+```{r}
+cor(repair, method = "pearson", use = "complete.obs")
+```
+
+Here's a scatter plot of the data.
+
+```{r, echo = FALSE}
+plot(minutes ~ units, data=repair, bg = "lightblue", 
+     col = "black", cex = 1.5, pch = 21)
+# bg, col, cex, pch are all arguments to the plot function. They only determine
+# how the plot appears.  
+```
+
+
+Now to display a summary of the model.  Above we fit a model with minutes being function of units.  We stored this model in a variable called m.
+
+```{r}
+m <- lm(minutes ~ units, data = repair)
+anova(m) #ANOVA table
+summary(m) #summary of linear model
+```
+
+Here we attempt to reproduce some of the output from the Proc Reg command in SAS.
+```{r}
+# add confidnece intervals
+p <- predict.lm(m, se.fit = T, interval = "confidence")
+psub <- p$fit[,2:3]
+colnames(psub) <- c("95% Conf Lower", "95% Conf Upper")
+s <- cbind(psub, stderror = p$se.fit)
+# still need to add prediction intervals
+# cbind is the commmand that binds columns together in either a 
+# data frame or matrix.
+t <- cbind(repair$minutes, fitted.values(m), residuals(m))
+colnames(t) <- c("observed", "predicted", "residuals")
+cbind(t, s)
+```
+
+
+Below is a plot of the residuals vs fitted and the Normal Quantile plot.  
+
+```{r, echo=FALSE}
+plot(m, which = c(1,2))
+# the which argument in the plot function chooses the first two plots from the m model.
+# the plot(m) call produces at least four plots.  We are only interested in the first 
+# two at the moment.  
+```
+
+
+Now to plot a histogram of the residuals from our model.  We will do this three different ways for R illustration purposes.
+
+```{r, echo = FALSE}
+x <- rstandard(m)
+hist(x, col = "green", freq = FALSE, xlim = c(-3,3), main = "Histogram of 
+     Standardized Residuals", xlab = "rstandard")
+curve(dnorm(x, mean(x), sd(x)), col = 2, add = TRUE, 
+      from = quantile(x, 0.001), to = quantile(x, 0.999))
+```
+
+```{r, echo = FALSE, message = FALSE}
+#to hide from the md finte from Knit.
+if (!require(ggplot2))
+        {install.packages("ggplot2")
+        library(ggplot2, warn.conflicts = FALSE)
+}
+```
+
+```{r, echo=FALSE}
+x <- rstandard(m)
+qplot(x, bins = 3, xlab = "Standard Residuals", 
+      main = "Histogram of Standard Residuals", fill = I("light blue"), 
+      colour = I("black"))
+```
+
+
+Or we can plot the residuals this way, using ggplot.
+
+```{r, echo = FALSE}
+df <- data.frame(cbind(t, rstandard = rstandard(m)))
+gg <- ggplot(df, aes(x = rstandard))
+gg <- gg + geom_histogram(binwidth=0.75, colour="black", 
+                          aes(y=..density.., fill=..count..))
+gg <- gg + scale_fill_gradient("Count", low="#DCDCDC", high="#7C7C7C")
+gg <- gg + stat_function(fun=dnorm, color="red",
+                         arg = list(mean = mean(df$rstandard), 
+                                    sd = sd(df$rstandard)))
+gg <- gg + ggtitle("Histogram of Standard Residuals")
+gg
+```
+
+Here we attempt to reproduce the same output as the Proc Univariate command in SAS.  Here the variable of interest is from our model m, rstandard.  
+```{r}
+summary(rstandard(m)) #this is using the library psych
+t.test(rstandard(m))
+#or, using base R
+x <- rstandard(m)
+mean(x)
+sd(x) 
+summary(x) 
+var(x)
+```
+
+```{r}
+u <- cbind(t, rstandard(m), hatvalues(m))
+colnames(u) <- c("observed", "predicted", "residuals", "stdresid", "hatvals")
+print(u)
+# confidence intervals and se values can be obtained in R by using
+# predict.lm(m, se.fit = T, interval = "confidence")
+# where m is your fitted model. 
+
+```
+
+
+```{r, echo=FALSE}
+# fit the least squares line to the plot.
+# abline(lm(minutes ~ units, data = repair), lwd = 1, col = "red")
+# to display the R^2 value on the graph
+# legend("topleft", bty = "n", legend = paste("R^2 =", format(summary(m)$adj.r.squared, digits = 4)))
+```

@@ -1,0 +1,50 @@
+---
+title: "Quiz from Chapter 9"
+author: "Cody Frisby"
+date: "11/11/2016"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+library(qcc); library(SixSigma); library(qualityTools)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+## Quiz ##  
+# number 1
+```
+
+A quick glance at the scatter plot of the observations would indicate a trend upward in the data.  This upward trend is picked up in the cummulative sum chart after around the 9th observation (see plot below).  
+
+```{r, fig.height=6}
+x <- c(1045,1055,1037,1064,1095,1008,1050,1087,1125,1146,1139,1169,1151,
+       1128,1238,1125,1163,1188,1146,1167)
+cs <- cusum(x, plot = TRUE, center = 1050, std.dev = 25, add.stats = F,
+            title = "", xlab = "", ylab = "")
+qc <- qcc(x, type = "xbar.one", plot = F)
+s <- qc$std.dev
+```
+
+
+K is typically 0.5 times the shift that is desired to be detected.  Since the desired detection is $1.0\sigma$ 
+$$\frac{1}{2}\sigma = `r 25/2`$$ $$H = 5\sigma = 125$$
+
+
+### b) 
+The estimate for $\sigma$ in part a doesn't seem reasonable, $\hat \sigma = `r s`$.  
+
+------
+
+The observations and plotted data points are 
+
+```{r}
+dt <- cbind(x, cs$pos, cs$neg)
+colnames(dt) <- c("xi","Cplus", "Cnegative")
+knitr::kable(dt)
+```
+
+
+```{r}
+qcc.options(old)
+```
+

@@ -1,0 +1,230 @@
+---
+title: "Enviornmental Impacts"
+author: "Cody Frisby"
+date: "March 29, 2016"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+### I apologize for how messy this code is.  It was a work in progress while learning about some R functions.  If you have any questions about it please let me know.  codyfrisby@gmail.com  
+
+```{r}
+df <- read.table("~/Documents/MATH3710/enviornment/EnvironmentalImpacts.txt", header = TRUE)
+# log variables
+df$loghydro <- log(df$Hydrocarbons)
+df$lognitro <- log(df$Nitrogen)
+df$logSO2 <- log(df$SO2)
+# create a var with a formula of the entire model
+f <- formula(AAMort ~ .)
+fit.all <- lm(f, data = df[1:16]) #not including log vars
+summary(fit.all) # look at model
+car::vif(fit.all) # variance inflation factors, car package needed
+```
+
+For the last function here, you will need the *car* pacakage installed if you don't already.  
+
+```{r, dpi=200, fig.align='center'}
+n.list <- c("AAMort", "AnnPrecip", "MeanJanTemp", 
+            "MeanJulyTemp",
+           "PctNonWhite", "PctWhiteCollar", "PctU20000", 
+           "Hydrocarbons", "Nitrogen", "SO2", "RelHumid")
+plot(df[n.list])
+```
+
+
+Now we will create another scatter plot matrix.
+
+```{r, dpi=200, fig.align='center'}
+n2 <- c('AAMort', 'AnnPrecip', 'MeanJanTemp', 'MeanJulyTemp', 'PctNonWhite', 'PctWhiteCollar', 'PctU20000', 'loghydro', 'lognitro', 'logSO2', 'RelHumid')
+plot(df[n2])
+```
+
+
+Correlation Coefs:
+
+```{r}
+cor(df[1:16]) #I'm not including the added log vars
+```
+
+
+Fitting the model that is in the SAS example:
+
+```{r}
+fit1 <- lm(AAMort ~ ., df[!names(df) %in% 
+                            c("Hydrocarbons", "SO2",
+                              "Nitrogen", "loghydro")])
+# Here we use R's vectorizing abilities to subset the 
+# R object df. ! is the negating symbol, ie. "not" in blank.
+summary(fit1)
+```
+
+Summary of the model above.  Now we plot the diagnostics.
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit1, which = c(1,2))
+```
+
+Now, we want to take a look at the variance inflation factors from this model.  
+
+```{r}
+car::vif(fit1)
+```
+
+Now, let's fit the next model from the SAS code example.
+
+```{r}
+# fit the model WITHOUT the 4 terms listed
+fit2 <- lm(AAMort ~ ., df[!names(df) %in% 
+                            c("Hydrocarbons", "SO2",
+                              "Nitrogen", "lognitro")])
+summary(fit2) # summary of the model
+car::vif(fit2) # variance inflation factors
+```
+
+  
+Model Diagnostics:  
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit2, which = c(1,2))
+```
+
+Histogram of the residuals from fit2 model.
+
+```{r, dpi=200, fig.align='center'}
+# function to draw a hist with a normal curve
+draw.hist <- function(x, main = NULL) {
+  h <- hist(
+    x, breaks = 20, col = "lightblue", xlab = "", 
+    main = main) 
+  xfit <- seq(min(x),max(x), 0.01)
+  yfit <- dnorm(xfit,mean = mean(x),sd = sd(x))
+  yfit <- yfit * diff(h$mids[1:2]) * length(x)
+  lines(xfit, yfit, col = "black", lwd = 2)
+}
+# above is a function, below we call the function and give it two 
+# arguments.  Here, x is the residuals of the fit2 model.
+draw.hist(x = fit2$residuals, main="Histogram of the Residuals")
+```
+
+
+
+N best models:
+```{r}
+# library MASS needed for funciton stepAIC
+step.mods <- MASS::stepAIC(fit1, direction = "backward")
+```
+
+Notice, this function/algorithm automatically prints each "step" to the console.  It stops based on AIC criteria.  We can see a summary by
+
+```{r}
+step.mods$anova
+```
+
+Also, the "best" model is now subsetted into a data frame when we run
+
+```{r}
+new.df <- step.mods$model
+```
+
+
+And to fit this new, reduced "best" model
+
+```{r}
+fit3 <- lm(AAMort ~ ., data = new.df)
+summary(fit3)
+# remove PopPerHouse, fit model, and compare to the one with it
+fit4 <- lm(AAMort ~ ., data = new.df[!names(new.df) %in% "PopPerHouse"])
+anova(fit4, fit3)
+```
+
+So, our algorithm didn't remove PopPerHouse, but there are no adverse effects if we exclude it.  So, we will go with model **fit4**.
+
+```{r}
+summary(fit4)
+```
+
+Our new, reduced model diagnostic plots.  
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit4, which = c(1,2))
+```
+
+Now try to use the leaps package
+
+## All Subsets  
+
+Here is some code to select your TOP 30 models....You have to supply the x values (your predictors) in the form of a subsetted data frame or a matrix. 
+
+```{r}
+# here we get the top 30 models based on Cp.
+# we could use adj.r2 or r2 as well
+# we need to tell the leaps function what our x (predictors) are
+# and our response, y, is.
+mods.cp <- leaps::leaps(x = df[,c(1:11,15,17,19)], y = df[,16], 
+            method="Cp", names = names(df[,c(1:11,15,17,19)]), nbest=30)
+# number of models the above line genterated
+length(mods.cp$Cp)
+ord <- order(mods.cp$Cp) # orders the Cp values smallest to largest
+top30 <- ord[1:30] # creates an indexing vector of length 30
+mods30.cp <- mods.cp$which[top30, ]
+# here we only used Cp, we could do the same for adjusted r square.
+regs <- leaps::regsubsets(AAMort ~ AnnPrecip+MeanJanTemp+MeanJulyTemp+
+                            PctGT65+PopPerHouse+School+PctSound+
+                            PopPerSqMile+PctNonWhite+PctWhiteCollar+
+                            PctU20000+RelHumid+loghydro+lognitro
+                          +logSO2, data=df, 
+                          nbest = 30)
+tmp <- summary(regs)$outmat # matrix of our models
+regs.data <- as.matrix(cbind(summary(regs)$rsq, summary(regs)$adjr2, 
+                   summary(regs)$cp, summary(regs)$bic))
+colnames(regs.data) <- c("r2", "adjr2", "cp", "bic")
+# now we have a matrix with the above values
+bic.ord <- order(regs.data[,4])
+tmp30 <- cbind(1:30, tmp[bic.ord[1:30], ])
+tmp30
+```
+
+And if we just want to look at the best model based on BICs and using the leaps package  
+
+```{r}
+tmp[bic.ord[1],]
+```
+
+Cool thing about this is we didn't need to exclude one of the log vars due to VIF.  BICs and other criteria selection methods take care of this for us.  
+
+```{r}
+library(leaps)
+df.sub1 <- df[!names(df) %in% 
+                c("Hydrocarbons", "SO2", "Nitrogen", "lognitro")]
+leaps <- regsubsets(AAMort ~ ., data = df.sub1, nbest = 6)
+#summary(leaps) #this produces very large output
+```
+
+Plot the model subsets  
+
+```{r, dpi=200, fig.align='center', fig.height=8}
+plot(leaps, scale = "r2")
+```
+
+
+Plot statistic by subset size 
+
+```{r, dpi=200, fig.align='center'}
+# can't knit this line.  Exclude it
+#car::subsets(leaps, statistic="rsq")
+```
+
+
+Another way:
+
+```{r}
+fit.0 <- lm(AAMort ~ 1, data = df) # fit a model with no predictors
+step(fit.0, scope = list(upper=fit1), data = df, direction = "both")
+```
+
+This way concludes a model with 6 terms, just like above.
+

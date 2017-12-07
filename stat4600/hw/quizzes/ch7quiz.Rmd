@@ -1,0 +1,41 @@
+---
+title: "Quiz 8"
+author: "Cody Frisby"
+date: "10/28/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+```
+
+## 7.1  
+
+First a plot at P chart using the observed data. 
+
+```{r}
+library(qcc)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+# 7.1
+x <- c(7,4,1,3,6,8,10,5,2,7,6,15,0,9,5,1,4,5,7,12)
+# plotting the control limits without removing
+pchart <- qcc(x, type = "p", size = 100, add.stats = FALSE, , xlab = "Sample", 
+               ylab = "Fraction of Non-conforming", title = "")
+```
+
+We can observe that there is one point that is outside the control limits. 
+
+```{r}
+# removing the outlier programtically...
+x <- x[-pchart$violations[1]$beyond.limits]
+pchart2 <- qcc(x, type="p", size = 100, plot = F)
+```
+
+Excluding this one point and then calculating our center, UCL, and LCL the reccomended points are $$UCL = `r pchart2$limits[1,2]`$$ $$center = `r pchart2$center`$$ $$LCL = `r pchart2$limits[1,1]`$$
+
+```{r}
+qcc.options(old)
+```
+

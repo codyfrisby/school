@@ -1,0 +1,87 @@
+---
+title: "Quiz 8"
+author: "Cody Frisby"
+date: "11/4/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+library(qcc); library(SixSigma)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+```
+
+
+## 8.26  
+
+```{r}
+y <- read.csv("~/Documents/STAT4600/hw/hw06/8-26.csv")
+y <- y$Ex8.32Reading
+df <- data.frame(y, part = gl(10, 3), 
+                 operator = factor(c(rep(1, 30), rep(2, 30))))
+fit <- aov(y ~ part*operator, df)
+#qc <- ss.rr(y, part, operator, data = df, main = "", lsl = 40, usl=60)
+```
+
+First I display the ANOVA table with the full model 
+$$y_{ijk} = \mu + P_i + O_j + (PO)_{ij} + \varepsilon_{ijk}\left\{
+        \begin{array}{ll}
+            i = 1, 2, ..., 10 \\
+            j = 1, 2 \\
+            k = 1, 2, 3
+        \end{array}
+    \right.
+    $$
+Where $P_i$ is the ith part and $O_j$ is the jth operator.
+`r knitr::kable(anova(fit))`  
+
+It can be seen that the interaction term (as well as the operator term) is not significant.  I suggest we fit a reduced model that drops this term.  
+
+$$y_{ijk} = \mu + P_i + O_j + \varepsilon_{ijk}\left\{
+        \begin{array}{ll}
+            i = 1, 2, ..., 10 \\
+            j = 1, 2 \\
+            k = 1, 2, 3
+        \end{array}
+    \right.
+    $$
+
+```{r}
+fit2 <- aov(y ~ part + operator, df)
+```
+
+and the ANOVA table from the reduced model is shown here.  
+
+`r knitr::kable(anova(fit2))`
+
+```{r}
+library(dplyr)
+y.i <- df %>%
+  group_by(part) %>%
+  summarise_each(funs(sum), y)
+y.j <- df %>%
+  group_by(operator) %>%
+  summarise_each(funs(sum), y)
+y.. <- sum(df$y)
+a <- dim(y.i)[1]; b <- dim(y.j)[1]; n <- 3 # number of replicates
+N <- a*b*n
+ssa <- (1/(b*n))*sum(y.i$y^2) - y..^2/N 
+ssb <- (1/(a*n))*sum(y.j$y^2) - y..^2/N
+sst <- sum(y^2) - y..^2/N
+sse <- sst - ssa - ssb
+msa <- ssa/(a-1); msb <- ssb/(b-1)
+mse <- sse/(N-a-b+1)
+s.p <- (msa - mse)/(b*n)
+s.o <- ifelse((msb - mse)/(a*n)< 0, 0, (msb - msab)/(a*n))
+#qc <- ss.rr(y, part, operator, data = df, main = "")
+```
+ 
+With the reduced model, we can estimate gauge repeatibility with $\hat \sigma^2$ wich is simplly the mean square error of our model, **`r mse`**.  
+
+We can estimate gauge reproducibility with $$\sigma_{Reproducibility}^2 = \sigma_O^2 = 0$$  where $$\sigma_O^2 = \frac{MS_{operator} - MS_{Error}}{an}$$ and a = `r a` and n = `r n`, and if it is less than zero we assume it to be zero.  
+
+```{r}
+qcc.options(old)
+```

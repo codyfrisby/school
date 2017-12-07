@@ -1,0 +1,57 @@
+# Bacteria
+Cody Frisby  
+February 6, 2016  
+
+Here we repeat the bacteria example from class.  There wasn't a text file or anything that the data contained so we will just have the data in the code. 
+
+
+
+```r
+time <- 1:15
+num <- c(355,211,197,166,142,106,104,60,56,38,36,32,21,19,15)
+D <- as.data.frame(cbind(time, num))
+fit <- lm(num ~ time, data = D)
+fit2 <- lm(log(num) ~ time, data = D) #fit a model but take the log of num.
+```
+
+Now, let's create some plots of the data and the transformed data.  Each with their respective fitted SLR line.  
+
+
+```r
+par(mfrow=c(1,2)) # this sets up a side by side plot
+plot(num ~ time, data = D, pch = 16)
+abline(fit)
+text(x=3, y=45, paste0("Cor = ",round(cor(D)[2], 4)), cex = 0.5)
+plot(log(num) ~ time, data = D, pch = 16)
+abline(fit2)
+text(x=3, y=3, paste0("Cor = ",round(cor(D)[3], 4)), cex = 0.5)
+```
+
+<img src="bacteria_files/figure-html/unnamed-chunk-2-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+As you can see from the plots above, the one we took the natural log of num has a much higher correlation coefficient and appears much more linear.  Now let's take a look at the residual plots. 
+
+
+```r
+par(mfrow = c(1,2))
+plot(fit, which = 1)
+plot(fit2, which = 1)
+```
+
+<img src="bacteria_files/figure-html/unnamed-chunk-3-1.png" title="" alt="" style="display: block; margin: auto;" />
+
+On the left we have the untransformed data and on the right we have the transformed data.  It becomes very apparent that the linearity assumption does not hold using the residual plot.  
+
+Now I want to plot the non transformed data scatter plot with the transformed model fit line on it.  
+
+
+```r
+par(mfrow = c(1,2))
+plot(jitter(num) ~ jitter(time), xlab="time", ylab="number of bacteria", 
+     data=D, pch = 16)
+lines(1:50, exp(fit2$coef[1]+fit2$coef[2]*1:50), col = 2)
+plot(log(num) ~ time, data = D, pch = 16)
+abline(fit2)
+```
+
+<img src="bacteria_files/figure-html/unnamed-chunk-4-1.png" title="" alt="" style="display: block; margin: auto;" />

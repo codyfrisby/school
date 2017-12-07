@@ -1,0 +1,250 @@
+---
+title: "Chapter 8 Homework"
+author: "Cody Frisby"
+date: "11/2/2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.align = 'center', dpi=200, 
+                      warning=F, message = F)
+library(qcc); library(SixSigma); library(qualityTools)
+old <- qcc.options()
+qcc.options(bg.margin = "white")
+```
+
+## 8.11  
+
+```{r, fig.width=5}
+# create a normal probability plot and estimate the process capability
+y <- c(.9475,.9775,.9965,1.0075,1.018,.9705,.986,.9975,1.01,1.02,.977,
+       .996,1.005,1.0175,1.025)
+qx <- qqnorm(y); qqline(y)
+qcc.x <- qcc(y, type= "xbar.one", plot = F, title = "")
+lsl <- mean(y) - 3*sd(y); usl <- mean(y) + 3*sd(y)
+```
+
+The weights of `r length(y)` 1 kg containers have been collected.  $$\bar x = `r mean(y)`~~~~ s = `r sd(y)`$$
+$$process~capability = \hat \mu \pm 3\hat \sigma = `r mean(y)` \pm `r 3*sd(y)`$$ and the normal distribution appears to be an appropriate model for the data. 
+
+
+## 8.12  
+
+Using the data from above, we are given a lower specification of 0.985 kg.  
+
+```{r}
+lsl <- .985
+pc <- process.capability(qcc.x, c(lsl), add.stats = F, print = F)
+cp <- (mean(y)-lsl)/(3*sd(y))
+z <- (lsl - mean(y))/sd(y)
+```
+
+From the looks of this plot, our process does not appear to be very capable of staying inside the lsl.  
+
+$$\hat C_{pl} = \frac{\hat \mu - LSL}{3 \hat \sigma} = \frac{`r mean(y)` - `r lsl`}{`r 3 * sd(y)`} = `r cp`$$ And estimating the percent of fallout $$Z = \frac{LSL - \hat \mu}{\hat \sigma} = \frac{`r lsl` - `r mean(y)`}{`r sd(y)`} = `r z`$$ and then calculating the probability of Z under the standard normal distribution and multiplying by 100 we would have the estimated percent fallout, `r round(pnorm(z) * 100,2)`%.  
+
+## 8.24  
+
+First we note that there is not an interaction term in our model.  We will only be estimating total variability from part and system.  This study did not vary the operator so we will not have a measure of operator interaction with measurement system.  
+
+```{r}
+y <- matrix(data = c(19,22,19,28,16,20,21,17,24,25,20,16,25,24,31,24,20,
+                     17,25,17,23,28,24,23,19,19,24,15,26,23,25,15,24,22,
+                     27,23,24,19,23,16), ncol=2)
+df.y <- as.data.frame(y)
+names(df.y) <- c("1", "2")
+df <- stack(df.y); names(df) <- c("y", "operator")
+df$part <- factor(rep(1:20, 2))
+df$operator <- factor(1)
+d2 <- 1.128 # table value
+fit <- aov(y ~ part, df)
+#ss.rr(y, part, operator, data = df)
+qc <- qcc(y, type = "xbar", add.stats = F, title = "X bar", plot = F)
+qcR <- qcc(y, type = "R", add.stats = F, title = "R", plot = F)
+rbar <- mean(abs(y[,2] - y[,1]))
+sig.gauge <- rbar/d2
+sst <- sum((y - mean(y))^2)
+sums <- aggregate(y ~ part, df, mean)
+a <- length(sums$y); N <- length(df$y); n <- N/a
+ss <- sum((sums$y - mean(y))^2) * n
+sse <- sst - ss
+pt <- (6 * sig.gauge)/(25+15 - (25 - 15))
+```
+
+$$\hat \sigma_{Gauge} = \frac{\bar R}{d_2} = \frac{`r rbar`}{`r d2`} = `r sig.gauge`$$  It appears that the new gauge performs worse relative to the older one.  The variance from the new gauge is larger than the old one.   
+
+$$P/T = \frac{k \hat \sigma_{Gauge}}{USL - LSL} = `r pt`$$
+
+## 8.25  
+
+```{r}
+y <- matrix(data = c(100,95,101,96,98,99,95,100,100,100,101,93,103,95,
+                  98,98,97,99,100,98,100,97,100,97,96,98,98,98,97,99), 
+            ncol = 3)
+R <- apply(y,1,function(x) max(x) - min(x))
+q.xbar <- qcc(y, type = "xbar", add.stat = F, title = "", xlab = "Part", 
+    ylab = "Mean", print = F)
+q.R <- qcc(y, type = "R", add.stat = F, title = "", xlab = "Part", 
+    ylab = "Range", print = F)
+df <- data.frame(y); names(df) <- c(1,2,3)
+df <- stack(df); names(df) <- c("y", "measurement")
+df$part <- factor(rep(1:10, 3))
+df$operator <- factor(1)
+fit <- aov(y ~ part, df); an <- anova(fit)
+# 4.717 is not correct for total variability
+d2 <- 1.693; a <- 10; N <- 30; n <- N/a
+mse <- an[3]$`Mean Sq`[2]
+msg <- (an[3]$`Mean Sq`[1] - mse)/n
+#ss.rr(y, part, operator, data = df)
+mst <- mse + msg
+```
+
+From the range chart it can be seen that there is decent repeat ability between parts.  Here, the operator has measured each part 3 times.  
+
+The variance components are 
+$$\hat \sigma_{total}^2 = `r mse+msg`, ~~ \hat \sigma_{part}^2 = `r msg`, ~~ \hat \sigma^2 = `r mse`$$ and $\hat \sigma^2$ can be interpreted as the repeat ability of the gauge and the measurement error.  The percent of the total variation due to the parts is `r round(msg/mst * 100,2)`%.  The values for the calculations for the variance components can be taken from the ANOVA table.  I display one here for convenience.  `r knitr::kable(an)`
+
+## 8.26  
+
+```{r, fig.height=7}
+y <- read.csv("~/Documents/STAT4600/hw/ch08/8-26.csv")
+y <- y$Ex8.32Reading
+df <- data.frame(y, part = gl(10, 3), 
+                 operator = factor(c(rep(1, 30), rep(2, 30))))
+fit <- aov(y ~ part*operator, df)
+x <- aggregate(y ~ part+operator, df, mean)
+xx <- aggregate(y ~ part+operator, df, function(x)max(x)-min(x))
+#qc <- ss.rr(y, part, operator, data = df, main = "", lsl = 40, usl=60)
+# I think I like this package more:
+g <- gageRRDesign(Operators = 2, randomize = FALSE)
+response(g) <- y
+g@X$Operator <- df$operator
+g@X$Part <- df$part
+gg <- gageRR(g)
+plot(gg)
+
+```
+
+
+```{r}
+library(dplyr)
+y.i <- df %>%
+  group_by(part) %>%
+  summarise_each(funs(sum), y)
+y.j <- df %>%
+  group_by(operator) %>%
+  summarise_each(funs(sum), y)
+yij. <- df %>%
+  group_by(part, operator) %>%
+  summarise_each(funs(sum), y)
+y.. <- sum(df$y)
+a <- dim(y.i)[1]; b <- dim(y.j)[1]; n <- 3 # number of replicates
+N <- a*b*n
+ssa <- (1/(b*n))*sum(y.i$y^2) - y..^2/N 
+ssb <- (1/(a*n))*sum(y.j$y^2) - y..^2/N
+sssub <- (1/n)*sum(yij.$y^2) - y..^2/N
+ssab <- sssub - ssa - ssb
+sst <- sum(y^2) - y..^2/N
+sse <- sst - ssab - ssa - ssb
+msa <- ssa/(a-1); msb <- ssb/(b-1); msab <- ssab/((a-1)*(b-1))
+mse <- sse/(a*b*(n-1))
+s.p <- (msa - msab)/(b*n)
+s.o <- ifelse((msb - msab)/(a*n)< 0, 0, (msb - msab)/(a*n))
+s.po <- ifelse((msab - mse)/n < 0, 0, (msab - mse)/n)
+```
+
+A model for this study could be represented by 
+$$y_{ijk} = \mu + P_i + O_j + (PO)_{ij} + \varepsilon_{ijk}\left\{
+        \begin{array}{ll}
+            i = 1, 2, ..., 10 \\
+            j = 1, 2 \\
+            k = 1, 2, 3
+        \end{array}
+    \right.
+    $$
+Where $P_i$ is the ith part and $O_j$ is the jth operator.  Here I display the ANOVA table from the fitted model.
+`r knitr::kable(anova(fit))`  
+
+- First, the variance component for part is $$\hat \sigma_{P}^2 = \frac{`r msa` - `r msab`}{`r b`(`r n`)} = `r s.p`$$ the variance component for operator is $$\hat \sigma_{O}^2 = \frac{`r msb` - `r msab`}{`r a`(`r n`)} = `r s.o`$$ and the variance component for the interaction of operator and part is $$\hat \sigma_{PO}^2 = \frac{`r msab` - `r mse`}{`r n`} = `r s.po`$$ where we round up to zero if the variance component is less than zero.   
+
+The variance component for repeat ability = $\sigma^2$ = `r mse`.  The variance component for reproducibility can be thought of $$\sigma_{reproducability}^2 = \sigma_{O}^2 + \sigma_{PO}^2 = `r s.o + s.po`$$  The standard deviation of measurement error is simply $$\sqrt{MSE} = `r sqrt(mse)`$$
+
+Since operator and operator:part components are not significant in our model, we could consider a reduced model from which we would then estimate the variance components from the reduced model.  
+
+```{r}
+fit2 <- aov(y ~ part+operator, df)
+sig.gauge <- s.po + s.o + mse
+# Rbar/d2
+pt <- (6 * sig.gauge)/(50+10 - (50 - 10))
+```
+
+If the spec limits are $50 \pm 10$ then we simply plug into the formula $$P/T = \frac{k \hat \sigma_{Gauge}}{USL - LSL} = \frac{6(`r sig.gauge`)}{60 - 40} =`r pt`$$
+
+## 8.28  
+
+```{r}
+y <- read.csv("~/Documents/STAT4600/hw/ch08/8-28.csv")
+y <- y$Ex8.34Reading
+df <- data.frame(y, part = gl(20, 2), 
+                 operator = factor(c(rep(1,40), rep(2,40), rep(3,40))))
+fit <- aov(y ~ .+part*operator, df)
+fit2 <- aov(y ~ ., df)
+#qc <- ss.rr(y, part, operator, data = df, main = "", lsl = 40, usl=60)
+```
+
+
+```{r}
+library(dplyr)
+y.i <- df %>%
+  group_by(part) %>%
+  summarise_each(funs(sum), y)
+y.j <- df %>%
+  group_by(operator) %>%
+  summarise_each(funs(sum), y)
+yij. <- df %>%
+  group_by(part, operator) %>%
+  summarise_each(funs(sum), y)
+y.. <- sum(df$y)
+a <- dim(y.i)[1]; b <- dim(y.j)[1]; n <- 2 # number of replicates
+N <- a*b*n
+ssa <- (1/(b*n))*sum(y.i$y^2) - y..^2/N 
+ssb <- (1/(a*n))*sum(y.j$y^2) - y..^2/N
+sssub <- (1/n)*sum(yij.$y^2) - y..^2/N
+ssab <- sssub - ssa - ssb
+sst <- sum(y^2) - y..^2/N
+sse <- sst - ssab - ssa - ssb
+msa <- ssa/(a-1); msb <- ssb/(b-1); msab <- ssab/((a-1)*(b-1))
+mse <- sse/(a*b*(n-1))
+s.p <- (msa - msab)/(b*n)
+s.o <- ifelse((msb - msab)/(a*n)< 0, 0, (msb - msab)/(a*n))
+s.po <- ifelse((msab - mse)/n < 0, 0, (msab - mse)/n)
+```
+
+A model for this study could be represented by 
+$$y_{ijk} = \mu + P_i + O_j + (PO)_{ij} + \varepsilon_{ijk}\left\{
+        \begin{array}{ll}
+            i = 1, 2, ..., 10 \\
+            j = 1, 2 \\
+            k = 1, 2, 3
+        \end{array}
+    \right.
+    $$
+Where $P_i$ is the ith part and $O_j$ is the jth operator.  Here I display the ANOVA table from the fitted model.
+`r knitr::kable(anova(fit))`  
+
+- First, the variance component for part is $$\hat \sigma_{P}^2 = \frac{`r msa` - `r msab`}{`r b`(`r n`)} = `r s.p`$$ the variance component for operator is $$\hat \sigma_{O}^2 = \frac{`r msb` - `r msab`}{`r a`(`r n`)} = `r s.o`$$ and the variance component for the interaction of operator and part is $$\hat \sigma_{PO}^2 = \frac{`r msab` - `r mse`}{`r n`} = `r s.po`$$ where we round up to zero if the variance component is less than zero.   
+
+The variance component for repeat ability = $\sigma^2$ = `r mse`.  The variance component for reproducibility can be thought of $$\sigma_{reproducability}^2 = \sigma_{O}^2 + \sigma_{PO}^2 = `r s.o + s.po`$$  The standard deviation of measurement error is simply $$\sqrt{MSE} = `r sqrt(mse)`$$
+
+```{r}
+sig.gauge <- s.po + s.o + mse
+# Rbar/d2
+pt <- (6 * sig.gauge)/(60 - 6)
+```
+
+If the spec limits are [60, 6] then we simply plug into the formula $$P/T = \frac{k \hat \sigma_{Gauge}}{USL - LSL} = \frac{6(`r sig.gauge`)}{60 - 6} =`r pt`$$
+
+```{r}
+qcc.options(old)
+```
+

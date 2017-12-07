@@ -1,0 +1,138 @@
+---
+title: "Exam 1 STAT 4600 Take 2"
+author: "Cody Frisby"
+date: "October 7, 2016"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi=200, fig.align = 'center', 
+                      cache = F)
+```
+
+## Part B  
+
+First, I display the population we will do our simulation and sampling from.  It is the standard normal distribution, $N(0,1)$
+
+```{r normal hist}
+curve(dnorm, col="lightblue", from = -4, to = 4, xlab="", ylab = "")
+cord.x <- c(-4,seq(-4, 4, 0.01),4)
+cord.y <- c(0,dnorm(seq(-4, 4, 0.01),0,1),0)
+polygon(cord.x,cord.y, col="lightblue")
+```
+
+## Procedure:  
+
+```{r normal}
+# I simulate data from normal with mean=0 and sd=1
+# I then take n samples and comple a t.test confidence interval
+# and then bootrap n*b times and compute 95% quantile.
+# we then compare the two results' accuracy. 
+n <- 10; b <- 1000
+x <- rnorm(n*b)
+######### t test ##########
+a <- matrix(sample(x, n*b, replace=TRUE), b, n)
+f <- function(x){t.test(x)$conf.int} # create t conf intervals
+d <- t(apply(a, 1, f)) # b t.test confidence intervals
+y <- sign(d[,1]) * sign(d[,2]) # test for mu in interval
+t.accuracy <- sum(y<0) / length(y) # how many contain mu?
+######### end t test ###############
+# what if we only have one sample from the normal?
+######### bootstrap one random sample #############
+w <- matrix(nrow=b, ncol=2)
+for(i in 1:b){ # I can't figure this part out without a loop, so...
+  B <- matrix(sample(a[i,], n*b, replace = TRUE), b, n)
+  #bootstrap b samples n times, and b times in the loop
+  v <- apply(B, 1, mean) # here we get 1000 means
+  w[i,] <- quantile(v, c(0.025, 0.975)) # here we get the quantile...
+}                                       # for the b means
+z <- sign(w[,1]) * sign(w[,2]) # test to see if mu is in interval
+boot.accuracy <- sum(z<0) / length(z) # how many times is mu there? 
+```
+
+I take $`r b`$ samples of size 10.  After the samples have been taken we calculate a 95% t test confidence interval for all $`r b`$ samples.  Of these $`r b`$ confidence intervals, I then determine how many of them contain $\mu$.  This is our accuracy measure.  
+
+With the re-sampling procedure, we start with one sample of size 10 from the standard normal distribution.  I then re sample from this sample $`r b * n`$ times with replacement producing $`r b`$ samples of size `r n`.  Of these samples I then compute `r b` means and compute a 95% quantile.  We then repeat `r b` times.  After this is done I determine which quantiles contain $\mu$ and calculate that as a percent of the total.  Here are the results:   
+
+$$t~test~accuracy = `r t.accuracy`$$  $$resample~accuracy = 
+`r boot.accuracy`$$
+
+-----  
+
+A few thoughts about the above procedure:  We could just as easily do this procedure using different values for the quantiles and similarly for the t test confidence interval.  We could also do this procedure with sampling from other distributions.   
+
+
+------
+
+I now perform the same simulation as above, only changing the distribution to an exponential with rate = 1.  
+
+```{r exponential}
+n <- 10; b <- 1000
+x <- rexp(n*b) # random samples from exponential distribution
+######### t test ##########
+a <- matrix(sample(x, n*b, replace=TRUE), b, n)
+f <- function(x){t.test(x)$conf.int} # create t conf intervals
+d <- t(apply(a, 1, f)) # b t.test confidence intervals
+y <- d[,1] < 1 & d[,2] > 1 # test for mu in interval
+t.accuracy <- sum(y) / length(y) # how many contain mu?
+######### end t test ###############
+# what if we only have one sample from the normal?
+######### bootstrap one random sample #############
+x <- matrix(nrow=b, ncol=2)
+for(i in 1:b){ # I can't figure this part out without a loop, so...
+  B <- matrix(sample(a[i,], n*b, replace = TRUE), b, n)
+  #bootstrap b samples n times, and b times in the loop
+  v <- apply(B, 1, mean) # here we get 1000 means
+  x[i,] <- quantile(v, c(0.025, 0.975)) # here we get the quantile...
+}                                       # for the b means
+z <- x[,1] < 1 & x[,2] > 1 # test to see if mu is in interval
+boot.accuracy <- sum(z) / length(z) # how many times is mu there?
+```
+
+Comparing the accuracy of the 95% *t test* confidence interval with the percent the bootstrap procedure gets correct our results are  $$t.test~accuracy = `r t.accuracy`$$  $$bootstrap~accuracy = `r boot.accuracy`$$  and surprisingly, the t test wins, even when the data is nowhere near normally distributed.  
+
+-----
+
+## Appendix I  
+
+### R Code:
+```{r code, eval=FALSE, echo=TRUE}
+curve(dnorm, col="lightblue", from = -4, to = 4)
+cord.x <- c(-4,seq(-4, 4, 0.01),4)
+cord.y <- c(0,dnorm(seq(-4, 4, 0.01),0,1),0)
+polygon(cord.x,cord.y, col="lightblue")
+# simulate data from normal with mean=0 and sd=1
+# then take n samples and comple a t.test confidence interval
+# and then bootrap n*b times and compute 95% quantile.
+# we then compare the two results' accuracy. 
+n <- 10; b <- 1000
+x <- rnorm(n*b)
+######### t test ##########
+a <- matrix(sample(x, n*b), b, n)
+f <- function(x){t.test(x)$conf.int} # create t conf intervals
+d <- t(apply(a, 1, f)) # b t.test confidence intervals
+y <- sign(d[,1]) * sign(d[,2]) # test for mu in interval
+t.accuracy <- sum(y<0) / length(y) # how many contain mu?
+######### end t test ###############
+# what if we only have one sample from the normal?
+######### bootstrap one random sample #############
+w <- matrix(nrow=b, ncol=2)
+for(i in 1:b){ # I can't figure this part out without a loop, so...
+  B <- matrix(sample(a[i,], n*b, replace = TRUE), b, n)
+  #bootstrap b samples n times, and b times in the loop
+  v <- apply(B, 1, mean) # here we get 1000 means
+  w[i,] <- quantile(v, c(0.025, 0.975)) # here we get the quantile...
+}                                       # for the b means
+z <- sign(w[,1]) * sign(w[,2]) # test to see if mu is in interval
+boot.accuracy <- sum(z<0) / length(z) # how many times is mu there?
+t.accuracy # print to console
+boot.accuracy # print to console
+```
+
+------  
+
+## Appendix II  
+
+Here I display a random sample of 40 of the confidence intervals produced with the bootstrap method for reference.  
+
+`r knitr::kable(w[sample(1:1000, 40), ])`
