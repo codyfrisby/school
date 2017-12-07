@@ -1,0 +1,89 @@
+---
+title: "STAT4100 HW1"
+author: "Cody Frisby"
+date: "January 10, 2016"
+output: pdf_document
+---
+
+#Chapter 1 Homework (Experiment Design):
+
+### Optimized microwave settings and popcorn brand
+
+#### Response Variable will be the count of unpopped kernels without burning
+
+#### The factos will be as follows:
+Power Setting  | Time Setting (minutes) | Popcorn Brand
+  -------------| -------------          | -------------
+Low            |  2:00                  | Costco
+High           |  2:30                  | Pop Secret
+
+Here's a table with a random run order:
+```{r, echo=FALSE}
+Power <- c("Low", "High")
+Time <- c(2, 2.5)
+Brand <- c("Costco", "PopSecret")
+b <- as.data.frame(table(Power, Time, Brand))
+b <- b[,1:3]
+b$r <- runif(8)
+b <- b[order(b$r), ]
+b[,1:3]
+```
+
+#Chapter 2 Homework:
+## No.1
+Note:  Group A will be treated with 95 C.  Group B will be treated with 100 C
+```{r}
+A <- c(11.176, 7.089, 8.097, 11.739, 11.291, 10.759, 6.467, 8.315)
+B <- c(5.263, 6.748, 7.461, 7.015, 8.133, 7.418, 3.772, 8.963)
+D <- as.data.frame(cbind(A, B))
+t <- t.test(B, A, var.equal = TRUE, conf.level = 0.95)
+t
+```
+
+a) There is evidence to suggest there is a meaningful difference between the two baking temperatures.  At alpha = 0.05 level we would reject the null hypothesis. 
+
+b) The p-value for the test is `r t$p.value`.  This is well below 0.05.
+
+c) The confidence interval for this test is [`r t$conf.int`].  Zero is not contained within this interval.  This means it is a statistically significant result.  
+
+d) QQ plots below:
+```{r, echo=FALSE}
+# qq plot for var A
+qqnorm(A)
+qqline(A)
+```
+
+```{r, echo=FALSE}
+# qq plot for var B
+qqnorm(B)
+qqline(B)
+```
+
+```{r}
+# Shapiro test for normaility
+shapiro.test(A)
+shapiro.test(B)
+```
+
+```{r}
+boxplot(D, col = "green", ylab = "kA")
+```
+
+
+## No.2
+```{r}
+y1 <- 93
+y2 <- 102
+s1 <- 12.9
+s2 <- 6.1
+n1 <- 10
+n2 <- 12
+# Note: variances cannot be assumed to be equal:
+# adjussted degrees of freedom:
+v <- (((s1^2/n1) + (s2^2/n2))^2) / ((((s1^2/n1)^2)/(n1-1)) + ((s2^2/n2)^2/(n2-1)))
+# t test statistic:
+t0 <- (y1 - y2) / sqrt((s1^2/n1) + (s2^2/n2))
+t0 # t statistic
+pt(t0, df = v) #compute p-value.
+```
+The test statistic for this test is t = `r t0`.  The critical value, with d.f = `r v`, is = `r qt(0.1, df = v)`.  We would reject the null hypothesis at alpha = 0.1.  There is evidence to suggest that there are less particulates in a non-smokers home than in a smokers home.    

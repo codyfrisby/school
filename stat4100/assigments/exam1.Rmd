@@ -1,0 +1,417 @@
+---
+title: "Exam 1"
+author: "Cody Frisby"
+date: "February 8, 2016"
+output: pdf_document
+---
+
+## 1)  
+
+```{r, echo=FALSE}
+library(pracma)
+A <- c(7, 5, 10); B <- c(10, 9, 12)
+cv <- mean(B) - mean(A) # this is our null hypothesis critical value
+x <- c(A,B) # for ease of sampling
+M <- perms(x) # matrix with all possible permutations of A and B.
+# to calculate the mean difference of each permutation
+means <- numeric(720)
+for (j in 1:720){
+  means[j] <- mean(M[j,4:6]) - mean(M[j,1:3])
+}
+M <- cbind(M, means)
+E <- subset(M, !duplicated(M[,7]))
+colnames(E) <- c("A", "A", "A", "B", "B", "B", "meansdiff")
+```
+
+The mean of A is `r mean(A)`.  The mean of B is `r mean(B)`.  The critical value for our test is the mean of B minus the mean of A, `r cv`.  The p value we are calculating is $$P(\bar y_B - \bar y_A \geq `r cv`)$$  If this value is less than $\alpha = 0.05$ we conclude that the treatment group B does have an effect on the response when compared to treatment group A.  
+
+```{r, echo=FALSE, comment=NA}
+knitr::kable(quantile(means, c(0.025, 0.975)))
+# this is our 95% quantile.  If our cv is outside this quantile we
+# would rejust the null hypothesis that B = A.
+```
+
+Here is the 95% quantiles of our test data.  We can clearly see that 3 is contained with it.  We fail to reject the null hypothesis that $\mu_B = \mu_A$.  
+
+```{r, echo=FALSE, comment=NA}
+# p value
+p.value <- sum(means >= cv)/length(means)
+```
+
+The probability of observing a value greater than or equal to 3 is **`r p.value`**.  We conclude that there is not a significant affect from B when compared to A.  Below we display 10 of the assignments of our data
+
+```{r, comment=NA, echo=FALSE, results='asis', message=FALSE}
+library(data.table)
+E <- data.table(E)
+E <- E[order(meansdiff)]
+knitr::kable(E)
+```
+
+## 2)
+
+```{r, echo=FALSE}
+# single line data
+s.line <- c(1.2,2.1,1.7,2.8,1.9,2.1,2.4,3,2.1,2.3,1.9,
+                 2.9,2.7,2,2.9,2.3,2.8,1.1,3.1,1.8)
+# multiple lines data
+m.line <- c(1.1,1.6,2.9,4.6,3.8,2.9,2.8,2.9,4.3,2.3,2,
+            2.6,1.3,1.3,3.5,2.7,1,3.2,2.3,0.9)
+D <- as.data.frame(cbind(s.line, m.line))
+D1 <- stack(D)
+fit <- aov(values ~ ind, data = D1)
+```
+
+An equality of variances test shows that the two groups variances are not equal.  We can also see this by plotting the two variables qq plots on the same plot.
+
+```{r, echo=FALSE, fig.align = 'center', dpi=200, fig.height=3, fig.width=4}
+q1 <- qqnorm(s.line, plot.it = FALSE)
+q2 <- qqnorm(m.line, plot.it = FALSE)
+plot(range(q1$x, q2$x), range(q1$y, q2$y), type = "n", xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", main = "Normal Q-Q Plot")
+points(q1, pch = 16)
+points(q2, col = "red", pch = 3)
+qqline(s.line); qqline(m.line)
+```
+
+Not too bad, but we cannot conclude that the variances are equal.  We will assume unequal variances to test whether or not the different line methods affect wait times. 
+
+```{r, comment=NA, echo=FALSE}
+t <- t.test(s.line, m.line, var.equal = FALSE)
+t
+```
+
+We conclude there is not a significant difference in wait times between the two line methods.  The 95% confidence interval from our test contains zero, [`r t$conf.int`].  Although, we did observe a significant difference in the variation of wait times between the two line methods.  This may be of interest to the executives and may warrant further experimentation.
+
+## 3)
+
+First we run an equal variances test using R and display the output.  Then we display the qqnorm plot with both variables qqlines displayed.
+
+```{r, echo=FALSE, comment=NA, fig.height=3, fig.width=4, dpi=200, fig.align='center'}
+f <- c(140, 124, 126, 106, 126, 132, 126, 140, 
+       136, 120, 110, 122, 118, 114, 140)
+m <- c(106, 134, 118, 112, 140, 105, 134, 128, 
+       122, 95, 124, 140, 114, 130, 150, 112, 106, 139, 128, 142)
+# test whether the variances are different.
+var.test(f, m)
+# also qq plots
+q1 <- qqnorm(f, plot.it = FALSE)
+q2 <- qqnorm(m, plot.it = FALSE)
+plot(range(q1$x, q2$x), range(q1$y, q2$y), type = "n", xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", main = "Normal Q-Q Plot")
+points(q1, pch = 16)
+points(q2, col = "red", pch = 3)
+qqline(f); qqline(m)
+# maybe not so perfect but close enough.  It does not matter which test we use
+# since we arrive at the same conclusion either way.
+```
+
+We don't conclude that the variances are unequal.  We now run a t test to compare the means of the male group (m) with the mean of the female group (f).  
+
+```{r, comment=NA, echo=FALSE}
+y1 <- mean(m)
+y2 <- mean(f)
+s1 <- sd(m)^2
+s2 <- sd(f)^2
+n1 <- length(m)
+n2 <- length(f)
+# compute the F statistic for 7,8 degrees of freedom at alpha=0.05
+#qf(0.975, n1-1, n2-1)
+#s1/s2
+# is the ratio of the two variances greater?
+#s1/s2 > qf(0.975, n1-1, n2-1)
+sp <- sqrt(((n1-1)*s1 + (n2-1)*s2) / (n1 + n2 - 2))
+t0 <- (y1 - y2) / (sp * sqrt((1/n1) + (1/n2)))
+#qt(0.95, n1+n2-2)
+#t0 > qt(0.95, n1+n2-2)
+# the above code is to check the below calculation made by R t.test.
+u <- t.test(m ,f, var.equal = TRUE)
+u
+```
+
+Note: An equal variances test shows that there is not a significant difference between the groups variances.  Also note that a t test using equal var assumption and a t test using unequal var assumption arrives at the same result. Also, note that zero is contained in our 95% confidence interval, $[`r u$conf.int`]$.  
+
+## 4)  
+
+```{r, comment=NA, echo=FALSE, message=FALSE}
+Trt1 <- c(3219, 3139, 3250, 3084)
+Trt2 <- c(2358, 2911, 2193, 2698)
+Trt3 <- c(3407, 3511, 3022, 2980)
+Trt4 <- c(3220, 2920, 2554, 2542)
+G <- cbind(Trt1, Trt2, Trt3, Trt4)
+```
+
+### A) This is a single factor experiemnt.  Our single factor has 4 levels. Here I display the data organized by levels. 
+
+```{r, comment=NA, echo=FALSE, results='asis', message=FALSE}
+knitr::kable(G)
+```
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+G1 <- as.data.frame(G)
+G1 <- stack(G1)
+colnames(G1) <- c("response", "group")
+fit2 <- aov(response ~ group, data = G1)
+```
+
+
+```{r, echo=FALSE, message=FALSE, comment=NA}
+library(dplyr)
+# note G is a data frame with one column response and the other group.
+# pvalue for the F stat from ANOVA
+totals <- G1 %>%
+  group_by(group) %>%
+  summarise_each(funs(sum, mean), response)
+y <- G1$response
+ybar. <- totals$mean
+ybar <- mean(G1$response)
+a <- length(ybar.)
+N <- length(y)
+n <- N/a
+sstr <- n*sum((ybar. - ybar)^2)
+sst <- sum((y - ybar)^2)
+sse <- sst - sstr
+mstr <- sstr/(a-1)
+mse <- sse/(N-a)
+F0 <- mstr/mse
+pvalue <- 1 - pf(F0, a-1, N-a)
+```
+
+### B)  We fill in an ANOVA table here  
+
+| Sum of Squares | Degrees of Freedom | Mean Square | $F_0$  | P-Value |
+|------:|-----:|---------:|:------:|------:|
+|$`r sstr`$ |  `r a-1`   |$`r mstr`$   | $`r F0`$ |$`r pvalue`$ |
+|$`r sse`$  | `r N-a`    |$`r mse`$    |          | 
+|$`r sst`$  |  `r N-1`   |           |          |  
+
+
+### C) Confidence Interval for Treatment 1 mean:
+
+```{r, echo=FALSE}
+tr1 <- t.test(Trt1, var.equal = T)
+tr1.conf <- tr1$conf.int
+s <- sd(Trt1); m <- mean(Trt1); cv <- qt(0.975, 3)
+```
+
+This can be computed using the formula $$\bar x \pm t_{\alpha/2:df} \frac{\hat \sigma}{\sqrt{n}}$$  
+
+The 95% confidence interval for treatment group 1 is [`r tr1.conf`].  
+
+### D) Treatment means comparision  
+
+We are going to use Tukey's test to compare all the means.  
+
+```{r, message=FALSE, comment=NA, warning=FALSE, echo=FALSE}
+n <- dim(G)[1]
+tukey <- TukeyHSD(fit2, conf.level = 0.95)
+q <- (mean(Trt3) - mean(Trt2))/sqrt(mse/n)
+tukey.critical <- qtukey(0.95, 4, 12)
+t.critical <- tukey.critical * sqrt(mse/n)
+```
+
+The computation is as follows: $$q = \frac{\bar y_{max} - \bar y_{min}}{\sqrt{MS_E/n}}$$ where $\bar y_{max}$ and $\bar y_{min}$ are the largest and smallest sample means, respectively, out of p groups.  So for our data the min was from group two while the max was from group three.  So 
+$$`r q` = \frac{`r mean(Trt3)` - `r mean(Trt2)`}{\sqrt{\frac{`r mse`}{`r n`}}}$$ Tukey's test declares two means significantly different if the absolute value of their sample differences exceeds $$T_{\alpha} = q_{\alpha}(a,f)\sqrt{\frac{MS_E}{n}}$$  The value for $q_{0.05}(4,12) = `r qtukey(0.95, 4, 12)`$,  So $$`r t.critical` =  `r tukey.critical` \sqrt{\frac{`r mse`}{`r n`}}$$ and any mean differences whose absolute value exceeds this number we would conclude the population means to be statistically different.  Here is a table of all the comparisons using Tukey's test.  We see the difference, confidence intervals, and p value.  The two comparisons who absolute value exceeds 564.24 are significant. 
+
+```{r, comment=NA, echo=FALSE, results='asis', message=FALSE}
+knitr::kable(tukey$group)
+```
+
+We conclude that there is a significant difference between groups 2 and 1, and between groups 3 and 2.  
+
+### E) Normal probability and Residuals Plots
+
+```{r, echo=FALSE, dpi=200, fig.align='center'}
+# plot both side by side
+par(mfrow=c(1,2))
+plot(fit2, which = c(1,2), pch = 16)
+```
+
+The normal probability plot of the residuals looks OK.  We have a few outliers but they are at the tails.  The assumption of normality is OK here.  The residuals by predicted plot is on the left.  There doesn't appear to be any "structure" we need to be concerned about.  There may be **nonconstant variance** to be concerned of.  One of the treatment groups appears to have smaller variance than the others.  However, the variance does not appear to increase as the predicted response increases.  
+
+## 5)  
+
+```{r, echo=FALSE, message=FALSE}
+# read the data in for number 5.  Group is lbs/acre of ammonium nitrate. 
+# Response is heads of lettuce
+Trt0 <- c(107, 115, 90, 140)
+Trt1 <- c(134, 130, 144, 176) 
+Trt2 <- c(146, 142, 152, 156)
+Trt3 <- c(147, 160, 160, 165)
+Trt4 <- c(131, 148, 154, 163)
+H <- cbind(Trt0, Trt1, Trt2, Trt3, Trt4)
+H1 <- data.table(H)
+H1 <- stack(H1)
+colnames(H1) <- c("response", "group")
+fit3 <- aov(response ~ group, data = H1)
+```
+
+### A) Write out a model  
+
+A model for our data could be expressed as  
+$$y_{ij} = \mu + \tau_i + \epsilon_{ij}\left\{
+        \begin{array}{ll}
+            i = 1, 2, ... , a \\
+            j = 1, 2, ... , n
+        \end{array}
+    \right.
+    $$
+where $\mu_i = \mu + \tau_i, ~ i = 1, 2, ..., a$.  Here, $\mu$ is the overall mean, so for our purposes it would be the mean for all 20 observations. And the 5 different doses of ammonium nitrate, $\mu_i$ is the group treatment means for $i = 1, 2, 3, 4, 5$.  $\tau_i$ is the effect the ammonium nitrate has on lettuce yield from the *i*th treatment group.  The hypothesis we are testing is the effect ammonium nitrate has on lettuce yield.  It can be represented as 
+$$H_0 : \tau_1 = \tau_2 = \tau_3 = \tau_4 = \tau_5 = 0$$
+$$H_1 : \tau_i \neq 0 ~~~~ for~ at~ least~ one~ i$$  
+where we assume our data to take the form  
+$$y_{ij} \sim N(\mu + \tau_i, \sigma^2)$$ or equivalently $$\epsilon_{ij} \sim N(\mu + \tau_i, \sigma^2)$$  and that the observations are mutually independent and identically distributed.  
+
+
+```{r, echo=FALSE, message=FALSE, comment=NA}
+# note G is a data frame with one column response and the other group.
+# pvalue for the F stat from ANOVA
+totals <- H1 %>%
+  group_by(group) %>%
+  summarise_each(funs(sum, mean), response)
+y <- H1$response
+ybar. <- totals$mean
+ybar <- mean(H1$response)
+a <- length(ybar.)
+N <- length(y)
+n <- N/a
+sstr <- n*sum((ybar. - ybar)^2)
+sst <- sum((y - ybar)^2)
+sse <- sst - sstr
+mstr <- sstr/(a-1)
+mse <- sse/(N-a)
+F0 <- mstr/mse
+pvalue <- 1 - pf(F0, a-1, N-a)
+```
+
+### B)  ANOVA table  
+
+| Sum of Squares | Degrees of Freedom | Mean Square | $F_0$  | P-Value |
+|------:|-----:|---------:|:------:|------:|
+|$`r sstr`$ |  `r a-1`   |$`r mstr`$   | $`r F0`$ |$`r pvalue`$ |
+|$`r sse`$  | `r N-a`    |$`r mse`$    |          | 
+|$`r sst`$  |  `r N-1`   |           |          |  
+
+### C)  
+To test the hypothesis that the 5 levels of ammonium nitrate have the same affect on lettuce yield we would simply run an analysis of variance.  If we find our F statistic to be greater than $`r qf(0.99, 4, 15)`$ we conclude that there is an affect on lettuce yield from ammonium nitrate. So, $`r F0` > `r qf(0.99, 4, 15)`$ we conclude that ammonium nitrate concentration has a statistically significant effect on the yield of lettuce.  
+
+### D)  
+
+```{r, echo=FALSE}
+rmse <- sqrt(mse)
+con <- 20
+num <- (-4)*mean(Trt0) + mean(Trt1) + mean(Trt2) + mean(Trt3) + mean(Trt4)
+denom <- sqrt((mse/n)*con)
+t0 <- num/denom
+tcrit <- qt(0.99, N-a) 
+```
+
+We'd like to test the control group, 0 lbs/acre ammonium nitrate, against all the other treatment groups.  Our hypothesis and the contrast are
+$$H_0: \mu_1 = \mu_2 + \mu_3 + \mu_4 + \mu_5$$ $$Contrast = -\bar y_{1.} + \bar y_{2.} + \bar y_{3.} + \bar y_{4.} + \bar y_{5.}$$  
+
+The coefficients for the contrast will be -4, 1, 1, 1, 1 for groups 0, 50, 100, 150, and 200 respectively.  Using the formula for calculating the $t_0$ statistic for the contrasts 
+$$t_0 = \frac{\sum_{i=1}^{a}c_i \bar y_{i.}}{\sqrt{\frac{MS_E}{n}\sum_{i=1}^{a}c_i^2}}$$  
+$$`r t0` = \frac{`r num`}{`r denom`}$$   
+
+### E)  
+Testing the above contrast at the $\alpha = 0.01$, $t_{\alpha/2,N-a} = `r qt(1 - 0.01/2, df = N-a)`$.  Our computed contrast statistic was `r t0`.  So, we would reject the null hypothesis.  We conclude that there is a significant difference between the control group and the other groups.
+
+## 6)
+
+```{r, echo=FALSE}
+# read the data for problem 6 into R. Strawberry seeds
+# Trt1 chilled to 5 degrees C for one weelk
+# Trt2 washed with a 15 ppm ethylene solution
+# Trt3 is the control
+# response is percent germination out of 50 seeds.  8 replicates
+Trt1 <- c(54, 64, 56, 44, 28, 30, 20, 26)
+Trt2 <- c(34, 28, 24, 38, 70, 60, 52, 62)
+Trt3 <- c(10, 6, 12, 4, 12, 11, 7, 5)
+K <- cbind(Trt1, Trt2, Trt3)
+K1 <- data.table(K)
+K1 <- stack(K1)
+colnames(K1) <- c("response", "group")
+fit4 <- aov(response ~ group, data = K1)
+```
+
+### A) Test treatment 1 vs treatment 2
+At first glance of the data we may suspect that the variance are not equal.  We should check this using a qq plot of our variables. 
+
+```{r, echo=FALSE, fig.align = 'center', dpi=200, fig.height=3, fig.width=4}
+q1 <- qqnorm(Trt1, plot.it = FALSE)
+q2 <- qqnorm(Trt2, plot.it = FALSE)
+plot(range(q1$x, q2$x), range(q1$y, q2$y), type = "n", xlab = "Theoretical Quantiles", ylab = "Sample Quantiles", main = "Normal Q-Q Plot")
+points(q1, pch = 16)
+points(q2, col = "red", pch = 3)
+qqline(Trt1); qqline(Trt2)
+```
+
+We could also run an equal variances test using R's function var.test.  
+
+```{r, comment=NA}
+var.test(Trt1, Trt2)
+```
+
+We conclude the variances are not unequal.  We can proceed with a t test but we will run a comparison test using contrasts and ANOVA since there was a third treatment group in this experiment.  
+Our hypothesis and the contrast are
+$$H_0: \mu_1 = \mu_2$$ $$Contrast = 1\bar y_{1.} - \bar y_{2.} + 0\bar y_{3.}$$
+The coefficients are 1, -1, 0 for groups 1, 2, and 3 respectively.  Using the formula for calculating the $t_0$ statistic for the contrasts 
+$$t_0 = \frac{\sum_{i=1}^{a}c_i \bar y_{i.}}{\sqrt{\frac{MS_E}{n}\sum_{i=1}^{a}c_i^2}}$$
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+# Here we set up all the variables we need for the next two parts.
+totals <- K1 %>%
+  group_by(group) %>%
+  summarise_each(funs(sum, mean), response)
+y <- K1$response
+ybar. <- totals$mean
+ybar <- mean(K1$response)
+a <- length(ybar.)
+N <- length(y)
+n <- N/a
+sstr <- n*sum((ybar. - ybar)^2)
+sst <- sum((y - ybar)^2)
+sse <- sst - sstr
+mstr <- sstr/(a-1)
+mse <- sse/(N-a)
+F0 <- mstr/mse
+pvalue <- 1 - pf(F0, a-1, N-a)
+rmse <- sqrt(mse)
+con <- 2
+num <- mean(Trt1) - mean(Trt2) + 0*mean(Trt3)
+denom <- sqrt((mse/n)*con)
+t0 <- num/denom
+tcrit <- qt(0.975, N-a)
+ssc1 <- num^2/(con/n)
+```
+
+$$`r t0` = \frac{`r num`}{`r denom`}$$   
+Testing the above contrast at the $\alpha = 0.05$, $t_{\alpha/2,N-a} = `r qt(1 - 0.05/2, df = N-a)`$.  Our computed contrast statistic was `r t0`.  We ask if the absolute value of this is greater than `r tcrit`.  The answer is no, so we fail to reject the null hypothesis.
+
+### B) Comparing the control to treatments 1 & 2
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+con <- 6
+num <- mean(Trt1) + mean(Trt2) - 2*mean(Trt3)
+denom <- sqrt((mse/n)*con)
+t0 <- num/denom
+tcrit <- qt(0.975, N-a) 
+ssc2 <- num^2/(con/n)
+```
+
+We'd like to test the control group against the other two treatment groups.  Our hypothesis and the contrast are
+$$H_0: \mu_1 + \mu_2 = \mu_3$$ $$Contrast = \bar y_{1.} + \bar y_{2.} - \bar y_{3.}$$
+The coefficients are given in the problem, 1, 1, 2 for groups 1, 2, and the control respectively.  Using the formula for calculating the $t_0$ statistic for the contrasts 
+$$t_0 = \frac{\sum_{i=1}^{a}c_i \bar y_{i.}}{\sqrt{\frac{MS_E}{n}\sum_{i=1}^{a}c_i^2}}$$  
+$$`r t0` = \frac{`r num`}{`r denom`}$$   
+Testing the above contrast at the $\alpha = 0.05$, $t_{\alpha/2,N-a} = `r qt(1 - 0.05/2, df = N-a)`$.  Our computed contrast statistic was `r t0`.  So, we would reject the null hypothesis.  We conclude that there is a significant difference between the control group and groups 1 & 2.  
+
+### C) ANOVA Table
+To compute the sum of square for a contrast we take the numerator for our $t_0$ statistic for the contrast and square it.  We then divide it by the sum of the contrast coefficients squared divided by $n_i$.  
+$$SS_C = \frac{(\sum_{i=1}^{a}c_i \bar
+y_{i.})^2}{\frac{1}{n}\sum_{i=1}^{a}c_i^2}$$ 
+
+Source| Sum of Squares | D.F. | Mean Square | $F_0$  | P-Value |
+|:-----:|------:|-----:|---------:|:------:|------:|
+|Treatments|$`r sstr`$ |  `r a-1`   |$`r mstr`$   | $`r F0`$ |$`r pvalue`$ |
+|$C_1: \mu_1 = \mu_2$ | ($`r ssc1`$)|   1  | $`r ssc1`$| $`r ssc1/mse`$ |$`r 1-pf(ssc1/mse, 1, N-a)`$ | 
+|$C_2: \mu_1 + \mu_2 = \mu_3$ | ($`r ssc2`$) |  1 | $`r ssc2`$  | $`r ssc2/mse`$ |$`r 1-pf(ssc2/mse, 1, N-a)`$ |
+|Error |$`r sse`$  | `r N-a`    |$`r mse`$ | 
+|Total |$`r sst`$  |  `r N-1`   |

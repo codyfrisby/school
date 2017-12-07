@@ -1,0 +1,132 @@
+---
+title: "Homework 4"
+author: "Cody Frisby"
+date: "February 5, 2016"
+output: pdf_document
+---
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, comment=NA}
+library(dplyr); library(agricolae)
+cotton <- read.csv("~/Documents/STAT4100/data/cotton.csv")
+cotton$Group <- as.factor(cotton$Group)
+fit <- aov(Data ~ Group, data = cotton)
+# pvalue for the anova test
+pvalue <- summary(fit)[[1]][["Pr(>F)"]][1]
+totals <- cotton %>%
+  group_by(Group) %>%
+  summarise_each(funs(sum, mean), Data)
+y <- cotton$Data
+ybar. <- totals$mean
+ybar <- mean(cotton$Data)
+sstr <- length(ybar.)*sum((ybar. - ybar)^2)
+sst <- sum((y - ybar)^2)
+sse <- sst - sstr
+a <- length(ybar.)
+N <- length(y)
+mstr <- sstr/(a-1)
+mse <- sse/(N-a)
+F0 <- mstr/mse
+C1 <- totals[1,3] - totals[4,3]
+C2 <- totals[1,3] + totals[3,3] - totals[4,3] - totals[5,3]
+Sc1 <- sqrt(mse*sum(1+1)/5)
+Sc2 <- sqrt(mse*sum(1+1+1+1)/5)
+Fs <- qf(0.95, 4, 20)
+s1 <- Sc1*sqrt((a-1)*Fs)
+s2 <- Sc2*sqrt((a-1)*Fs)
+```
+
+## Sheffé's Method  
+
+Here's we'd like to use Sheffé's Method to test the contrasts  $$\Gamma_1 = \mu_1 - \mu_4$$
+And 
+$$\Gamma_2 = \mu_1 + \mu_3 - \mu_4 - \mu_5$$
+
+Here we compute the contrasts:   
+$$C_1 = \bar y_{1.} - \bar y_{4.} = `r totals[1,3]` - `r totals[4,3]` = `r C1`$$
+and
+$$C_2 = \bar y_{1.} + \bar y_{3.} - \bar y_{4.} - \bar y_{5.} = `r totals[1,3]` + `r totals[3,3]` - `r totals[4,3]` - `r totals[5,3]` = `r C2`$$  
+Now to calculate the standard errors for the contrasts  
+$$S_{C_1} = \sqrt {MS_E \sum(c_{i1}^2/n_i)} = \sqrt{`r mse`(1+1)/5} = `r Sc1`$$  and $$S_{C_2} = \sqrt {MS_E \sum(c_{i2}^2/n_i)} = \sqrt{`r mse`(1+1+1+1)/5} = `r Sc2`$$    
+So, now we've computed $C_1$, $C_2$, $S_{C_1}$, and $S_{C_2}$. Now we need to compute the critical values for S.  
+$$S_{0.05,1} = S_{C_1} \sqrt {(a - 1)F_{0.05,a-1,N-a}} = `r Sc1` \sqrt{`r a-1`(`r Fs`)} = `r s1`$$ 
+And for the second one 
+$$S_{0.05,2} = S_{C_2} \sqrt {(a - 1)F_{0.05,a-1,N-a}} = `r Sc2` \sqrt{`r a-1`(`r Fs`)} = `r s2`$$
+So, checking our test $|C_1| > S_{0.05,1}$, we conclude that the contrast $\Gamma_1$ does not equal zero which means we conclude that the means between groups 1 and 4 significantly differ from each other.  Additionally we see that $|C_2| < S_{0.05,2}$, which means we cannot conclude that the means between groups 1 & 3 significantly differ from the means from groups 4 & 5.  
+
+```{r, echo = FALSE, comment = NA}
+comparison <- scheffe.test(fit, "Group", group=TRUE,
+                           main = "Tensile Strength of Cotton Blends")
+```
+
+
+## Circuit Type Response Time
+### A)
+
+Here, I display the R code that sets up the data and runs an ANOVA test on it:
+
+```{r, message=FALSE, warning=FALSE, comment=NA}
+one <- c(9,12,10,8,15)
+two <- c(20,21,23,17,30)
+three <- c(6,5,8,16,7)
+D <- as.data.frame(cbind(one, two, three))
+D <- stack(D)
+colnames(D) <- c("response", "group")
+fit2 <- aov(response ~ group, data = D)
+summary(fit2)
+```
+
+```{r, echo=FALSE}
+F0 <- summary(fit2)[[1]][["F value"]][1]
+a <- length(unique(D$group)); N <- length(D$response); n <- N/a
+mse <- summary(fit2)[[1]][["Mean Sq"]][[2]]
+```
+
+There is a statistically significant difference between the groups mean response time.  Our F statistic from the test is `r F0` which is greater than $F_{0.01, 2, 12}$ = `r qf(0.99, a-1, N-a)`.  
+
+### B) Tukey's Test
+
+Below I show the code in R to compute Tukey's test and the resulting output comparing the three levels from our experiment.  
+
+```{r, message=FALSE, comment=NA, warning=FALSE}
+tukey <- TukeyHSD(fit2, conf.level = 0.99)
+q <- (mean(two) - mean(three))/sqrt(mse/n)
+tukey.critical <- qtukey(0.99, 3, 12)
+t.critical <- tukey.critical * sqrt(mse/n)
+tukey$group
+```
+
+The computation is as follows: $$q = \frac{\bar y_{max} - \bar y_{min}}{\sqrt{MS_E/n}}$$ where $\bar y_{max}$ and $\bar y_{min}$ are the largest and smallest sample means, respectively, out of p groups.  So for our data the min was from group three while the max is from group two.  So 
+$$`r q` = \frac{22.2 - 8.4}{\sqrt{\frac{`r mse`}{`r n`}}}$$ Tukey's test declares two means significantly different if the absolute value of their sample differences exceeds $$T_{\alpha} = q_{\alpha}(a,f)\sqrt{\frac{MS_E}{n}}$$  The value for $q_{0.01}(3,12) = `r qtukey(0.99, 3, 12)`$,  So $$`r t.critical` =  `r tukey.critical` \sqrt{\frac{`r mse`}{`r n`}}$$ and any mean differences whose absolute value exceeds this number we would conclude the population means to be statistically different.  This is true for groups two-one and two-three but not for group three-one.  
+
+### C)  Orthogonal Contrasts
+
+```{r, echo=FALSE}
+totals <- D %>%
+  group_by(group) %>%
+  summarise_each(funs(mean), response)
+y <- D$response
+ybar. <- totals$response
+ybar <- mean(D$response)
+sstr <- n*sum((ybar. - ybar)^2)
+sst <- sum((y - ybar)^2)
+sse <- sst - sstr
+mstr <- sstr/(a-1)
+mse <- sse/(N-a)
+rmse <- sqrt(mse)
+num <- 2*mean(two) - mean(one) - mean(three)
+denom <- sqrt((mse/n)*6)
+t0 <- num/denom
+```
+
+The contrast we wish to test is $$H_0:\mu_2 = \mu_1 + \mu_3$$ and the contrast is $$C = 2\bar y_{2.} - \bar y_{1.} - \bar y_{3.}$$ And using the formula for calculating the $t_0$ statistic for the contrasts 
+$$t_0 = \frac{\sum_{i=1}^{a}c_i \bar y_{i.}}{\sqrt{\frac{MS_E}{n}\sum_{i=1}^{a}c_i^2}}$$  
+$$`r t0` = \frac{`r num`}{`r denom`}$$  
+with $t_{\alpha/2,N-a} = `r qt(1-0.01/2, df = N-a)`$.  So, we would reject the null hypothesis at $\alpha = 0.01$.  We conclude that there is a significant difference between group 2 and groups 1 & 3.  
+
+### D) Conclusions 
+If I was a design engineer trying to minimize response time, I would choose group one or three.  Their mean response time is the lowest.  There was not a statistically significant difference between them. It is possible that group three is better (lower time) than group one.  In order to establish this we would need to do some follow up experiments testing this hypothesis.  
+
+
+```{r, echo=FALSE, dpi=300, fig.align='center'}
+boxplot(jitter(response) ~ group, data = D, col = "lightblue", main = "Response Time by Circuit Type", pch = 16)
+```

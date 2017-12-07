@@ -1,0 +1,160 @@
+---
+title: "Homework 9"
+author: "Cody Frisby"
+date: "April 14, 2016"
+output: pdf_document
+---
+
+```{r, echo=F, warning=F, message=F}
+y <- c(2.76,5.67,4.49,1.43,1.7,2.19,2.34,1.97,1.47,0.94,1.36,1.65)
+waferpos <- factor(c(rep(1,3), rep(2,3), rep(3,3), rep(4,3)))
+df <- data.frame(y,waferpos)
+```
+
+### 1)  Random effects, 1 factor, 4 level experiment  
+
+First I'd like to take a look at a plot of the data
+
+```{r, fig.align='center', dpi=200, message=F, warning=F, echo=F}
+library(ggplot2)
+bx <- ggplot(df, aes(waferpos, y))
+bx <- bx + geom_boxplot(fill = "lightblue") + geom_jitter() + theme_bw()
+bx <- bx + xlab("Wafer Position") + ylab("Uniformity")
+bx
+```
+
+It looks like there is an effect from wafer position on uniformity.  Using the methods of random effects we will estimate this. 
+
+```{r, echo=F, message=F, warning=FALSE}
+fit.fixed <- aov(y ~ waferpos, df) #fixed effects model
+library(lme4) #random effects model
+fit.rand <- lmer(y ~ 1 + (1 | waferpos), data = df)
+fit <- aov(y ~ Error(waferpos), df) # is this the same
+```
+
+- There is a difference in *uniformity* due to *wafer position* with an F statistic of `r summary(fit.fixed)[[1]][1,4]`, which is statistically significant.  
+- The variability due to wafer position is equal to 1.5848.  This can be found from the ANOVA table from fitting the model 
+$$y_{ij} = \mu + \tau_i + \varepsilon_{ij}\left\{
+        \begin{array}{ll}
+            i = 1, 2, 3, 4 \\
+            j = 1, 2, 3
+        \end{array}
+    \right.
+    $$ 
+    and then calculating 
+    $$\hat \sigma_{\tau}^2 = \frac{MS_{Treatments} - MS_{E}}{n}$$  
+- The random error component is 0.6522.  This is the same as MSE from the fixed effects model. 
+- Total variability is found by simply adding the variance components above, $\hat \sigma_{\tau}^2 + \hat \sigma^2 = 1.5848 + 0.6522 = `r 1.5848+0.6522`$.  
+- E) Total variability due to wafer position is $\frac{1.5848}{1.5848 + 0.6522}\times 100$ percent, 70.85%.  
+
+### 2) Two factor, mixed level random experiment  
+
+- The model for this experiment is $$y_{ijk} = \mu + \tau_i + \beta_j + (\tau\beta)_{ij} + \varepsilon_{ijk}\left\{
+        \begin{array}{ll}
+            i = 1, 2, 3 \\
+            j = 1, 2, 3, 4 \\
+            k = 1, 2
+        \end{array}
+    \right.
+    $$ where $\tau$ is the effect from *operator* and $\beta$ is the effect from machine, both being random effects and we assume all terms in the model are N(0, $\sigma_i^2$).  
+
+```{r, echo=FALSE}
+df <- read.csv("~/Documents/STAT4100/data/hw92.csv")
+df$operator <- as.factor(df$operator)
+df$machine <- as.factor(rep(c(1,2,3,4),6))
+fit.r <- lmer(y ~ 1 + (1 | operator) + (1 | machine) + (1 | operator:machine),
+              REML = TRUE ,data = df)
+test <- aov(y ~ .*., df)
+msa <- 80.167; msb <- 4.153; msab <- 7.444; mse <- 3.792
+a <- 3; b <- 4; n <- 2
+Fa <- msa/msab; p.Fa <- pf(Fa, a-1, (a-1)*(b-1), lower.tail = F)
+Fb <- msb/msab; p.Fb <- pf(Fb, b-1, (a-1)*(b-1), lower.tail = F)
+Fab <- msab/mse; p.Fab <- pf(Fab, (a-1)*(b-1), a*b*(n-1), lower.tail = F)
+D <- cbind(msa, Fa, p.Fa); D <- rbind(D, cbind(msb, Fb, p.Fb), 
+                                      cbind(msab, Fab, p.Fab))
+colnames(D) <- c("   MS","     F value", "p")
+rownames(D) <- c("operator", "machine", "operator:machine")
+s.tau <- (msa - msab)/(b*n)
+s.beta <- (msb - msab)/(a*n)
+s.tb <- (msab - mse)/n # negative, so assumed to be zero, or new model
+```
+
+- Here is a table of operator and machine F statistics and p values for operator and machine.
+`r knitr::kable(D)`
+- Operator appears statistically significant while machine does not appear to be significant. 
+- First, the variance component for operator is $$\hat \sigma_{\tau}^2 = \frac{`r msa` - `r msab`}{`r b`(`r n`)} = `r s.tau`$$ the variance component for machine is $$\hat \sigma_{\beta}^2 = \frac{`r msb` - `r msab`}{`r a`(`r n`)} = `r s.beta`$$ and the variance component for the interaction of operator and machine is $$\hat \sigma_{\tau\beta}^2 = \frac{`r msab` - `r mse`}{`r n`} = `r s.tb`$$ 
+- The Anova table for the reduced model is
+
+```{r, echo=F}
+fit.r2 <- lmer(y ~ 1 + (1 | operator) + (1 | machine), data = df)
+fit2 <- aov(y ~ operator + machine, df)
+ssa <- 160.333; ssb <- 12.458
+mse <- (44.667+45.5)/(12+6)
+sse <- 44.667+45.5
+Fa.r <- msa/mse; p.Fa.r <- pf(Fa.r, a-1, 18, lower.tail = F)
+Fb.r <- msb/mse; p.Fb.r <- pf(Fb.r, b-1, 18, lower.tail = F)
+E <- cbind(ssa, msa, Fa.r,p.Fa.r)
+E <- rbind(E, cbind(ssb, msb, Fb.r, p.Fb.r))
+colnames(E) <- c("SS", "MS", "   Fvalue", "   Pvalue")
+G <- cbind(sse, mse, NULL, NULL)
+s.taur <- (msa - mse)/(b*n); s.betar <- (msb - mse)/(a*n) #still negative
+knitr::kable(E)
+knitr::kable(G)
+```
+
+- We now need to recalculate the variance componments since we've changed the model.  $$\hat \sigma_{\tau}^2 = \frac{`r msa` - `r mse`}{`r b`(`r n`)} = `r s.taur`$$ and for machine $$\hat \sigma_{\beta}^2 = \frac{`r msb` - `r mse`}{`r a`(`r n`)} = `r s.betar`$$  and we conclude that all the variance is due to operator, being that the variance component for machine is negative so we assume it is zero or that we need a different model.
+
+- The estimate for the variance of the gauge can be thought of as the sum of the variance components $\hat \sigma^2$ and $\hat \sigma_{\tau}^2$ which is $`r mse` + `r s.taur` = `r mse+s.taur`$.  We can conclude that gauge is terrible.  All the variation is due to operator.  There is no reproducability or reliability from this gauge.  Perhaps part should have been a variable in the study where we sampled from a range of different parts that this gauge is capable of measuring.  
+
+### 3) Two-Factor Mixed Model  
+
+- Our model is as follows $$y_{ijk} = \mu + \tau_i + \beta_j + (\tau\beta)_{ij} + \varepsilon_{ijk}\left\{
+        \begin{array}{ll}
+            i = 1, 2 \\
+            j = 1, 2,...,10 \\
+            k = 1, 2, 3
+        \end{array}
+    \right.
+    $$ where $\tau_i$ is the specified operator and $\beta_j$ is the part. 
+
+```{r, echo=FALSE}
+# mixed model, one fixed, one random
+ss.part <- 99.017; ss.op <- 0.417; ss.inter <- 5.417; sse <- 60
+ms.part <- 11.002; ms.op <- 0.417; ms.inter <- 0.602; mse <- 1.5
+a <- 2; b <- 10; n <- 3
+f.op <- ms.op/ms.inter; f.part <- ms.part/mse; f.inter <- ms.inter/mse
+var.part <- (ms.part - mse)/(a*n); var.inter <- (ms.inter - mse)/n
+p.f.op <- pf(f.op, a-1, (a-1)*(b-1), lower.tail = F)
+p.f.part <- pf(f.part, b-1, a*b*(n-1), lower.tail = F)
+p.Fab <- pf(f.inter, (a-1)*(b-1), a*b*(n-1), lower.tail = F)
+E <- cbind(ms.op, f.op, p.f.op); E <- rbind(E, cbind(ms.part, f.part, 
+                                                  p.f.part), 
+                                      cbind(ms.inter, f.inter, p.Fab))
+colnames(E) <- c("   MS","     F value", "p")
+rownames(E) <- c("operator", "part", "operator:part")
+```
+
+- Here is a table of operator and machine F statistics and p values for operator and machine. `r knitr::kable(E)`
+
+- It appears that the effect of parts is statistically significant.  Operators is not.  
+- The variance components are $\sigma_(\beta)^2$, $\sigma_{\tau\beta}^2$, and of course $\sigma^2$ and the estimates for each are, for parts $$\hat \sigma_{\beta}^2 = \frac{`r ms.part` - `r mse`}{`r a`(`r n`)} = `r var.part`$$ and for operator:part interaction $$\hat \sigma_{\tau\beta}^2 = \frac{`r ms.inter` - `r mse`}{`r n`} = `r var.inter`$$ and $$\hat \sigma^2 = `r mse`$$  so we can see that the variance component for the interaction of part and operator is negative so we assume it to be zero. We should drop the interaction term.  Most of the variability is from **part**.
+
+```{r, echo=FALSE}
+# reduced model
+ssb <- 99.017; ssa <- 0.417; sse <- 60 + ss.inter; sst <- ssb+ssa+sse
+msb <- 11.002; msa <- 0.417; mse <- sse/49
+f.op <- ms.op/mse; f.part <- ms.part/mse
+p.f.op <- pf(f.op, a-1, a*b*(n-1), lower.tail = F)
+p.f.part <- pf(f.part, b-1, a*b*(n-1), lower.tail = F)
+```
+
+- Dropping the interaction term from our model yields  
+
+|Source|SS|Df|MS|$F_0$| P-Value |
+|:------|:------|:-----:|:-------|:------:|------:|
+|Operator|$`r ssa`$ |`r a-1`|$`r msa`$| $`r f.op`$ |$`r p.f.op`$ |
+|Parts|$`r ssb`$| `r b-1`|$`r msb`$ |$`r f.part`$|$`r p.f.part`$|
+|Error|$`r sse`$| 49 |$`r mse`$|          
+|Total|$`r sst`$| `r (a*b*n)-1`|  
+
+and we conclude that **part** is statistically significant while **operator** is not.  

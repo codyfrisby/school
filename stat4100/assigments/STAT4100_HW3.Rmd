@@ -1,0 +1,225 @@
+---
+title: "Homework 3"
+author: "Cody Frisby"
+date: "January 27, 2016"
+output: pdf_document
+---
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE, comment=NA}
+library(dplyr)
+cotton <- read.csv("~/Documents/STAT4100/data/cotton.csv")
+fit <- aov(Data ~ as.factor(Group), data = cotton)
+# pvalue for the anova test
+pvalue <- summary(fit)[[1]][["Pr(>F)"]][1]
+totals <- cotton %>%
+  group_by(Group) %>%
+  summarise_each(funs(sum, mean), Data)
+y <- cotton$Data
+ybar. <- totals$mean
+ybar <- mean(cotton$Data)
+a <- length(ybar.)
+N <- length(y)
+n <- N/a
+sstr <- n*sum((ybar. - ybar)^2)
+sst <- sum((y - ybar)^2)
+sse <- sst - sstr
+mstr <- sstr/(a-1)
+mse <- sse/(N-a)
+F0 <- mstr/mse
+```
+
+### 1a ANOVA table:
+
+
+The Group means are as follows:  
+$\hat \mu_{15} = `r totals$mean[1]`$ , $\hat \mu_{20} = `r totals$mean[2]`$ , 
+$\hat \mu_{25} = `r totals$mean[3]`$ , $\hat \mu_{30} = `r totals$mean[4]`$ , 
+$\hat \mu_{35} = `r totals$mean[5]`$ 
+
+And the overall mean is $`r mean(cotton$Data)` = \bar y_{..}$
+$a = `r length(ybar.)`$  $n = 5$  $N = `r length(y)`$
+
+The sum of squares for the treatments is computed as follows:
+$$SS_{treatments} ~=~ n \sum (\bar y_{i.} - \bar y_{..})^2$$
+$$`r sstr` = 5 \times [(9.8-15.04)^2 + (15.4-15.04)^2 + .... +(10.8-15.04)^2]$$
+
+The overall, total, sum of squares is as follows:
+$$SS_{total} ~=~ \sum_{i=1}^{a} \sum_{j=1}^{n} (y_{ij} - \bar y_{..})^2$$
+$$`r sst` = (`r cotton[1,2]` - 15.04)^2 + (`r cotton[2,2]` - 15.04)^2 + (`r cotton[3,2]` - 15.04)^2 + (`r cotton[4,2]` - 15.04)^2 + ... + (`r cotton[25,2]` - 15.04)^2$$
+
+The sum of squares for within, or errors, or residuals, is computed as follows:
+$$SS_{errors} ~=~ SS_{total} - SS_{treatments}$$
+$$`r sse` = `r sst` - `r sstr`$$
+
+The degrees of freedom for treatments is $a - 1 = `r a-1`$.  The degrees of freedom for errors is $N - a = `r N` - `r a` = 20$.  And the total degrees of freedom is $N - 1 = `r N-1`$.  
+
+The mean square for the treatments is computed by taking $SS_{treatments}$ and dividing it by the degrees of freedom.  
+$$MS_{treatments} = \frac{SS_{treatments}}{a - 1}$$.  
+$$`r mstr` = \frac{`r sstr`}{`r a-1`}$$  
+
+MSE, or mean square errors, is computed much like mean square treatments above, only we divide $SS_{errors}$ by the degrees of freedom $N-a$.  
+$$MS_{errors} = \frac{SS_{errors}}{N - a}$$  
+$$`r mse` = \frac{`r sse`}{`r N-a`}$$  
+
+The F statistic for our ANOVA table is computed as follows:  
+$$F_{0} = \frac{MS_{treatments}}{MS_{errors}}$$  
+$$`r F0` = \frac{`r mstr`}{`r mse`}$$  
+
+### Analysis of Variance Table:
+
+| Sum of Squares    | Degrees of Freedom   | Mean Square      | $F_0$  |
+|------:|-----:|---------:|:------:|
+|`r sstr` |  4   | 118.94  | 14.757 |
+|`r sse`  |  20  |  8.06   |        |
+|`r sst` |  24  |         |        |
+
+We conclude that there is a significant difference between treatment groups.  The p-value = $`r pvalue`$
+
+### 1d  Model adequacy
+
+The residual plots below show nothing we need to be concerned about.  Here we specifically want to look at the residuals (or errors) from our model.  We are specifically concerned about normality and equality of variances.  The qqnorm/qqline plot shows no extreme departures from normality and the residual plot below shows no concerns about the equality of variances.  
+
+```{r, echo = FALSE, eval=FALSE}
+boxplot(Data ~ Group, data = cotton, col = "lightblue", xlab = "Group",
+        ylab = "Wt. %")
+```
+
+```{r, echo = FALSE, fig.align='center',, fig.width=6, fig.height=3.5, dpi=200}
+par(mfrow=c(1, 2))
+qqnorm(fit$residuals, pch = 16, main = " ")
+qqline(fit$residuals)
+plot(fit$fitted.values, fit$residuals, pch = 16, xlab = "Fitted Values", ylab = "Residuals")
+abline(h = 0)
+```
+
+
+## 2)
+
+### A)
+
+The total sum of squares was computed to be 280 while the treatment sum of squares was compute to be 120.  This means the error (or within) sum of squares is $280-120 = `r 280-120`$. In order to compute an ANOVA table we need to determine the group size and the size within groups. $N = `r 5*4`$, $a = 5$, and $n = 5$.  
+
+```{r, echo=FALSE}
+N <- 20; a <- 4
+sst <- 280; sstr <- 120; sse <- 280-120
+mstr <- sse/(a-1); mse <- sse/(N-a)
+F0 <- mstr/mse
+```
+
+### Analysis of Variance Table:
+
+| Sum of Squares    | Degrees of Freedom   | Mean Square      | $F_0$  |
+|------:|-----:|---------:|:------:|
+|`r sstr`|`r a-1`| `r mstr`  |`r F0` |
+|`r sse`|`r N-a`|  `r mse`  |       |
+|`r sst`|`r N-1`|           |       |
+
+### B)  
+A statistical model for our problem could be described symbolically as  
+$$y_{ij} = \mu_i + \epsilon_{ij}\left\{
+        \begin{array}{ll}
+            i = 1, 2, ... , a \\
+            j = 1, 2, ... , n
+        \end{array}
+    \right.
+$$  
+where $y_{ij}$ is the *ij*th observation, $\mu_i$ is the mean of the *i*th factor level or treatment group, and $\epsilon_{ij}$ is a random error component that incorporates all other sources of variability in the experiment.
+
+A model for our data could be expressed as  
+$$y_{ij} = \mu + \tau_i + \epsilon_{ij}\left\{
+        \begin{array}{ll}
+            i = 1, 2, ... , a \\
+            j = 1, 2, ... , n
+        \end{array}
+    \right.
+    $$
+where $\mu_i = \mu + \tau_i, ~ i = 1, 2, ..., a$.  Here, $\mu$ is the overall mean, so for our purposes it would be the mean for all 20 of our soil treatment observations.  $\mu_i$ is the group treatment means for $i = 1, 2, 3, 4$.  $\tau_i$ is the effect of the soil treatment to the topsoil from the *i*th treatment group.
+
+### C)  
+$$H_0 : \tau_1 = \tau_2 = \tau_3 = \tau_4 = 0$$
+$$H_1 : \tau_i \neq 0 ~~~~ for~ at~ least~ one~ i$$  
+
+We test this hypothesis with the soil data by considering the value for $F_0$ in the above ANOVA table.  If this value can be considered improbable under a given value for $\alpha$ then we say there is significant evidence that there is at least one treatment group that differs from the others.  Our $F_0$ value is `r F0`.  For our data the p-value associated with this *F* statistic is $`r df(F0,3,19)`$.  So at any practical value for $\alpha$ we would conclude there is at least one treatment group that has an effect on the soil moisture content. 
+
+### D) Set up an orthogonal contrast  
+
+Without knowing more about the research question and the anticipated differences and similarities the researcher expects it is difficult to set up an orthogonal contrast.  These are normally most useful with **preplanned comparisons**.  Having said that, here's a try at one:  
+
+| Contrasts    | Treatments
+|------:|-----:|---------:|:------:|:------:|
+|   -   |  1   |   2      |   3   |   4     | 
+|   A   | 1/3  |  1/3     | -1/3   | -1/3     |
+|   B   | 1    |    0     | 0     |  -1     |
+|   C   | 1    |   -1     | 0     | 0       |
+
+The coefficients must sum to zero.  So, for contrast A $\frac{1}{3} \mu_1 + \frac{1}{3} \mu_2 - \frac{1}{3} \mu_3 - \frac{1}{3} \mu_4$ tests the hypothesis that level 1 and 2 are similar but different than levels 3 & 4, and $\frac{1}{3} + \frac{1}{3} - \frac{1}{3} - \frac {1}{3} = 0$ shows that the coefficients sum to zero.  
+
+### E) Set up a 95% CI for type 2 sub-grade soil  
+
+To set up a confidence interval for type 2 group for the soil grade experiment we need to compute our t statistic.  With $\alpha = 0.05~ with~ df = 16$ our t statistic is `r qt(0.975, 16)`.  Also we need to compute $\sqrt{\frac{MS_E}{n}}$.  This is equal to `r sqrt(mse/5)`.  So, our 95% confidence interval for the true mean of group2 is  
+$$\bar y_{2.} - `r qt(0.975,16)*sqrt(mse/5)` \leq \mu_2 \leq \bar y_{2.} + `r qt(0.975,16)*sqrt(mse/5)` $$  
+
+### 3)  Determine the effects of several teaching methods  
+
+### A)  
+
+What is known?  N = 30, a = 5, n = 6.  Scores for each group: 120, 600, 720, 240, 420 for groups 1, 2, 3, 4, and 5 respectively.  $SS_{treatments} = 340$ and $SS_{total} = 465$.  We are asked to complete the ANOVA table:
+
+```{r, echo = FALSE}
+sstr <- 340; sst <- 465; sse <- sst - sstr
+N <- 30; a <- 5; n <- 5
+mstr <- sstr/(a-1); mse <- sse/(N-a)
+F0 <- mstr/mse
+con <- sqrt((mse/n)*20)
+num <- 420 - 120; denom <- sqrt((mse/n))
+t0 <- num/denom
+```
+
+| Sum of Squares    | Degrees of Freedom   | Mean Square      | $F_0$  |
+|------:|-----:|---------:|:------:|
+|`r sstr`|`r a-1`| `r mstr`  |`r F0` |
+|`r sse`|`r N-a`|  `r mse`  |       |
+|`r sst`|`r N-1`|           |       |
+
+The p-value associated with the $F_0$ statistic is equal to $`r df(F0, (a-1), (N-a))`$.
+
+### B)  
+
+A model for our data could be expressed as  
+$$y_{ij} = \mu + \tau_i + \epsilon_{ij}\left\{
+        \begin{array}{ll}
+            i = 1, 2, ... , a \\
+            j = 1, 2, ... , n
+        \end{array}
+    \right.
+    $$
+where $\mu_i = \mu + \tau_i, ~ i = 1, 2, ..., a$.  Here, $\mu$ is the overall mean, so for our purposes it would be the mean for all 30 students and 5 different teaching groups.  $\mu_i$ is the group treatment means for $i = 1, 2, 3, 4, 5$.  $\tau_i$ is the effect the teaching method has on the test scores  from the *i*th treatment group.  The hypothesis we are testing is whether or not the teaching style has an effect on test scores.  It can be represented as 
+$$H_0 : \tau_1 = \tau_2 = \tau_3 = \tau_4 = 0$$
+$$H_1 : \tau_i \neq 0 ~~~~ for~ at~ least~ one~ i$$  
+where we assume the errors from our data to take the form  
+$$y_{ij} \sim N(\mu + \tau_i, \sigma^2)$$  and that the observations are mutually independent.  
+
+### C)  
+
+To test the hypothesis we look at the ANOVA table above in addition to the p-value from the F statistic.  All this tells us is whether or not there is at least one group that is different, or whose effect is not equal to zero.  It does not tell us which group is better, worse, or statistically separate from the others.  Based on the ANOVA table calculations and our p-value, we reject the null hypothesis, that the teaching method has no effect on the student's achievement scores, with a p-value = $`r df(F0, (a-1), (N-a))`$.  We conclude that teaching method has a statistically significant impact on the student's achievement scores.    
+
+### D)  
+
+One set of orthogonal contrasts that would make sense simply looking at the treatment groups (not having any other knowledge about the methods) would be constructed as follows  
+
+|       | Treatments
+|------:|-----:|---------:|------:|------:|------:|
+|   -   |Control|TextA w/teach|TextA w/comp|TextB w/teach|TextB w/comp|
+|Contrasts |  -4   |     1     |  1     |   1      |    1    |
+
+$$H_0: \mu_1 = \mu_2 + \mu_3 + \mu_4 + \mu_5$$ $$Contrast = -\bar y_{1.} + \bar y_{2.} + \bar y_{3.} + \bar y_{4.} + \bar y_{5.}$$  
+The set up of this contrast compares the average effect of all our factors with the control group.  This might be of interest at the onset to the researcher to see if there is an effect from the Textbooks A or B and the teacher or computer when compared with the control textbook.  If there is we could drill down further for more comparisons between A and B or computer and teacher.  
+
+### E)  
+We are asked to test whether the mean score between groups 1 and 5 differ significantly at $\alpha = 0.05$. $H_0: \mu_1 = \mu_5$, $H_a: \mu_1 \neq \mu_5$. 
+The contrasts for our test will be $c_1 = -1,~c_5 = 1,~c_2 = c_3 = c_4  = 0$  
+$$t_0 = \frac{\sum_{i=1}^{a}c_i \bar y_{i.}}{\sqrt{\frac{MS_E}{n}\sum_{i=1}^{a}c_i^2}}$$  
+$$`r t0` = \frac{`r num`}{`r denom`}$$  with $t_{\alpha/2,N-a} = `r qt(1-0.05/2, df = N-a)`$.  So, we would reject the null hypothesis at $\alpha = 0.05$.  We conclude that there is a significant difference between group 1 and group 5 achievement scores.  
+
+### F)  
+The standard error for the contrasts $\mu_1 +\mu_2 + 2\mu_3 + \mu_4 - 5\mu_5$ is computed with the following formula  $$\sqrt{\frac{MS_E}{n}\sum_{i=1}^{a}c_i^2}$$  where $MS_E = `r mse`$ and $\sum_{i=1}^{a}c_i^2$ is equal to $(-4)^2 + 1^1 + 1^2 + 1^2 + 1^2 = 20$.  So, $$`r con` = \sqrt{\frac{`r mse`}{`r n`}\times 20}$$

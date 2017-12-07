@@ -1,0 +1,185 @@
+---
+title: "DOE"
+author: "Cody Frisby"
+date: "March 25, 2016"
+output: pdf_document
+---
+
+Here, I do the in class example using R rather than minitab.  
+
+```{r, dpi=200, fig.align='center'}
+y <- c(1.68,1.98,2.07,2.44,4.98,5.70,7.77,9.43,3.24,3.44,4.09,4.53,
+       9.97,9.07,11.75,16.30)
+A <- rep(c(-1, 1), 2)
+B <- rep(c(rep(-1,4),rep(1,4)), 2)
+C <- c(rep(-1,8), rep(1,8))
+D <- rep(c(rep(-1,2), rep(1,2)), 2)
+df <- data.frame(y,A,B,C,D)
+fit.all <- aov(y ~ .^4, df)
+fit.two <- aov(y ~ .*., df) # all two way interactions. 
+summary(fit.all)
+```
+
+Oh, no.  We can't use this model.  There are no remaining *df* so we can not estimate the errors.  
+
+If we have a $2^6$ factorial design.  How many two-way interactions?  6 choose 2, or using R, `r choose(6,2)`.  How many greater than 2 interactions?  6 choose 3 + 6 choose 4 + 6 choose 5 + 6 choose 6.  Or $2^6 - (6 + 15) - 1$.  
+
+In the spirit of replicating the minitab normal plot of the effects, here I attempt to do it in R.  
+
+```{r, dpi=200, fig.align='center', fig.height=7}
+# let's try to create a "good" normal prob plot of the effects
+# another way
+tmp <- qqnorm(coef(fit.all)[-1], ylim = c(-1, 4),
+              main = "Normal Plot of the Effects")
+qqline(coef(fit.all)[-1])
+text(tmp$x, tmp$y, names(coef(fit.all)[-1]), pos=1, cex=0.6)
+```
+
+
+So, from this plot, we could fit a new model keeping B, C, D, A, AD, ABD, AB, ACD, and AC.  
+  We can also simply look at the main effects by using R's function effects(model).
+
+```{r}
+effects(fit.all)
+```
+
+We can look at the values of these and reduce our model using the leading canidates.  Here it appears B, C, D, BC, BD are the leaders. 
+
+Fit the reduced model.
+
+```{r}
+fit.red <- aov(y ~ B+C+D+B*C+B*D, data = df)
+anova(fit.red)
+```
+
+Diagnostics of the reduced model.
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit.red, which = c(1,2))
+```
+
+These don't look great.  We will fit a new model with a transformation on the response. 
+
+```{r}
+fit.trans <- aov(log(y) ~ B+C+D+B*C+B*D, data = df)
+anova(fit.trans)
+```
+
+Now let's take a look at the residuals from this model.
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit.trans, which = c(1,2))
+```
+
+After transformation, this is looking much better.  
+
+We can also use some built in functions in R to find the best transformation to use.  PowerTransform() and boxcox() from the car package are very easy to use and very cool.  
+
+```{r}
+car::powerTransform(fit.red)
+```
+
+We can also visually plot this:
+
+```{r, dpi=200, fig.align='center', fig.height=5}
+library(car)
+boxCox(fit.red)
+```
+
+So, this power of lambda, -0.2259, may be even better than log for our transformation.  Although, zero is inside the dotted lines on the boxCox plot, meaning log could be an appropriate transformation.  
+
+## In class 4-1-16,  Chapter 9 $3^2$ design  
+
+```{r}
+y <- c(4,5,2,5,3,3,6,9,2,3,0,1,7,13,5,8,7,8)
+A <- c(rep("a0",6), rep("a1",6), rep("a2",6))
+B <- rep(c(rep("b0",2), rep("b1",2), rep("b2",2)),3)
+df <- data.frame(y,A,B)
+fit <- aov(y ~ A*B, df)
+summary(fit)
+```
+
+Here, we look at the interaction plot:
+                 
+```{r, dpi=200, fig.align='center'}
+with(df, interaction.plot(A, B, y, col = 2:4, xlab = "A", ylab = "y",
+                          trace.label = "B"))
+```
+
+And some residual plots:  
+
+```{r, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit, which = c(1,2))
+```
+
+Residuals don't look great here.  
+
+## In Class 4-8-2016  
+
+```{r}
+yl <- c(98,97,99,96,91,90,93,92,96,95,97,95,95,96,99,98)
+loom <- factor(c(rep(1,4), rep(2,4), rep(3,4), rep(4,4)))
+dfl <- data.frame(yl,loom)
+plot(yl ~ loom)
+# factor(s) chosen at random
+library(lme4) 
+fit <- lmer(yl ~ (1 | loom), data = df) #mixed effects model
+summary(fit)
+fit.aov <- aov(yl ~ loom)
+summary(fit.aov)
+```
+
+
+Example from Montgomery book page 576....Random Factors
+
+```{r}
+library(lme4)
+part <- factor(rep(1:20, 6))
+operator <- factor(c(rep(1,40), rep(2,40), rep(3,40)))
+y <- c(21,24,20,27,19,23,22,19,24,25,21,18,23,24,29,26,20,19,25,19,
+       20,23,21,27,18,21,21,17,23,23,20,19,25,24,30,26,20,21,26,19,
+       20,24,19,28,19,24,22,18,25,26,20,17,25,23,30,25,19,19,25,18,
+       20,24,21,26,18,21,24,20,23,25,20,19,25,25,28,26,20,19,24,17,
+       19,23,20,27,18,23,22,19,24,24,21,18,25,24,31,25,20,21,25,19,
+       21,24,22,28,21,22,20,18,24,25,20,19,25,25,30,27,20,23,25,17)
+df <- data.frame(operator, part, measurement = y)
+df1 <- data.frame(y, as.numeric(part), as.numeric(operator))
+fit.576 <- lmer(y ~ 1 + (1|part:operator)+(1|operator)+(1|part:operator))
+# produces different result than book.
+fit.576 <- lmer(y ~ 1 + (1|part)+(1|operator)+(1|part:operator), REML = FALSE)
+# these functions in R produce a different result from the textbook.  There 
+# may be an issue with my notation...need to figure this out still.
+fit.576r <- lmer(y ~ 1 + (1|part:operator)+(1|operator))
+# even the reduced model is different
+# try by using aov and Error()
+aov(y ~ Error(part/operator))
+# getting closer.....
+aov(y ~ Error(part/operator))
+e <- aov(y ~ Error(part*operator))
+```
+
+
+Still trying to figure out R notation and variance components....
+
+```{r}
+library(qualityTools)
+#create a Gage R&R Design
+temp = gageRRDesign(3,10, 2, randomize = FALSE)
+#set the response i.e. Measurements
+y = c(23,22,22,22,22,25,23,22,23,22,20,22,22,22,24,25,27,28,23,24,23,24,24,22,
+      22,22,24,23,22,24,20,20,25,24,22,24,21,20,21,22,21,22,21,21,24,27,25,27,
+      23,22,25,23,23,22,22,23,25,21,24,23)
+response(temp) = y
+#perform a Gage R&R
+gdo = gageRR(temp)
+gdo@Varcomp #variance components
+plot(gdo)
+d <- as.data.frame.gageRR(temp)
+summary(d)
+d <- d[3:5]
+aov(Measurement ~ .*., d)
+```
+

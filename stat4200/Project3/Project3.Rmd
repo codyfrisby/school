@@ -1,0 +1,91 @@
+---
+title: "Project 3"
+author: "Cody Frisby"
+date: "November 30, 2015"
+output:
+  html_document:
+    keep_md: yes
+---
+
+This is an exercise using resampling that I thought would be fun.  This is being done in addition to the original project three.  
+
+```{r, echo = FALSE}
+#load my data into R
+trees <- read.csv("C:/Users/cfrisby/Documents/STAT4200_Project3/trees.csv")
+#libraries used
+library(data.table)
+trees <- data.table(trees)
+```
+
+Here is a summary of my data from project 3.
+
+```{r, message=FALSE, echo=FALSE}
+library(dplyr)
+#summarise my data
+t <- trees %>%
+        group_by(Stratum) %>%
+        summarise_each(funs(mean, sd), Trees)
+#add columns
+t$N <- c(59, 66, 67) #this is N per strata
+t$Tao <- t$mean * t$N #this is the estimate of Tao per strata.
+t
+```
+
+And here is a plot of the data by stratum.
+
+```{r, echo = FALSE}
+boxplot(trees$Trees ~ trees$Stratum, main = "Trees by Stratum", 
+        xlab = "Stratum", ylab = "Trees", col = "green")
+```
+
+
+Now I am going to resample from each stratum individually.  Then I will combine the all the resampled data and look at the results. 
+
+```{r}
+a <- trees[Stratum == 1]
+b <- trees[Stratum == 2]
+c <- trees[Stratum == 3]
+#I will get estimates on the bound by bootstrapping the data without Strata
+na <- length(a$Trees)
+rfs <- 1000
+xa <- a$Trees 
+A <- matrix(sample(xa, na * rfs, replace = TRUE), rfs, na)
+Tao_1 <- apply(A, 1, mean) * 59
+
+nb <- length(b$Trees)
+rfs <- 1000
+xb <- b$Trees 
+B <- matrix(sample(xb, nb * rfs, replace = TRUE), rfs, nb)
+Tao_2 <- apply(B, 1, mean) * 66
+
+nc <- length(c$Trees)
+rfs <- 1000
+xc <- c$Trees 
+C <- matrix(sample(xc, nc * rfs, replace = TRUE), rfs, nc)
+Tao_3 <- apply(C, 1, mean) * 67
+# I did the above threes times.  One for each stratum.
+D <- cbind(Tao_1, Tao_2, Tao_3)
+D <- as.data.frame(D)
+D$Tao <- D$Tao_1 + D$Tao_2 + D$Tao_3
+#Now we have a column that estimates trees using the strata data.
+```
+
+This is a view of the result
+
+```{r}
+head(D)
+tail(D)
+```
+
+
+```{r, echo=FALSE}
+hist(D$Tao, col = "green", main = "Estimate for Trees on UVU Campus",
+     xlab = "Trees")
+```
+
+```{r}
+
+mean(D$Tao)
+quantile(D$Tao, c(0.025, 0.975))
+
+```

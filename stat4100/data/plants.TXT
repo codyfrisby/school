@@ -1,0 +1,9 @@
+Response	Irrigation	Fertilizer
+8.6	low	low
+9.2	low	low
+4.7	low	high
+3.9	low	high
+10.4	high	low
+11.4	high	low
+14.1	high	high
+15.3	high	high

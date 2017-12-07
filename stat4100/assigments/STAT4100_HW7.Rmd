@@ -1,0 +1,116 @@
+---
+title: "Homework 7"
+author: "Cody Frisby"
+date: "March 28, 2016"
+output: pdf_document
+---
+
+### 1)  
+#### A) Significant Factors  
+
+```{r, echo=FALSE, fig.align='center', dpi=200}
+prob1 <- read.csv("~/Documents/STAT4100/data/hw6-1.csv")
+# fit the fully model
+fit.all <- aov(yield ~ .^4, data = prob1)
+# plot the effects 
+tmp <- qqnorm(coef(fit.all)[-1], ylim = c(-2.5, 2.5),
+              main = "Normal Plot of the Effects")
+qqline(coef(fit.all)[-1])
+text(tmp$x, tmp$y, names(coef(fit.all)[-1]), pos=1, cex=0.6)
+fit <- aov(yield ~ A*C+A*D, data = prob1) # this is the model here
+```
+
+
+This plot shows that A, C, D, AC, and AD are effects of interest to us.  
+  Let's fit this model and look at the residuals from it.
+
+#### B) Model from effects from part A  
+
+Here, I display an ANOVA table, which will have an estimate of the error since we are fitting a reduced model $$yield = A + C + D + AC + AD$$  
+
+```{r, echo=FALSE, dpi=200, fig.align='center'}
+knitr::kable(anova(fit))
+```
+
+A, C, D, AC, & AD all have a significant effect on yield.  
+
+#### C) Residual Analysis  
+
+Here, we take a look at the residuals from our model and see if the model assumptions hold up.  
+
+```{r, echo=FALSE, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit, which = c(1,2))
+```
+
+It looks like there are no major concers with the residuals.  Our model assumptions hold up.  
+
+#### D)  $2^3$ Design with Replicates?  
+
+```{r}
+ix <- 2:5
+prob1[ix] <- lapply(prob1[ix], as.factor)
+#plot.design(prob1)
+```
+
+Yes, if we remove B as a factor, this design becomes a $2^3$ design with two replicates per level/factor combination.  
+
+#### E)  Maximize Yield  
+
+To maximize yield I would suggest running with A "high", C "low", and D "high".  Our model predicts that this combination will give us the most desirable result.  
+
+```{r, echo=F}
+prob2 <- read.csv("~/Documents/STAT4100/data/hw6-2.csv")
+```
+
+
+### 2) Semiconductor Experiment  
+
+#### A)  Which Factors?  
+
+The factors that are significant can be found by fitting a full factorial model and then plotting the effects and visually identifying the "outliers".  
+
+```{r, echo=FALSE, fig.align='center', dpi=200}
+# fit the fully model
+fit.all <- aov(y ~ .^4, data = prob2)
+# plot the effects 
+tmp <- qqnorm(coef(fit.all)[-1], ylim = c(-0.1, 0.1),
+              main = "Normal Plot of the Effects")
+qqline(coef(fit.all)[-1])
+text(tmp$x, tmp$y, names(coef(fit.all)[-1]), pos=1, cex=0.6)
+fit <- aov(y ~ A*C+D, data = prob2) # this is the model here
+```
+
+Here, A, C, D, & AC appear to be of interest to us.  
+
+#### B)  Residuals  
+
+ANOVA table from our fitted model is `r knitr::kable(anova(fit))`  
+
+  And here we plot the residuals.  
+
+```{r, echo=FALSE, dpi=200, fig.align='center'}
+par(mfrow=c(1,2))
+plot(fit, which = c(1,2))
+```
+
+Normality assumption appears to be OK, but the equality of variances is of a little concern.  Although, sample size is small, and the scatter does appear to be random "enough".  Assumptions are OK.  
+
+
+### R code:  
+
+```{r, eval=F}
+prob1 <- read.csv("~/Documents/STAT4100/data/hw6-1.csv")
+# fit the fully model
+fit.all <- aov(yield ~ .^4, data = prob1)
+# plot the effects 
+tmp <- qqnorm(coef(fit.all)[-1], ylim = c(-2.5, 2.5),
+              main = "Normal Plot of the Effects")
+qqline(coef(fit.all)[-1])
+text(tmp$x, tmp$y, names(coef(fit.all)[-1]), pos=1, cex=0.6)
+fit <- aov(yield ~ A*C+A*D, data = prob1) # this is the model
+anova(fit)
+ix <- 2:5
+prob1[ix] <- lapply(prob1[ix], as.factor)
+plot.design(prob1)
+```
