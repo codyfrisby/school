@@ -5,39 +5,35 @@
 #f <- function(x) x^2 - 2
 
 ####################### Bisection method ##################
-bisection <- function(a, b, FUN = f, tol = .Machine$double.eps^0.5, num = 20){
+bisection <- function(a, b, FUN = f, tol = .Machine$double.eps^0.5, num = 30){
   if (FUN(0) == 0) stop("Zero is a root.")
   if (FUN(a) * FUN(b) > 0) stop("f(a) and f(b) can not be the same sign.")
-  i <- 1
   Fa <- FUN(a)
   Fp <- FUN((a + b) / 2) # need for control
-  guess <- (a + b) / 2 # if Fp is the correct answer to begin with
-  a1 <- a
-  b1 <- b
-  iteration <- i
+  guess <- vector() # initialize
+  a1 <- vector() # initialize
+  b1 <- vector() # initialize
+  i <- 1
   while (abs(Fp) > tol) {
     p <- (a + b) / 2 # middle of a and b
     Fp <- FUN(p)
-    i <- i + 1
-    a1[i] <- a
-    b1[i] <- b
+    a1[i] <- a # store it
+    b1[i] <- b # store it
     guess[i] <- p # store the result in a vector
-    iteration[i] <- i
+    i <- i + 1 # increment for while loop
     if (Fa * Fp > 0) { # bisection method test
-      a = p # a moves if Fa and Fp are the same sign
-      Fa = Fp
+      a <- p # a moves if Fa and Fp are the same sign
+      Fa <- Fp
     } else {
-      b = p # b moves if Fa and Fp are opposite signs
+      b <- p # b moves if Fa and Fp are opposite signs
     }
     if (i == num){
       stop("Error > tol.  Max iterations reached")
     }
   }
-  RESULT <- cbind(guess, a1, b1, iteration) # for printing/storing purposes
-  colnames(RESULT) <- c("guess", "a", "b", "iteration") # meaningful name
+  RESULT <- cbind(guess, a1, b1) # for printing/storing purposes
+  colnames(RESULT) <- c("guess", "a", "b")
   return(RESULT)
-  #return(sprintf("[%f, %f], %f", a1, b1, guess))
-  # C printing : printf("[%f,%f], %f \n", left,right,middle);
 }
 
 
@@ -82,6 +78,7 @@ fixedpoint <- function(p0 = 1, FUN = g, tol = 1e-6, n = 100) {
   RESULT <- cbind(guess)
   return(RESULT)
 }
+
 ## fixed point method with plotting
 fixed_plot <- function(x, FUN = cos, n = 10) {
   xmin <- -abs(x)
@@ -110,11 +107,11 @@ fixed_plot <- function(x, FUN = cos, n = 10) {
   colnames(m) <- c("x", "x0", "diff")
   return(m)
 }
+
 ################ Newton's Method ##########################
 # newton's method needs two function: f and f'
 #f <- function(x) cos(x) - x
 #fprime <- function(x) -sin(x) - 1 
-
 newton2 <- function(x0 = 0, FUN = f, FP = fp, 
                    tol = .Machine$double.eps^0.5, n = 100) {
   i <- 1
@@ -129,8 +126,58 @@ newton2 <- function(x0 = 0, FUN = f, FP = fp,
     guess[i] <- x0  # store ith iteration 
     fx[i] <- fx1
     dfx[i] <- dfx1 # store ith iteration
-    error[i] <- abs(-fx1/dfx1) # store ith iteration
+    error[i] <- abs(-fx1/dfx1) # store ith "error"
     x <- x0 - fx1 / dfx1 # calculate x
+    if (is.infinite(x - x0)) stop("Can't divide by 0. Pick a different x0")
+    if (abs(x - x0) < tol) {
+      return(cbind(guess, fx, dfx, error))
+      break
+    } else {
+      i <- i + 1
+      x0 <- x # update for next loop
+    }
+    #if (i == n) stop("Max number of iterations reached.")
+  }
+  return(cbind(guess, fx, dfx, error))
+}
+
+## Order of convergence?
+convergence <- function(x, alpha = 1) { # only works on output from newton2
+  n <- dim(x)[1]
+  p <- x[n, 1] # this is our "root", or at least what we converged to.
+  ek <- abs(p - x[,1]) # kth error
+  e <- vector()
+  for(i in 2:length(ek)) {
+    e[i-1] <- ek[i] / (ek[i-1]^alpha)
+  }
+  return(e) # asymptotic error constant
+}
+
+## Visualize order of convergence 
+plot.convergence <- function(x, alpha = 1) {
+  plot(convergence(x, alpha), xlab = "n", ylab = "Asymptotic Error", type = "b")
+  grid()
+  abline(v = 0, lty = 3); abline(h = 0, lty = 3)
+}
+
+######## Modified Newton method, should converge quadratically #######
+modifiedNewton <- function(x0 = 0, FUN = f, FP = fp, FPP = fpp, 
+                     tol = .Machine$double.eps^0.5, n = 100) {
+  i <- 1
+  guess <- numeric()
+  fx <- numeric()
+  dfx <- numeric()
+  error <- numeric()
+  e <- tol + 1
+  while (e >= tol && i <= n) {
+    fx1 <- FUN(x0)
+    dfx1 <- FP(x0)
+    df2x1 <- FPP(x0)
+    guess[i] <- x0  # store ith iteration 
+    fx[i] <- fx1
+    dfx[i] <- dfx1 * (1 - (fx1 * df2x1)/(dfx1^2)) # store ith iteration
+    error[i] <- abs(-fx[i]/dfx[i]) # store ith iteration
+    x <- x0 - (fx[i] / dfx[i])
     if (is.infinite(x - x0)) stop("dx = 0.  Can't divide by 0. Pick a different x0")
     if (abs(x - x0) < tol) {
       return(cbind(guess, fx, dfx, error))
@@ -144,8 +191,39 @@ newton2 <- function(x0 = 0, FUN = f, FP = fp,
   return(cbind(guess, fx, dfx, error))
 }
 
-############# Secant Method ###############################
-secant2 <- function(FUN, p0, p1, n = 20, tol = .Machine$double.eps^0.5) {
+#################### Steffenson's Method #######################
+steffenson <- function(x0 = 0, FUN = f, 
+                    tol = .Machine$double.eps^0.5, n = 100) {
+  i <- 1
+  guess <- numeric()
+  fx <- numeric()
+  gx <- numeric()
+  error <- numeric()
+  e <- tol + 1
+  while (e >= tol && i <= n) {
+    fx1 <- FUN(x0)
+    gx1 <- (FUN(x0 + fx1) - fx1) / fx1
+    guess[i] <- x0  # store ith iteration 
+    fx[i] <- fx1
+    gx[i] <- gx1 # store ith iteration
+    error[i] <- abs(-fx1/gx1) # store ith iteration
+    x <- x0 - fx1 / gx1 # calculate x
+    if (is.infinite(x - x0)) stop("dx = 0.  Can't divide by 0. Pick a different x0")
+    if (abs(x - x0) < tol) {
+      return(cbind(guess, fx, gx, error))
+      break
+    } else {
+      i <- i + 1
+      x0 <- x # update for next loop
+    }
+    #if (i == n) stop("Max number of iterations reached.")
+  }
+  return(cbind(guess, fx, gx, error))
+}
+
+
+############# Secant Method ##############
+secant2 <- function(FUN, p0, p1, n = 30, tol = .Machine$double.eps^0.5) {
   i <- 1
   q0 <- FUN(p0)
   q1 <- FUN(p1)
@@ -171,7 +249,7 @@ secant2 <- function(FUN, p0, p1, n = 20, tol = .Machine$double.eps^0.5) {
   }
   return(cbind(guess, iteration, e))
 }
-###########################################################
+
 ########## False Position Method ##########################
 Fposition <- function(FUN = f, p0, p1, tol = .Machine$double.eps^0.5, n = 20) {
   i <- 1
@@ -204,7 +282,7 @@ Fposition <- function(FUN = f, p0, p1, tol = .Machine$double.eps^0.5, n = 20) {
   }
   return(cbind(guess, a, b, iteration))
 }
-###########################################################
+
 ################ Cubic Convergence ########################
 # newton's method needs two function: f and f'
 #f <- function(x) cos(x) - x
@@ -272,39 +350,35 @@ iterate_plot <- function(x, FUN = cos, ..., n = 10, plot = TRUE) {
   return(m)
 }
 
-### write a function that finds which error
-f <- function(x) x^2 - 3 - 0.001 # function for example
-fp <- function(x) 2 * x # derivative
-# use newton's method to find x0 for the 3rd iterate
-## start: 
-#p0 <- 1
-#p1 <- 4
 
-err <- function(p0 = 1, p1 = 4, n = 30, e = 0.001) {
-  q0 <- newton2(x0 = p0, n = 3)[3, 4] - e
-  q1 <- newton2(x0 = p1, n = 3)[3, 4] - e
+### This function combines Newton and Secant methods to find the ...
+## ... Guess which would give a certain error on the third iteration
+err <- function(p0 = 1, p1 = 4, n = 30, e = 0.001, iter = 3, tol = .Machine$double.eps^0.5,
+                FUN = f, FP = fp) {
+  q0 <- newton2(x0 = p0, n = iter, FUN, FP)[iter, 4] - e
+  q1 <- newton2(x0 = p1, n = iter, FUN, FP)[iter, 4] - e
   r <- p1 - q1 * ((p1 - p0) / (q1 - q0))
   for(i in 1:n) {
-    q0 <- newton2(x0 = p0, n = 3)[3, 4] - e
-    q1 <- newton2(x0 = p1, n = 3)[3, 4] - e
+    q0 <- newton2(x0 = p0, n = iter, FUN, FP)[iter, 4] - e
+    q1 <- newton2(x0 = p1, n = iter, FUN, FP)[iter, 4] - e
     r <- p1 - q1 * ((p1 - p0) / (q1 - q0))
-    if (abs(q1) <= 1e-14) {
+    if (abs(q1) <= tol) {
       break
     }
     i <- i + 1
     p0 <- p1
     q0 <- q1
     p1 <- r
-    q1 <- newton2(x0 = r)[3, 4] - 0.001
+    q1 <- newton2(x0 = r, FUN, FP)[iter, 4] - e
   }
   names(r) <- NULL
-  CHECK <- newton2(x0 = r, n = 3)
-  RESULT <- r
+  CHECK <- newton2(x0 = r, n = iter)
   return(list(x0 = r, check = CHECK))
 }
 
 # check the results:
 #newton2(x0 = 2.251616, n = 3) 
+
 
 ###################### Horner's Method (2 versions)########
 horner2 <- function(x, v) { # Horner's method
@@ -340,15 +414,15 @@ newthorn <- function(a, x0, n = NULL) { # a are the coeffs from 0 to n
     x0 <- b[i] # update x0
     if(abs(h$b[k]) <= 1e-10) {
       message(paste(b[i], "is a root"))
-      # Need to add multiple root finding
+      # Need to add multiple root finding, see allRealRoots
     }
   }
   return(list(guesses = b, lastHorn = h$b))
 }
 
 ## Test case for allRealRoots() :
-a <- c(-5040, 1602, 1127, -214, -72, 4, 1)
-x0 <- 8
+#a <- c(-5040, 1602, 1127, -214, -72, 4, 1)
+#x0 <- 8
 #################  ALL REAL ROOTS, FAST ###################
 allRealRoots <- function(a, x0, n = 20) { # a are the coeffs from 0 to n
   b <- vector()

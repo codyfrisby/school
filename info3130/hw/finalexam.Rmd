@@ -1,0 +1,39 @@
+---
+title: "Final Exam INFO 3130"
+author: "Cody Frisby"
+date: "12/10/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 'center',
+                      message = F, warning = F)
+library(readxl)
+library(nnet) # neural nets
+library(rpart) # decision trees
+library(rpart.plot) # plotting trees
+library(ggplot2)
+
+# CRISP-DM:  business understanding, data understanding, data prep, build model, evaluate, deployment.
+#  Examples:
+#Product Data Tab, retail store that sales outdoor goods, first aid and saftey?
+# Store Data Tab, locations, size, retention.  How many people am I going to lose each month?  
+# Is the number of employees related to monthly revenue?
+# Binary column.  Predict if you are going to retain?
+# How many of your stores are in your highest performing group?  If k=3......?
+# Numeric inputs, with catagorical result... which model?  DA, KNN, NB, ANN, or DT.
+```
+
+
+```{r read data in, cache=TRUE}
+path <- "~/Documents/school/info3130/data/finalexamdata.xlsx"
+sheets <- excel_sheets(path)
+df1 <- read_excel(path, sheets[1])
+df2 <- read_excel(path, sheets[2])
+df3 <- read_excel(path, sheets[3])
+df4 <- read_excel(path, sheets[4])
+df5 <- read_excel(path, sheets[5])
+df6 <- read_excel(path, sheets[6])
+df7 <- read_excel(path, sheets[7])
+```
+
