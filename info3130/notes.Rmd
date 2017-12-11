@@ -468,3 +468,26 @@ Examples:
 - How many of your stores are in your highest performing group?  If k=3......?
 - Numeric inputs, with catagorical result... which model?  DA, KNN, NB, ANN, or DT.  
 
+
+Test 1 Notes:
+5 or 6 questions for this one.
+
+4 will be hands on the keyboard, applied knowledge questions. 
+Descriptive stats:  Central tendency, dispersion, $2 \sigma$ (outliers).
+
+Correlation: pearson, spearman, kendall
+Association rules.  You need to have binomial variables.
+K-means (today).  Centroids by hand
+Crisp-DM.  What are the 6 parts and what order?
+
+For the test we will download a word doc.  
+
+Test 2 Notes:
+
+- 5 questions, 1 per chapter
+- Chapter 7: KNN, Discriminant Analysis (LDA), Naive Bayes
+  Numeric, independent variables.  Catagorical dependent variable.  LDA does not give the post probability percent (just a class prediction).  If you're interested in strength of correlation between indy and dep. variables, use KNN.  If you're looking at pure frequencys, use Naive Bayes.
+- Chapter 8: Linear regression.  Predicts a continuous response.
+- Chapter 9: Logistic regression.  Binary response.  Predictors need to be numeric.  
+-Chapter 10: Decision Trees.  Independent variables can be mixed.  Which predictive models are you allowed to have missing values in your model?  Build a tree and follow a branch of the tree to predict class.  
+-Chapter 11: Neural Networks.  Numeric indy vars.  Catagorical dep. var.  Strength of association between the predictor and response variables. 

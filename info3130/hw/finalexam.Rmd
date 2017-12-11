@@ -1,19 +1,15 @@
 ---
 title: "Final Exam INFO 3130"
 author: "Cody Frisby"
-date: "12/10/2017"
+date: "12/11/2017"
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 'center',
-                      message = F, warning = F)
-library(readxl)
-library(nnet) # neural nets
-library(rpart) # decision trees
-library(rpart.plot) # plotting trees
-library(ggplot2)
+knitr::opts_chunk$set(echo = FALSE, dpi = 200, fig.align = 'center', message = F, warning = F)
 
+#library(rpart) # decision trees
+#library(rpart.plot) # plotting trees
 # CRISP-DM:  business understanding, data understanding, data prep, build model, evaluate, deployment.
 #  Examples:
 #Product Data Tab, retail store that sales outdoor goods, first aid and saftey?
@@ -27,13 +23,78 @@ library(ggplot2)
 
 ```{r read data in, cache=TRUE}
 path <- "~/Documents/school/info3130/data/finalexamdata.xlsx"
+library(readxl) # good excel functions in this package
 sheets <- excel_sheets(path)
 df1 <- read_excel(path, sheets[1])
+## df1 has an extra row that shouldn't be there
+df1 <- df1[-380, ]
 df2 <- read_excel(path, sheets[2])
 df3 <- read_excel(path, sheets[3])
 df4 <- read_excel(path, sheets[4])
 df5 <- read_excel(path, sheets[5])
 df6 <- read_excel(path, sheets[6])
 df7 <- read_excel(path, sheets[7])
+
+## Split the data into a test and training set
+CrossVal <- function(df, p = 2/3) { # takes an R dataframe
+  n <- dim(df)[1] # number of rows in n
+  s <- sample(1:n, size = n * p) # simple random sample of size n*p
+  train <- df[s, ] # training dataset
+  test <- df[-s, ] # cross validation training set.
+  return(list(train = train, test = test))
+}
+```
+
+## 1.  
+
+## 2.  
+
+## 3.  
+
+## 4.  
+
+## 5.  
+
+## 6.  
+
+## 7.  
+
+## 8.  
+
+## 9.  
+
+## 10.  
+
+
+------------------
+
+## R Code
+
+```{r, echo=TRUE, eval=FALSE}
+## packages used:
+library(readxl)
+
+## Read the data from the provided excel file
+path <- "~/Documents/school/info3130/data/finalexamdata.xlsx"
+sheets <- excel_sheets(path)
+df1 <- read_excel(path, sheets[1])
+## df1 has an extra row that shouldn't be there
+df1 <- df1[-380, ]
+df2 <- read_excel(path, sheets[2])
+df3 <- read_excel(path, sheets[3])
+df4 <- read_excel(path, sheets[4])
+df5 <- read_excel(path, sheets[5])
+df6 <- read_excel(path, sheets[6])
+df7 <- read_excel(path, sheets[7])
+######################################################
+# Here's a function I wrote to do some repetitive work.
+## Split the data into a test and training set
+CrossVal <- function(df, p = 2/3) { # takes an R dataframe
+  n <- dim(df)[1] # number of rows in n
+  s <- sample(1:n, size = n * p) # simple random sample of size n*p
+  train <- df[s, ] # training dataset
+  test <- df[-s, ] # cross validation training set.
+  return(list(train = train, test = test))
+}
 ```
 
