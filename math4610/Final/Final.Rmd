@@ -206,11 +206,11 @@ and continuing to the second divided difference (there's only one)
 
 $$f[x_0,~ x_1,~ x_2] = \frac {f[x_1,~ x_2] - f[x_0,~ x_1]} {x_2 - x_0} = \frac {\frac {-1 - 1} {1 - 0} - 2} {1 - (-1)} = -2$$
 
-Putting it all together we we 
+Putting it all together we get 
 
 $$P_2(x) = -1 + 2(x + 1) - 2(x + 1)(x) = 1 - 2x^2$$ 
 
-which is the same result as the above two methods.  
+which is the same result as the above two methods (of course).  
 
 
 ## 4. Compute the determinant of the Vandermonde interpolation matrix in (3?) b directly and confirm the product formula for the determinant of such a matrix.  
@@ -326,30 +326,142 @@ cheb <- function(n) {
 }
 x <- cheb(3); y <- f(x)
 chebvy <- function(x) 1 - 2.5503 * x^2
-points(x, y, pch = 1, col = "purple")
-curve(chebvy(x), xlim = c(-1, 1), col = "purple", add = T)
+points(x, y, pch = 1, col = "red")
+curve(chebvy(x), xlim = c(-1, 1), col = "red", add = T)
 ```
 
 
-A graph of $cos(\pi x)$, $1 - 2x^2$, and $0.6361 - 1.8835 x^2$ (interpolation of the Chebyshev zeros) is shown in purple for comparision. From visual inspection, it can be seen that the interpolation points are not the same (Chevbychev nodes are in purple too).  
+A graph of $cos(\pi x)$, $1 - 2x^2$, and $0.6361 - 1.8835 x^2$ (interpolation of the Chebyshev zeros) is shown in red for comparision. From visual inspection, it can be seen that the interpolation points are not the same (Chevbychev nodes are in red too).  
 
 Since we know the value of the "just one more" at $0.5$ from before, which was 0, we can compare the error (which was also 0.5) to that of this new polynomial ($T(x)$).  $T(0.5) = `r chebvy(0.5)`$ giving us an error of that same value.  Less error!  Way to go Chebychev!
 
+
+## 7.  Find $p_n[x_0, ..., x_m] = 0$ for any polynomial $p_n(x) = a_nx^n + ... + a_0$ of degree $n$ when $m > n$.  
+
+$\break$
+$\break$
+$\break$
+$\break$
+$\break$
 
 ## 8. Show that 
 
 $$f[x_0, ..., x_n] = \frac {f[x_0, ..., \hat x_j, ..., x_n] - f[x_0, ..., \hat x_i, ..., x_n]} {x_i - x_j}$$  
 
+$\break$
+$\break$
+$\break$
+$\break$
+$\break$
+
 ## 9. Show that 
 
 $$f[x_0, ..., x_n] = \sum_{i=0}^n f(x_i) \frac{1} {\displaystyle \prod_{j = 0,~ j\neq i}^{n} (x_i - x_j)}$$  
 
-## 10. Find the best approximation of $p(x) = x^3$ on the interval $[-1,1]$ by polynomials of $degree \leq 2$ based on the following norms.  
+For $n = 1$ this is true because 
+
+$$f[x_0, x_1] = \frac {f[x_1] - f[x_0]]} {x_1 - x_0} = \frac {f[x_0]} {x_0 - x_1} + \frac {f[x_1]} {x_1 - x_0}.$$  
+
+Now for $n > 1$, and assuming that the above equality holds for some integer $n - 1$, we have 
+
+$$f[x_0, x_1, ..., x_{n-2}, x_n] - f[x_0, x_1, ..., x_{n-2}, x_{n-1}] =\\$$
+<br>
+$$\sum_{j = 0}^{n-2} \frac {f(x_j)} {(x_j - x_n) \displaystyle \prod_{i=0, i \neq j}^{n -2}(x_i - x_j)} - \sum_{j = 0}^{n-2} \frac {f(x_j)} {(x_j - x_{n-1}) \displaystyle \prod_{i=0, i \neq j}^{n -2}(x_i - x_j)} +$$ 
+<br>
+$$ \frac {f(x_n)} {\displaystyle \prod_{i=0}^{n -2}(x_n - x_i)} +  \frac {f(x_{n-1})} {\displaystyle \prod_{i = 0}^{n -2}(x_{n-1} - x_i)}$$
+<br>
+$$= \sum_{j=0}^{n-2} \frac {(x_n - x_{n-1}) f(x_j)} {(x_j-x_n)(x_j - x_{n-1}) \displaystyle \prod_{i = 0, i \neq j}^{n -2}(x_j - x_i)} +$$
+<br>
+$$\frac {(x_n - x_{n-1}) f(x_{n-1})} {\displaystyle \prod_{i = 0, i \neq n-1}^{n}(x_{n - 1} - x_i)} + \frac {(x_n - x_{n-1})} {\displaystyle \prod_{i=0}^{n - 1}(x_n - x_i)}$$
+<br>
+$$ = (x_n - x_{n-1}) \sum_{j=0}^n \frac{f(x_j)} {\displaystyle \prod_{i =0, i \neq j} (x_j - x_i)},$$
+and putting it together we have 
+$$f[x_0, ..., x_n] = \frac{f[x_0, x_1, ..., x_{n-2}, x_n] - f[x_0, x_1, ..., x_{n-2}, x_{n-1}]}{(x_n - x_{n-1})} = \sum_{j=0}^n \frac{f(x_j)} {\displaystyle \prod_{i =0, i \neq j} (x_j - x_i)} ~~~ \blacksquare $$
+
+
+## 10. Find the best approximation of $p(x) = x^3$ on the interval $[-1,1]$ by polynomials of $degree \leq 2$ based on the following norms. 
+
 
 ### A. Least squares
 
+Using the brute force method (aka the linear normal equations) 
+
+$$\sum_{k=0}^2a_k \int_{-1}^1x^{j+k}dx = \int_{-1}^1 x^j x^3$$ 
+
+I get the following matrix after solving all the ensuing integrals (I see why this is the long way).  
+
+$$\begin{bmatrix}
+    2a_0 & 0 & \frac{2}{3}a_2 \\
+    0 & \frac{2}{3}a_1 & 0 \\
+    \frac{2}{3}a_0 & 0 & \frac{2}{5}a_2
+\end{bmatrix} =
+\begin{bmatrix}
+  0 \\
+  \frac{2}{5} \\
+  0
+\end{bmatrix}$$ 
+
+The solutions are $0, 0.6, 0$ resulting in the polynomial
+
+$$P_1(x) = 0.6x$$
+
+Using orthogonal polynomials $1,~ x,~ x^2 - \frac{1}{3}$ we can use 
+
+$$P(x) = \sum_{j=0}^n a_j \phi_j(x)$$ where $\phi_j$ is the $j^{th}$ memmber of an orthogonal set of functions and $a_j$ is found from 
+
+$$a_j = \frac {\displaystyle \int_a^b \omega(x) \phi_j(x) f(x)~ dx} {\displaystyle \int_a^b \omega(x) [\phi_j(x)]^2~ dx}$$ 
+
+and where $w(x) = 1$.  
+
+So, without further ado, let's apply this bad-ass theorem to our problem. 
+$$a_0 = 0$$
+$$a_1 = \frac{3}{5}$$
+$$a_2 = 0$$ 
+
+So, putting it all together we get the same result, only much quicker (if you subtract the time it took for me to comprehend this method) we get
+
+$$\hat y = \frac{3}{5}x$$
+
 
 ### B. Maximum absolute value
+
+This will involve finding the minimum of the maxium of the absolute values between $f(x)$ and all polynomials $\leq$ 2.  Symbollically we can write
+
+$$ \max_{a \leq x \leq b} = |f(x) - P_2(x)| = \min_{p_2 \in \Pi_2} \max_{a \leq x \leq b} |f(x) - p_2(x)|$$
+
+where Chebyshev polynomial approximation closely approximates the above minimax method.  
+
+The coefficents are given by $$c_k = \frac{<f, T_k>} {<T_k, T_k>} = \frac { \int_{-1}^1 \frac {f(x) T_k(x) } {\sqrt{1 - x^2}}dx } {\int_{-1}^1 \frac {[T_k(x)]^2 } {\sqrt{1 - x^2}}dx }$$  
+
+and there are only two possibilities for the denominator, when $k = 0$ it is $\pi$ and otherwise it is $\frac{\pi}{2}$.  So, still plugging away at this we also have $T_0 = 1, ~ T_1(x) = x, ~ T_2(x) = 2x^2 - 1$.  
+$$c_0 = \frac{1}{\pi} \int_{-1}^1 \frac{x^3}{\sqrt{1 - x^2}}dx = 0$$
+$$c_1 = \frac{2}{\pi} \int_{-1}^1 \frac{x^4}{\sqrt{1 - x^2}}dx = 0.75$$
+$$c_2 = \frac{2}{\pi} \int_{-1}^1 \frac{x^3 (2x^2 - 1)}{\sqrt{1 - x^2}}dx = 0$$
+
+These some tough integrals.  Anyways so, our polynomial is 
+
+$$\hat y = \frac{3}{4}x$$  
+
+**Note**:  I display a plot for reference (agian, I like plots :)).  Chebvychev and equally spaced points only agree at the origin.  Maximum absolute value is in blue.  Least squares is in red.  
+
+
+```{r}
+f <- function(x) x^3
+curve(f(x), -1, 1, lty = 3, lwd =2)
+grid()
+abline(h = 0, lty = 3); abline(v = 0, lty = 3)
+
+## least squares
+g <- function(x) 0.6 * x
+curve(g(x), add = TRUE, xlim = c(-1, 1), col = "red")
+
+## chevbychev
+x2 <- cheb(3)
+y2 <- f(x2)
+h <- function(x) 0.75 * x
+curve(h(x), add = TRUE, xlim = c(-1, 1), col = "dodgerblue")
+```
+
 
 
 ---------------
@@ -643,5 +755,36 @@ horner1 <- function(a, x) { # a are the coeffs from order = 0 to n
   }
   return(list(x = y, b = b))
 }
+
+### My interpolate function ##### 
+interpolate <- function(x, y) {
+  n <- length(x)
+  p <- 0:(n-1) # powers
+  b <- outer(x, p, "^")
+  r <- round(qr.solve(b, y), 4) # qr works for larger matricies :)
+  predict.interpolate <- function(x) { # Creates our polynomial function.
+    m <- outer(x, p, "^")
+    v <- apply(m, 1, function(x) sum(x * r))
+    return(v)
+  }
+  message("The coefs of \n f(x) =", paste0(" x", "^", p, " +"))
+  print(r)
+  ## now plot the function
+  xmin <- min(x) - 2
+  xmax <- max(x) + 2
+  ymin <- min(y) - 2
+  ymax <- max(y) + 2
+  plot(x, xlim = c(xmin, xmax), ylim = c(ymin, ymax), 
+       type = "n", xlab = "x", ylab = "f(x)")
+  grid()
+  abline(h = 0, lty = 3) # x axis
+  abline(v = 0, lty = 3)# y axis
+  curve(predict.interpolate(x), from = xmin, to = xmax, 
+        add = TRUE, col = "blue")
+  points(x, y, col = "red", pch = 16)
+}
+
 ```
+
+
 
