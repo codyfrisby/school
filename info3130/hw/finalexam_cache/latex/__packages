@@ -2,3 +2,7 @@ base
 readxl
 nnet
 ggplot2
+Matrix
+arules
+rpart
+rpart.plot
